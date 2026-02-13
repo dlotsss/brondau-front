@@ -1,0 +1,5 @@
+{
+  "name": "RestoReserve Platform",
+  "description": "A comprehensive restaurant reservation and floor plan management application. It allows guests to book tables, admins to manage bookings live, and owners to design restaurant layouts.",
+  "requestFramePermissions": []
+}
