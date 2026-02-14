@@ -287,10 +287,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300 overflow-y-auto p-4 md:p-0">
-            <div className="bg-brand-secondary rounded-lg shadow-2xl p-4 md:p-8 w-full max-w-md my-auto relative transform transition-all duration-300 scale-95 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-4 md:mb-6">
-                    <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>Забронировать столик <span className="text-brand-blue">{table.label}</span></h2>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300">
+            <div className="bg-brand-secondary rounded-lg shadow-2xl p-8 w-full max-w-md m-4 transform transition-all duration-300 scale-95 animate-fade-in-up">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold" style={{ color: '#2c1f14' }}>Забронировать столик <span className="text-brand-blue">{table.label}</span></h2>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white transition-colors">&times;</button>
                 </div>
                 <form onSubmit={handleSubmit}>

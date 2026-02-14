@@ -30,8 +30,6 @@ const ConstructorView: React.FC = () => {
     const [floors, setFloors] = useState<Floor[]>([]);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
-    const [scale, setScale] = useState(1);
-    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
@@ -48,26 +46,6 @@ const ConstructorView: React.FC = () => {
             setIsInitialized(true);
         }
     }, [restaurant, isInitialized]);
-
-    useEffect(() => {
-        if (!containerRef.current) return;
-
-        const updateScale = () => {
-            if (containerRef.current) {
-                const containerWidth = containerRef.current.clientWidth;
-                if (containerWidth > 0) {
-                    const newScale = Math.min(1, containerWidth / 800);
-                    setScale(newScale);
-                }
-            }
-        };
-
-        const observer = new ResizeObserver(updateScale);
-        observer.observe(containerRef.current);
-        updateScale();
-
-        return () => observer.disconnect();
-    }, []);
 
     const selectedElement = elements.find(el => el.id === selectedElementId);
 
@@ -244,11 +222,11 @@ const ConstructorView: React.FC = () => {
     const currentFloorElements = elements.filter(el => el.floorId === activeFloorId);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8 p-4 md:p-0">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-1 bg-brand-primary p-4 rounded-lg shadow-lg flex flex-col">
                 <h3 className="font-bold text-xl mb-4">Инструменты</h3>
                 <div className="grid grid-cols-2 gap-2 mb-6">
-                    <button onClick={() => addElement('table-square')} className="bg-brand-accent p-3 rounded text-sm transition-colors" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c27d3e'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>Квадратный стол</button>
+                    <button onClick={() => addElement('table-square')} className="bg-brand-accent p-3 rounded text-sm transition-colors" style={{ ':hover': { backgroundColor: '#c27d3e' } }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c27d3e'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>Квадратный стол</button>
                     <button onClick={() => addElement('table-circle')} className="bg-brand-accent p-3 rounded text-sm transition-colors" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c27d3e'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>Круглый стол</button>
                     <button onClick={() => addElement('wall')} className="bg-brand-accent p-3 rounded text-sm transition-colors" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c27d3e'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>Стена</button>
                     <button onClick={() => addElement('window')} className="bg-brand-accent p-3 rounded text-sm transition-colors" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c27d3e'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>Окно</button>
@@ -292,123 +270,110 @@ const ConstructorView: React.FC = () => {
 
             <div className="lg:col-span-3">
                 <div className="flex flex-col h-full">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                        <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>Конструктор {restaurant.name}</h2>
-                        <div className="flex flex-wrap items-center gap-2 bg-brand-secondary p-1 rounded-md border border-brand-accent w-full md:w-auto overflow-x-auto">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-bold" style={{ color: '#2c1f14' }}>Конструктор плана зала {restaurant.name}</h2>
+                        <div className="flex items-center space-x-2 bg-brand-secondary p-1 rounded-md border border-brand-accent">
                             {floors.map(f => (
                                 <button
                                     key={f.id}
                                     onClick={() => setActiveFloorId(f.id)}
-                                    className={`px-3 md:px-4 py-1.5 rounded text-sm font-medium transition-all whitespace-nowrap ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-4 py-1.5 rounded text-sm font-medium transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
                                 >
                                     {f.name}
                                 </button>
                             ))}
-                            <button onClick={addFloor} className="px-3 py-1.5 rounded text-sm font-medium text-brand-blue hover:bg-brand-blue/10 transition-colors shrink-0">+</button>
+                            <button onClick={addFloor} className="px-3 py-1.5 rounded text-sm font-medium text-brand-blue hover:bg-brand-blue/10 transition-colors">+</button>
                         </div>
                     </div>
 
-                    <div
-                        ref={containerRef}
-                        className="w-full bg-grid relative overflow-hidden border-2 border-brand-accent rounded-xl flex justify-center shadow-inner"
-                        style={{ backgroundColor: '#f5efe6', height: `${600 * scale}px` }}
-                    >
-                        <div
-                            className="relative origin-top shrink-0"
-                            style={{
-                                width: '800px',
-                                height: '600px',
-                                transform: `scale(${scale})`
-                            }}
-                        >
-                            {currentFloorElements.map(el => {
-                                const isSelected = el.id === selectedElementId;
-                                const baseStyles = {
-                                    left: `${el.x}px`, top: `${el.y}px`,
-                                    width: `${el.width}px`, height: `${el.height}px`,
-                                    zIndex: isSelected ? 10 : 1,
-                                    outline: isSelected ? '2px solid #d5b483' : 'none',
-                                    outlineOffset: '2px'
-                                };
+                    <div ref={canvasRef} className="w-full h-[600px] rounded-lg relative overflow-hidden border-2 border-brand-accent bg-grid" style={{ backgroundColor: '#f5efe6' }}>
+                        {currentFloorElements.map(el => {
+                            const isSelected = el.id === selectedElementId;
+                            const baseStyles = {
+                                left: `${el.x}px`, top: `${el.y}px`,
+                                width: `${el.width}px`, height: `${el.height}px`,
+                                zIndex: isSelected ? 10 : 1,
+                                outline: isSelected ? '2px solid #d5b483' : 'none',
+                                outlineOffset: '2px'
+                            };
 
-                                let content = null;
-                                let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move shadow-sm group flex items-center justify-center pointer-events-auto`;
+                            let content = null;
+                            let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move shadow-sm group flex items-center justify-center pointer-events-auto`;
 
-                                if (el.type === 'table') {
-                                    const shapeClasses = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
-                                    classes += ` font-bold text-white bg-gray-500 shadow-md ${shapeClasses}`;
-                                    content = (el as TableElement).label;
-                                } else if (el.type === 'text') {
-                                    classes += ` bg-transparent border-dashed border border-gray-400 hover:border-solid`;
-                                    content = <div style={{ fontSize: `${(el as TextElement).fontSize || 16}px`, color: '#2c1f14' }} className="text-center w-full h-full overflow-hidden leading-tight flex items-center justify-center p-1">{(el as TextElement).label}</div>;
-                                } else if (el.type === 'arrow') {
-                                    classes += ` text-[#2c1f14]`;
-                                    content = (
-                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
-                                            <path d="M12 2L12 22M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    );
-                                } else if (el.type === 'stairs') {
-                                    classes += ` bg-gray-300`;
-                                    content = (
-                                        <div className="w-full h-full flex flex-col justify-evenly">
-                                            {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-500"></div>)}
-                                        </div>
-                                    );
-                                } else if (el.type === 'plant') {
-                                    classes += ` bg-transparent`;
-                                    content = (
-                                        <div className="relative w-full h-full flex items-center justify-center">
-                                            <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
-                                            <div className="absolute w-full h-full flex items-center justify-center">
-                                                {/* Leaves */}
-                                                <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
-                                                <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
-                                                <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
-                                                <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
-                                            </div>
-                                        </div>
-                                    );
-                                } else {
-                                    const decoStyles: { [key: string]: string } = {
-                                        wall: 'bg-gray-600',
-                                        bar: 'bg-yellow-800 border-b-4 border-yellow-900',
-                                        window: 'bg-sky-200/40 border-2 border-sky-300'
-                                    };
-                                    classes += ` ${decoStyles[el.type] || 'bg-gray-400'}`;
-                                    if (el.type === 'window') {
-                                        content = <div className="w-full h-full flex items-center justify-center"><div className="w-0.5 h-full bg-sky-300/50"></div></div>;
-                                    }
-                                }
-
-                                return (
-                                    <div
-                                        key={el.id}
-                                        onMouseDown={(e) => handleMouseDown(e, el.id)}
-                                        style={baseStyles}
-                                        className={classes}
-                                    >
-                                        {content}
-
-                                        {isSelected && (
-                                            <>
-                                                {/* Corners */}
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'nw')} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nw-resize z-20"></div>
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'ne')} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-ne-resize z-20"></div>
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-sw-resize z-20"></div>
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-se-resize z-20"></div>
-
-                                                {/* Edges */}
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'n')} className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-2 cursor-n-resize z-10"></div>
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 's')} className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-2 cursor-s-resize z-10"></div>
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'w')} className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-full cursor-w-resize z-10"></div>
-                                                <div onMouseDown={(e) => handleResizeStart(e, el.id, 'e')} className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-full cursor-e-resize z-10"></div>
-                                            </>
-                                        )}
+                            if (el.type === 'table') {
+                                const shapeClasses = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
+                                classes += ` font-bold text-white bg-gray-500 shadow-md ${shapeClasses}`;
+                                content = (el as TableElement).label;
+                            } else if (el.type === 'text') {
+                                classes += ` bg-transparent border-dashed border border-gray-400 hover:border-solid`;
+                                content = <div style={{ fontSize: `${(el as TextElement).fontSize || 16}px`, color: '#2c1f14' }} className="text-center w-full h-full overflow-hidden leading-tight flex items-center justify-center p-1">{(el as TextElement).label}</div>;
+                            } else if (el.type === 'arrow') {
+                                classes += ` text-[#2c1f14]`;
+                                content = (
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                                        <path d="M12 2L12 22M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                );
+                            } else if (el.type === 'stairs') {
+                                classes += ` bg-gray-300`;
+                                content = (
+                                    <div className="w-full h-full flex flex-col justify-evenly">
+                                        {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-500"></div>)}
                                     </div>
                                 );
-                            })}
-                        </div>
+                            } else if (el.type === 'plant') {
+                                classes += ` bg-transparent`;
+                                content = (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
+                                        <div className="absolute w-full h-full flex items-center justify-center">
+                                            {/* Leaves */}
+                                            <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
+                                            <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                            <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
+                                            <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                        </div>
+                                    </div>
+                                );
+                            } else {
+                                const decoStyles: { [key: string]: string } = {
+                                    wall: 'bg-gray-600',
+                                    bar: 'bg-yellow-800 border-b-4 border-yellow-900',
+                                    window: 'bg-sky-200/40 border-2 border-sky-300'
+                                };
+                                classes += ` ${decoStyles[el.type] || 'bg-gray-400'}`;
+                                if (el.type === 'window') {
+                                    content = <div className="w-full h-full flex items-center justify-center"><div className="w-0.5 h-full bg-sky-300/50"></div></div>;
+                                }
+                            }
+
+                            return (
+                                <div
+                                    key={el.id}
+                                    onMouseDown={(e) => handleMouseDown(e, el.id)}
+                                    style={baseStyles}
+                                    className={classes}
+                                >
+                                    {content}
+
+                                    {isSelected && (
+                                        <>
+                                            {/* Corners */}
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'nw')} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nw-resize z-20"></div>
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'ne')} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-ne-resize z-20"></div>
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-sw-resize z-20"></div>
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-se-resize z-20"></div>
+
+                                            {/* Edges */}
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'n')} className="absolute -top-1 left-1/2 -translate-x-1/2 w-full h-2 cursor-n-resize z-10"></div>
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 's')} className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-2 cursor-s-resize z-10"></div>
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'w')} className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-full cursor-w-resize z-10"></div>
+                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'e')} className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-full cursor-e-resize z-10"></div>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
