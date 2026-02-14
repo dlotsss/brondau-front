@@ -10,6 +10,35 @@ import { LayoutElement } from '../types';
 const LOGICAL_WIDTH = 1500;
 const LOGICAL_HEIGHT = 1000;
 
+
+// После строки const LOGICAL_HEIGHT = 1000;
+const calculateBounds = (elements: LayoutElement[]) => {
+    if (elements.length === 0) {
+        return { minX: 0, minY: 0, maxX: 500, maxY: 500 };
+    }
+
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    elements.forEach(el => {
+        const halfWidth = (el as any).width / 2;
+        const halfHeight = (el as any).height / 2;
+
+        minX = Math.min(minX, el.x - halfWidth);
+        minY = Math.min(minY, el.y - halfHeight);
+        maxX = Math.max(maxX, el.x + halfWidth);
+        maxY = Math.max(maxY, el.y + halfHeight);
+    });
+
+    const padding = 50;
+    return {
+        minX: minX - padding,
+        minY: minY - padding,
+        maxX: maxX + padding,
+        maxY: maxY + padding
+    };
+};
+
 const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
     const [timeLeft, setTimeLeft] = useState(180);
 
@@ -139,6 +168,18 @@ const AdminView: React.FC = () => {
         return <div className="text-center text-gray-400">Загрузка данных ресторана...</div>;
     }
 
+    const activeFloorElements = restaurant.layout.filter(el =>
+        !activeFloorId || el.floorId === activeFloorId || !el.floorId
+    );
+
+    const bounds = useMemo(() =>
+        calculateBounds(activeFloorElements),
+        [activeFloorElements]
+    );
+
+    const dynamicWidth = bounds.maxX - bounds.minX;
+    const dynamicHeight = bounds.maxY - bounds.minY;
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Column 1: Requests */}
@@ -239,10 +280,10 @@ const AdminView: React.FC = () => {
                         <div
                             className="relative w-full h-full transform origin-top-left transition-transform duration-300"
                             style={{
-                                width: `${LOGICAL_WIDTH}px`,
-                                height: `${LOGICAL_HEIGHT}px`,
-                                minWidth: `${LOGICAL_WIDTH}px`,
-                                minHeight: `${LOGICAL_HEIGHT}px`
+                                width: `${dynamicWidth}px`,
+                                height: `${dynamicHeight}px`,
+                                minWidth: `${dynamicWidth}px`,
+                                minHeight: `${dynamicHeight}px`
                             }}
                         >
                             {restaurant.layout
@@ -300,8 +341,8 @@ const AdminView: React.FC = () => {
                                             <div
                                                 key={el.id}
                                                 style={{
-                                                    left: `${el.x}px`,
-                                                    top: `${el.y}px`,
+                                                    left: `${el.x - bounds.minX}px`,
+                                                    top: `${el.y - bounds.minY}px`,
                                                     width: `${(el as any).width}px`,
                                                     height: `${(el as any).height}px`,
                                                     transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
@@ -351,8 +392,8 @@ const AdminView: React.FC = () => {
                                         <div
                                             key={el.id}
                                             style={{
-                                                left: `${el.x}px`,
-                                                top: `${el.y}px`,
+                                                left: `${el.x - bounds.minX}px`,
+                                                top: `${el.y - bounds.minY}px`,
                                                 width: `${(el as any).width}px`,
                                                 height: `${(el as any).height}px`,
                                                 transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
