@@ -74,53 +74,41 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         }
 
         const now = new Date();
-        const selectedDate = new Date(bookingDate);
+        const [year, month, day] = bookingDate.split('-').map(Number);
+        const selectedDate = new Date(year, month - 1, day);
         const isToday = selectedDate.toDateString() === now.toDateString();
         const currentMins = now.getHours() * 60 + now.getMinutes();
 
         const minBookingMins = isToday ? currentMins + 15 : 0;
 
+        // Shift boundaries for filtering bookings
+        const shiftStart = new Date(selectedDate);
+        shiftStart.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
+        const shiftEnd = new Date(selectedDate);
+        shiftEnd.setHours(Math.floor(endMins / 60), endMins % 60, 0, 0);
+
         const bookingsOnShift = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
             if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED && b.status !== BookingStatus.PENDING) return false;
-
-            const shiftStart = new Date(selectedDate);
-            shiftStart.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
-
-            const shiftEnd = new Date(selectedDate);
-            shiftEnd.setHours(Math.floor(endMins / 60), endMins % 60, 0, 0);
-
             return b.dateTime >= shiftStart && b.dateTime < shiftEnd;
         }) || [];
 
-        let firstBookingMins = endMins;
-        if (bookingsOnShift.length > 0) {
-            bookingsOnShift.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-            const first = bookingsOnShift[0];
-
-            // Calculate minutes from start of day for the first booking
-            const bookingDate0 = new Date(first.dateTime);
-            bookingDate0.setHours(0, 0, 0, 0);
-            const absoluteBookingMins = (first.dateTime.getTime() - bookingDate0.getTime()) / 60000;
-
-            // Handle overnight shifts: if booking is on the next calendar day but part of this shift
-            let adjustedBookingMins = absoluteBookingMins;
-            const startOfDayMins = new Date(selectedDate).setHours(0, 0, 0, 0);
-            const shiftStartAbsoluteMins = (new Date(selectedDate).setHours(Math.floor(startMins / 60), startMins % 60, 0, 0) - startOfDayMins) / 60000;
-
-            if (adjustedBookingMins < shiftStartAbsoluteMins) {
-                adjustedBookingMins += 24 * 60;
-            }
-
-            if (adjustedBookingMins < firstBookingMins) firstBookingMins = adjustedBookingMins;
-        }
+        // Convert bookings to minutes relative to shift start
+        const bookingMinsList = bookingsOnShift.map(b => {
+            const bDate = new Date(b.dateTime);
+            let bMins = bDate.getHours() * 60 + bDate.getMinutes();
+            // Handle overnight shifts
+            if (bMins < startMins) bMins += 24 * 60;
+            return bMins;
+        });
 
         // Only allow booking up to 1 hour before end of work day
         for (let time = startMins; time <= endMins - 60; time += 30) {
             if (isToday && time < minBookingMins) continue;
-            // Must be at least 1 hour before first booking
-            // Must be at least 1 hour before first booking
-            if (time + 60 > firstBookingMins) continue;
+
+            // Check for conflict with ANY existing booking (1 hour gap)
+            const hasConflict = bookingMinsList.some(bm => Math.abs(time - bm) < 60);
+            if (hasConflict) continue;
 
             const h = Math.floor(time / 60) % 24;
             const m = time % 60;
@@ -129,7 +117,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         }
 
         return slots;
-    }, [bookingDate, restaurant, table.id, workStarts, workEnds]);
+    }, [bookingDate, restaurant?.bookings, table.id, workStarts, workEnds]);
 
     useEffect(() => {
         if (availableSlots.length > 0) {
