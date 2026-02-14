@@ -249,6 +249,8 @@ const ConstructorView: React.FC = () => {
         </button>
     );
 
+    const inputStyle = "w-full bg-white text-gray-900 p-1.5 rounded border border-gray-300 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue";
+
     return (
         <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-80px)]">
 
@@ -353,8 +355,7 @@ const ConstructorView: React.FC = () => {
                                 bgClass = 'bg-gray-500 text-white font-bold shadow-md';
                                 content = (el as TableElement).label;
                             } else if (el.type === 'text') {
-                                bgClass = 'border border-dashed border-gray-400';
-                                content = <span style={{ fontSize: (el as TextElement).fontSize, whiteSpace: 'nowrap' }}>{(el as TextElement).label}</span>;
+                                content = <span style={{ fontSize: (el as TextElement).fontSize, whiteSpace: 'nowrap', color: '#000000', fontWeight: 'bold' }}>{(el as TextElement).label}</span>;
                             } else if (el.type === 'plant') {
                                 content = <div className="w-2/3 h-2/3 bg-green-700 rounded-full opacity-80"></div>;
                             } else {
@@ -414,7 +415,7 @@ const ConstructorView: React.FC = () => {
                         {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
                             <div>
                                 <label className="text-gray-400 text-xs block mb-1">Текст / Название</label>
-                                <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className="w-full bg-brand-secondary p-2 rounded text-white border border-gray-600" />
+                                <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className={inputStyle} />
                             </div>
                         )}
 
