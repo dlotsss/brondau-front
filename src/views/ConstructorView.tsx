@@ -4,8 +4,8 @@ import { LayoutElement, TableElement, DecoElement, TextElement, Floor } from '..
 import { useApp } from '../context/AppContext';
 
 // Константы логического размера холста (виртуальные единицы)
-const LOGICAL_WIDTH = 2000;
-const LOGICAL_HEIGHT = 1500;
+const LOGICAL_WIDTH = 1500;
+const LOGICAL_HEIGHT = 1000;
 
 type DragMode = 'move' | 'resize';
 type DragState = {
@@ -379,7 +379,8 @@ const ConstructorView: React.FC = () => {
                             if (el.type === 'table') {
                                 shapeClass = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
                                 bgClass = 'bg-gray-500 text-white font-bold shadow-md';
-                                content = (el as TableElement).label;
+                                const fontSize = Math.min(el.width, el.height) * 0.4;
+                                content = <span style={{ fontSize: `${fontSize}px` }}>{(el as TableElement).label}</span>;
                             } else if (el.type === 'text') {
                                 content = <span style={{ fontSize: (el as TextElement).fontSize, whiteSpace: 'nowrap', color: '#000000', fontWeight: 'bold' }}>{(el as TextElement).label}</span>;
                             } else if (el.type === 'plant') {
@@ -387,7 +388,13 @@ const ConstructorView: React.FC = () => {
                             } else {
                                 const map: any = { wall: 'bg-gray-600', window: 'bg-sky-200/50 border-2 border-sky-300', bar: 'bg-yellow-800 border-b-4 border-yellow-900', arrow: 'text-2xl text-black' };
                                 bgClass = map[el.type] || 'bg-brand-accent';
-                                if (el.type === 'arrow') content = '➔';
+                                if (el.type === 'arrow') {
+                                    content = (
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full p-1">
+                                            <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    );
+                                }
                             }
 
                             return (

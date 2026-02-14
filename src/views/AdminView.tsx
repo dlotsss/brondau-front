@@ -4,6 +4,11 @@ import { Booking, BookingStatus, TableElement, TextElement, DecoElement } from '
 import { useApp } from '../context/AppContext';
 import BookingModal from '../components/BookingModal';
 import { registerServiceWorker, subscribeToPush } from '../services/pushService';
+import { LayoutElement } from '../types';
+
+// Константы логического размера холста (виртуальные единицы)
+const LOGICAL_WIDTH = 1000;
+const LOGICAL_HEIGHT = 800;
 
 const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
     const [timeLeft, setTimeLeft] = useState(180);
@@ -231,7 +236,15 @@ const AdminView: React.FC = () => {
                 <div className="w-full border-2 border-brand-accent rounded-xl shadow-inner overflow-hidden bg-brand-secondary">
                     <div className="overflow-auto w-full h-[500px] md:h-[600px] relative touch-pan-x touch-pan-y">
                         {/* Min-width ensures the map layout doesn't break on small screens */}
-                        <div className="relative min-w-[800px] min-h-[600px] w-full h-full">
+                        <div
+                            className="relative w-full h-full transform origin-top-left transition-transform duration-300"
+                            style={{
+                                width: `${LOGICAL_WIDTH}px`,
+                                height: `${LOGICAL_HEIGHT}px`,
+                                minWidth: `${LOGICAL_WIDTH}px`,
+                                minHeight: `${LOGICAL_HEIGHT}px`
+                            }}
+                        >
                             {restaurant.layout
                                 .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
                                 .map(el => {
@@ -246,8 +259,8 @@ const AdminView: React.FC = () => {
                                         } else if (el.type === 'arrow') {
                                             classes += ` text-[#2c1f14]`;
                                             content = (
-                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
-                                                    <path d="M12 2L12 22M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full p-1">
+                                                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
                                             );
                                         } else if (el.type === 'stairs') {
@@ -324,16 +337,17 @@ const AdminView: React.FC = () => {
                                         }
                                     }
 
-                                    const shapeClasses = el.shape === 'circle' ? 'rounded-full w-12 h-12' : 'rounded-md w-14 h-14';
+                                    const shapeClasses = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
+                                    const fontSize = Math.min((el as any).width, (el as any).height) * 0.4;
 
                                     return (
                                         <div
                                             key={el.id}
-                                            style={{ left: `${el.x}px`, top: `${el.y}px` }}
+                                            style={{ left: `${el.x}px`, top: `${el.y}px`, width: `${(el as any).width}px`, height: `${(el as any).height}px` }}
                                             className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-colors ${shapeClasses} ${statusColor} cursor-pointer hover:scale-110 transition-transform`}
                                             onClick={() => setSelectedTable(el as TableElement)}
                                         >
-                                            {el.label}
+                                            <span style={{ fontSize: `${fontSize}px` }}>{el.label}</span>
                                         </div>
                                     );
                                 })}

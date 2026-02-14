@@ -4,6 +4,10 @@ import { LayoutElement, TableElement, BookingStatus, DecoElement, TextElement } 
 import BookingModal from '../components/BookingModal';
 import { useApp } from '../context/AppContext';
 
+// Константы логического размера холста (виртуальные единицы)
+const LOGICAL_WIDTH = 1000;
+const LOGICAL_HEIGHT = 800;
+
 const Table: React.FC<{ table: TableElement; status: string; onClick: () => void }> = ({ table, status, onClick }) => {
     const statusClasses: { [key: string]: string } = {
         available: 'bg-brand-green/70 hover:bg-brand-green cursor-pointer ring-brand-green',
@@ -11,17 +15,18 @@ const Table: React.FC<{ table: TableElement; status: string; onClick: () => void
         pending: 'bg-brand-yellow/70 cursor-not-allowed ring-brand-yellow',
     };
 
-    const baseClasses = "absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-all duration-300 hover:scale-110 focus:ring-4";
-    const shapeClasses = table.shape === 'circle' ? 'rounded-full w-12 h-12' : 'rounded-md w-14 h-14';
+    const baseClasses = "absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-all duration-300 hover:scale-110 focus:ring-4 group";
+    const shapeClasses = table.shape === 'circle' ? 'rounded-full' : 'rounded-md';
+    const fontSize = Math.min(table.width, table.height) * 0.4;
 
     return (
         <div
-            style={{ left: `${table.x}px`, top: `${table.y}px` }}
+            style={{ left: `${table.x}px`, top: `${table.y}px`, width: `${table.width}px`, height: `${table.height}px` }}
             className={`${baseClasses} ${shapeClasses} ${statusClasses[status]}`}
             onClick={status === 'available' ? onClick : undefined}
             tabIndex={status === 'available' ? 0 : -1}
         >
-            <span>{table.label}</span>
+            <span style={{ fontSize: `${fontSize}px` }}>{table.label}</span>
         </div>
     );
 };
@@ -46,8 +51,8 @@ const Deco: React.FC<{ element: LayoutElement }> = ({ element }) => {
     } else if (element.type === 'arrow') {
         classes += ` text-[#2c1f14]`;
         content = (
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
-                <path d="M12 2L12 22M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full p-1">
+                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
         );
     } else if (element.type === 'stairs') {
@@ -152,9 +157,15 @@ const UserView: React.FC = () => {
             <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[500px]">
                 <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
                     {/* SCALABLE WRAPPER */}
-                    {/* min-w-[1200px] гарантирует, что даже если scale=0.65, контент не обрежется */}
-                    {/* scale-[0.65] на мобильном (уменьшение), scale-100 на десктопе */}
-                    <div className="relative min-w-[1200px] min-h-[1200px] w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100">
+                    <div
+                        className="relative w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100"
+                        style={{
+                            width: `${LOGICAL_WIDTH}px`,
+                            height: `${LOGICAL_HEIGHT}px`,
+                            minWidth: `${LOGICAL_WIDTH}px`,
+                            minHeight: `${LOGICAL_HEIGHT}px`
+                        }}
+                    >
                         {restaurant.layout
                             .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
                             .map(element =>
