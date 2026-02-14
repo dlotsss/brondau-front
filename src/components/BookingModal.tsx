@@ -1,321 +1,330 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { BookingStatus, TableElement } from '../types';
 import { useData } from '../context/DataContext';
-import { LayoutElement, TableElement, BookingStatus, DecoElement, TextElement } from '../types';
-import BookingModal from '../components/BookingModal';
-import { useApp } from '../context/AppContext';
+import { subscribeToPush } from '../services/pushService';
 
-// Функция для вычисления границ занятой территории
-const calculateBounds = (elements: LayoutElement[]) => {
-    if (elements.length === 0) {
-        return { minX: 0, minY: 0, maxX: 500, maxY: 500 };
-    }
-
-    let minX = Infinity, minY = Infinity;
-    let maxX = -Infinity, maxY = -Infinity;
-
-    elements.forEach(el => {
-        const halfWidth = (el as any).width / 2;
-        const halfHeight = (el as any).height / 2;
-
-        minX = Math.min(minX, el.x - halfWidth);
-        minY = Math.min(minY, el.y - halfHeight);
-        maxX = Math.max(maxX, el.x + halfWidth);
-        maxY = Math.max(maxY, el.y + halfHeight);
-    });
-
-    const padding = 50;
-    return {
-        minX: minX - padding,
-        minY: minY - padding,
-        maxX: maxX + padding,
-        maxY: maxY + padding
-    };
+const parseTime = (timeStr: string): number => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
 };
 
-const Table: React.FC<{
+interface BookingModalProps {
     table: TableElement;
-    status: string;
-    onClick: () => void;
-    offsetX: number;
-    offsetY: number;
-}> = ({ table, status, onClick, offsetX, offsetY }) => {
-    const statusClasses: { [key: string]: string } = {
-        available: 'bg-brand-green/70 hover:bg-brand-green cursor-pointer ring-brand-green',
-        confirmed: 'bg-brand-red/70 cursor-not-allowed ring-brand-red',
-        pending: 'bg-brand-yellow/70 cursor-not-allowed ring-brand-yellow',
-    };
+    restaurantId: string;
+    onClose: () => void;
+}
 
-    const baseClasses = "absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-all duration-300 hover:scale-110 focus:ring-4 group";
-    const shapeClasses = table.shape === 'circle' ? 'rounded-full' : 'rounded-md';
-    const fontSize = Math.min(table.width, table.height) * 0.4;
-
-    return (
-        <div
-            style={{
-                left: `${table.x - offsetX}px`,
-                top: `${table.y - offsetY}px`,
-                width: `${table.width}px`,
-                height: `${table.height}px`,
-                transform: `translate(-50%, -50%) rotate(${table.rotation || 0}deg)`,
-            }}
-            className={`${baseClasses} ${shapeClasses} ${statusClasses[status]}`}
-            onClick={status === 'available' ? onClick : undefined}
-            tabIndex={status === 'available' ? 0 : -1}
-        >
-            <span style={{ fontSize: `${fontSize}px` }}>{table.label}</span>
-        </div>
-    );
+const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
-const Deco: React.FC<{
-    element: LayoutElement;
-    offsetX: number;
-    offsetY: number;
-}> = ({ element, offsetX, offsetY }) => {
-    if (element.type === 'table') return null;
+// Функция для форматирования телефона
+const formatPhoneNumber = (value: string): string => {
+    const digits = value.replace(/\D/g, '');
+    const limitedDigits = digits.slice(0, 11);
+    const normalizedDigits = limitedDigits.startsWith('8')
+        ? '7' + limitedDigits.slice(1)
+        : limitedDigits;
 
-    const baseStyles = {
-        left: `${element.x - offsetX}px`,
-        top: `${element.y - offsetY}px`,
-        width: `${(element as any).width}px`,
-        height: `${(element as any).height}px`,
-        transform: `translate(-50%, -50%) rotate(${element.rotation || 0}deg)`,
-    };
-
-    let content = null;
-    let classes = 'absolute flex items-center justify-center';
-
-    if (element.type === 'text') {
-        const textEl = element as TextElement;
-        classes += ' bg-transparent text-center leading-tight overflow-hidden';
-        content = (
-            <div
-                style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }}
-                className="w-full h-full flex items-center justify-center p-1"
-            >
-                {textEl.label}
-            </div>
-        );
-    } else if (element.type === 'arrow') {
-        classes += ' text-[#2c1f14]';
-        content = (
-            <svg viewBox={`0 0 ${(element as any).width} ${(element as any).height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
-                <path d={`M 5 ${(element as any).height / 2} H ${(element as any).width - 15}`} strokeLinecap="round" />
-                <path d={`M ${(element as any).width - 25} ${(element as any).height / 2 - 10} L ${(element as any).width - 5} ${(element as any).height / 2} L ${(element as any).width - 25} ${(element as any).height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        );
-    } else if (element.type === 'stairs') {
-        classes += ' bg-gray-300';
-        content = (
-            <div className="w-full h-full flex flex-col justify-evenly">
-                {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-full h-px bg-gray-500"></div>
-                ))}
-            </div>
-        );
-    } else if (element.type === 'plant') {
-        classes += ' bg-transparent';
-        content = (
-            <div className="relative w-full h-full flex items-center justify-center">
-                <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
-                <div className="absolute w-full h-full flex items-center justify-center">
-                    <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
-                    <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
-                    <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
-                    <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
-                </div>
-            </div>
-        );
-    } else {
-        const decoStyles: { [key: string]: string } = {
-            wall: 'bg-gray-500',
-            bar: 'bg-yellow-800 border-2 border-yellow-900',
-            window: 'bg-sky-200/40 border-2 border-sky-300',
-        };
-        classes += ' ' + (decoStyles[(element as DecoElement).type] || 'bg-gray-400');
-
-        if (element.type === 'window') {
-            content = (
-                <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-0.5 h-full bg-sky-300/50"></div>
-                </div>
-            );
-        }
-    }
-
-    return (
-        <div style={baseStyles} className={classes}>
-            {content}
-        </div>
-    );
+    if (normalizedDigits.length === 0) return '';
+    if (normalizedDigits.length <= 1) return `+${normalizedDigits}`;
+    if (normalizedDigits.length <= 4) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1)}`;
+    if (normalizedDigits.length <= 7) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4)}`;
+    if (normalizedDigits.length <= 9) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4, 7)}-${normalizedDigits.slice(7)}`;
+    return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4, 7)}-${normalizedDigits.slice(7, 9)}-${normalizedDigits.slice(9, 11)}`;
 };
 
-const UserView: React.FC = () => {
-    const { selectedRestaurantId } = useApp();
-    const { getRestaurant } = useData();
-    const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
-    const [activeFloorId, setActiveFloorId] = useState<string>('');
-    const [isInitialized, setIsInitialized] = useState(false);
+const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose }) => {
+    const { addBooking, getRestaurant } = useData();
+    const [guestName, setGuestName] = useState('');
+    const [guestPhone, setGuestPhone] = useState('');
+    const [guestCount, setGuestCount] = useState<number>(2);
 
-    const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
+    const restaurant = getRestaurant(restaurantId);
+    const workStarts = restaurant?.workStarts || '10:00';
+    const workEnds = restaurant?.workEnds || '23:00';
 
-    useEffect(() => {
-        if (restaurant && !isInitialized) {
-            const floors = restaurant.floors;
-            if (floors && floors.length > 0) {
-                setActiveFloorId(floors[0].id);
-            }
-            setIsInitialized(true);
+    const [bookingDate, setBookingDate] = useState(formatLocalDate(new Date()));
+    const [bookingTime, setBookingTime] = useState('');
+    const [error, setError] = useState('');
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatPhoneNumber(e.target.value);
+        setGuestPhone(formatted);
+    };
+
+    // Generate available time slots based on work hours and constraints
+    const availableSlots = useMemo(() => {
+        const slots: string[] = [];
+        const startMins = parseTime(workStarts);
+        let endMins = parseTime(workEnds);
+
+        if (endMins <= startMins) {
+            endMins += 24 * 60;
         }
-    }, [restaurant, isInitialized]);
 
-    const tableStatuses = useMemo(() => {
-        if (!restaurant) return {};
-        const statuses: { [key: string]: string } = {};
-        const nowTime = Date.now();
-        const DURATION = 2 * 60 * 60 * 1000;
+        const now = new Date();
+        const [year, month, day] = bookingDate.split('-').map(Number);
+        const selectedDate = new Date(year, month - 1, day);
+        const isToday = selectedDate.toDateString() === now.toDateString();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
 
-        const tables = restaurant.layout.filter(el => el.type === 'table') as TableElement[];
-        tables.forEach(table => {
-            const activePending = restaurant.bookings.find(b => {
-                if (b.tableId !== table.id) return false;
-                if (b.status !== BookingStatus.PENDING) return false;
-                const bookingStart = new Date(b.dateTime).getTime();
-                const bookingEnd = bookingStart + DURATION;
-                return nowTime >= bookingStart && nowTime < bookingEnd;
-            });
+        const minBookingMins = isToday ? currentMins + 15 : 0;
 
-            const activeConfirmed = restaurant.bookings.find(b => {
-                if (b.tableId !== table.id) return false;
-                if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
-                const bookingStart = new Date(b.dateTime).getTime();
-                const bookingEnd = bookingStart + DURATION;
-                return nowTime >= bookingStart && nowTime < bookingEnd;
-            });
+        // Shift boundaries for filtering bookings
+        const shiftStart = new Date(selectedDate);
+        shiftStart.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
+        const shiftEnd = new Date(selectedDate);
+        shiftEnd.setHours(Math.floor(endMins / 60), endMins % 60, 0, 0);
 
-            if (activePending) {
-                statuses[table.id] = 'pending';
-            } else if (activeConfirmed) {
-                statuses[table.id] = 'confirmed';
-            } else {
-                statuses[table.id] = 'available';
-            }
+        const bookingsOnShift = restaurant?.bookings.filter(b => {
+            if (b.tableId !== table.id) return false;
+            // Учитываем только активные статусы. COMPLETED и DECLINED игнорируем.
+            if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED && b.status !== BookingStatus.PENDING) return false;
+            return b.dateTime >= shiftStart && b.dateTime < shiftEnd;
+        }) || [];
+
+        // Convert bookings to minutes relative to shift start
+        const bookingMinsList = bookingsOnShift.map(b => {
+            const bDate = new Date(b.dateTime);
+            let bMins = bDate.getHours() * 60 + bDate.getMinutes();
+            if (bMins < startMins) bMins += 24 * 60;
+            return bMins;
         });
 
-        return statuses;
-    }, [restaurant]);
+        for (let time = startMins; time <= endMins - 60; time += 30) {
+            if (isToday && time < minBookingMins) continue;
 
-    const activeFloorElements = useMemo(() => {
-        if (!restaurant) return [];
-        return restaurant.layout.filter(el =>
-            !activeFloorId || el.floorId === activeFloorId || !el.floorId
-        );
-    }, [restaurant, activeFloorId]);
+            // !!! НОВАЯ ЛОГИКА !!!
+            // Если есть активная бронь, которая начинается РАНЬШЕ или в то же время, что и текущий слот 'time',
+            // то этот слот (и все последующие в этот день) недоступен.
+            // (Подразумевается, что люди сидят до закрытия или пока админ не освободит стол)
+            const isBlockedByEarlierBooking = bookingMinsList.some(bm => bm <= time);
+            if (isBlockedByEarlierBooking) continue;
 
-    const bounds = useMemo(() =>
-        calculateBounds(activeFloorElements),
-        [activeFloorElements]
-    );
+            // Проверка на пересечение "вперед" (если вдруг есть бронь, которая начинается позже,
+            // но так близко, что мы не успеем посидеть час).
+            // В нашей новой логике "Rest of day" это менее актуально, но оставим для надежности,
+            // если вдруг 'bm' > time, но time + 60 > bm.
+            const hasConflict = bookingMinsList.some(bm => Math.abs(time - bm) < 60);
+            if (hasConflict) continue;
 
-    const dynamicWidth = bounds.maxX - bounds.minX;
-    const dynamicHeight = bounds.maxY - bounds.minY;
+            const h = Math.floor(time / 60) % 24;
+            const m = time % 60;
+            const timeString = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            slots.push(timeString);
+        }
 
-    if (!restaurant) {
-        return <div className="text-center text-gray-400">Загрузка...</div>;
-    }
+        return slots;
+    }, [bookingDate, restaurant?.bookings, table.id, workStarts, workEnds]);
+
+    useEffect(() => {
+        if (availableSlots.length > 0) {
+            if (!bookingTime || !availableSlots.includes(bookingTime)) {
+                setBookingTime(availableSlots[0]);
+            }
+        } else {
+            setBookingTime('');
+        }
+    }, [availableSlots, bookingTime]);
+
+    const formatBookingSlot = (date: Date) =>
+        new Intl.DateTimeFormat('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(date);
+
+    // Existing bookings for display
+    const visualBookings = restaurant?.bookings
+        .filter(booking =>
+            booking.tableId === table.id &&
+            (booking.status === BookingStatus.PENDING || booking.status === BookingStatus.CONFIRMED) &&
+            booking.dateTime.getTime() >= Date.now()
+        )
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()) || [];
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!guestName || !guestPhone) {
+            setError('Пожалуйста, введите ваше имя и номер телефона.');
+            return;
+        }
+
+        const phoneDigits = guestPhone.replace(/\D/g, '');
+        if (phoneDigits.length !== 11) {
+            setError('Пожалуйста, введите корректный номер телефона: +7 (XXX) XXX-XX-XX');
+            return;
+        }
+        if (guestCount > table.seats) {
+            setError(`Этот столик вмещает не более ${table.seats} гостей.`);
+            return;
+        }
+        if (!bookingTime) {
+            setError('Не выбран доступный временной слот.');
+            return;
+        }
+
+        const [h, m] = bookingTime.split(':').map(Number);
+        const dateTime = new Date(bookingDate);
+        dateTime.setHours(h, m, 0, 0);
+
+        const workStartH = parseInt(workStarts.split(':')[0]);
+        if (h < workStartH && parseTime(bookingTime) < parseTime(workStarts)) {
+            dateTime.setDate(dateTime.getDate() + 1);
+        }
+
+        try {
+            await addBooking(restaurantId, {
+                tableId: table.id,
+                guestName,
+                guestPhone,
+                guestCount,
+                dateTime,
+                timezoneOffset: dateTime.getTimezoneOffset()
+            });
+
+            const normalizedPhone = guestPhone.replace(/\D/g, '');
+            subscribeToPush('GUEST', undefined, normalizedPhone);
+
+            alert('Ваш запрос на бронирование отправлен!');
+            onClose();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
+        }
+    };
 
     return (
-        // ИЗМЕНЕНИЕ 1: h-full заменен на min-h-full md:h-auto, чтобы на ПК высота была по контенту
-        <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl min-h-full md:h-auto flex flex-col">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
-                    <p className="text-gray-400 text-sm">Нажмите на зеленый столик для брони.</p>
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300 p-2 sm:p-4">
+            <div className="bg-brand-secondary rounded-lg shadow-2xl p-6 w-full max-w-lg m-auto transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4 sticky top-0 bg-brand-secondary pb-2 border-b border-brand-accent/30 z-10">
+                    <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>
+                        Бронь столика <span className="text-brand-blue">{table.label}</span>
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 text-3xl leading-none hover:text-white transition-colors"
+                    >
+                        &times;
+                    </button>
                 </div>
 
-                {restaurant.floors && restaurant.floors.length > 1 && (
-                    <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto w-full md:w-auto">
-                        {restaurant.floors.map(f => (
-                            <button
-                                key={f.id}
-                                onClick={() => setActiveFloorId(f.id)}
-                                className={`px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap ${activeFloorId === f.id
-                                    ? 'bg-brand-blue text-white shadow-lg'
-                                    : 'text-gray-400'
-                                    }`}
-                            >
-                                {f.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-gray-400 text-sm">
+                        Вместимость: до <span className="font-semibold">{table.seats}</span> гостей.
+                    </p>
 
-            {/* Scrollable Map Container */}
-            {/* ИЗМЕНЕНИЕ 2: Классы разделены для мобильных (overflow-hidden, min-h) и ПК (md:overflow-visible, md:h-auto) */}
-            <div className="w-full bg-brand-secondary rounded-xl relative border-2 border-brand-accent shadow-inner flex-grow md:flex-grow-0 min-h-[400px] md:min-h-0 overflow-hidden md:overflow-visible md:h-auto">
-                {/* ИЗМЕНЕНИЕ 3: absolute и overflow-auto только для мобильных. На ПК (md) это static блок */}
-                <div className="overflow-auto md:overflow-visible w-full h-full md:h-auto absolute inset-0 md:static touch-pan-x touch-pan-y">
-                    {/* SCALABLE WRAPPER */}
-                    <div
-                        className="relative w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100"
-                        style={{
-                            width: `${dynamicWidth}px`,
-                            height: `${dynamicHeight}px`,
-                            minWidth: `${dynamicWidth}px`,
-                            minHeight: `${dynamicHeight}px`,
-                        }}
-                    >
-                        {activeFloorElements.map((element) =>
-                            element.type === 'table' ? (
-                                <Table
-                                    key={element.id}
-                                    table={element as TableElement}
-                                    status={tableStatuses[element.id] || 'available'}
-                                    onClick={() => setSelectedTable(element as TableElement)}
-                                    offsetX={bounds.minX}
-                                    offsetY={bounds.minY}
-                                />
-                            ) : (
-                                // @ts-ignore
-                                <Deco
-                                    key={element.id}
-                                    element={element as DecoElement}
-                                    offsetX={bounds.minX}
-                                    offsetY={bounds.minY}
-                                />
-                            )
+                    {error && (
+                        <p className="bg-red-900/50 border border-brand-red text-red-200 px-3 py-2 rounded-md text-xs">
+                            {error}
+                        </p>
+                    )}
+
+                    {/* Visual Bookings List */}
+                    <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
+                        <h3 className="text-sm font-semibold text-white mb-2">Существующие брони:</h3>
+                        {visualBookings.length > 0 ? (
+                            <ul className="space-y-1 text-xs text-gray-400">
+                                {visualBookings.map(b => (
+                                    <li key={b.id} className="flex justify-between">
+                                        <span>{b.guestName}</span>
+                                        <span className="font-mono">{formatBookingSlot(b.dateTime)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-white text-center py-2">
+                                На этот столик пока нет броней
+                            </p>
                         )}
                     </div>
-                </div>
-            </div>
 
-            {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
-                <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-brand-green mr-2"></div>
-                    <span>Доступен</span>
-                </div>
-                <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-brand-yellow mr-2"></div>
-                    <span>Ожидает</span>
-                </div>
-                <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-brand-red mr-2"></div>
-                    <span>Занят</span>
-                </div>
-            </div>
+                    <div className="space-y-3">
+                        <input
+                            type="text"
+                            placeholder="Ваше имя"
+                            value={guestName}
+                            onChange={e => setGuestName(e.target.value)}
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            required
+                        />
+                        <input
+                            type="tel"
+                            placeholder="+7 (___) ___-__-__"
+                            value={guestPhone}
+                            onChange={handlePhoneChange}
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            required
+                        />
 
-            {selectedTable && selectedRestaurantId && (
-                <BookingModal
-                    table={selectedTable}
-                    restaurantId={selectedRestaurantId}
-                    onClose={() => setSelectedTable(null)}
-                />
-            )}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Гостей</label>
+                                <input
+                                    type="number"
+                                    value={guestCount}
+                                    onChange={e => setGuestCount(parseInt(e.target.value))}
+                                    min="1"
+                                    max={table.seats}
+                                    className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-white focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Дата</label>
+                                <input
+                                    type="date"
+                                    value={bookingDate}
+                                    onChange={e => setBookingDate(e.target.value)}
+                                    className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-xs text-gray-400 block mb-1">Время</label>
+                            <select
+                                value={bookingTime}
+                                onChange={e => setBookingTime(e.target.value)}
+                                className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            >
+                                {availableSlots.length > 0 ? (
+                                    availableSlots.map(time => (
+                                        <option key={time} value={time}>{time}</option>
+                                    ))
+                                ) : (
+                                    <option value="">Нет доступных слотов</option>
+                                )}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors"
+                        >
+                            Отмена
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={availableSlots.length === 0}
+                            className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:brightness-90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all"
+                        >
+                            Забронировать
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };
 
-export default UserView;
+export default BookingModal;

@@ -67,7 +67,6 @@ const Table: React.FC<{
     );
 };
 
-// Обновленный компонент Deco, полностью соответствующий AdminView
 const Deco: React.FC<{
     element: LayoutElement;
     offsetX: number;
@@ -106,7 +105,6 @@ const Deco: React.FC<{
             </svg>
         );
     } else if (element.type === 'stairs') {
-        // ЛОГИКА ИЗ ADMIN VIEW: Лестница
         classes += ' bg-gray-300';
         content = (
             <div className="w-full h-full flex flex-col justify-evenly">
@@ -116,7 +114,6 @@ const Deco: React.FC<{
             </div>
         );
     } else if (element.type === 'plant') {
-        // ЛОГИКА ИЗ ADMIN VIEW: Растение
         classes += ' bg-transparent';
         content = (
             <div className="relative w-full h-full flex items-center justify-center">
@@ -132,7 +129,7 @@ const Deco: React.FC<{
     } else {
         const decoStyles: { [key: string]: string } = {
             wall: 'bg-gray-500',
-            bar: 'bg-yellow-800 border-b-2 border-yellow-900', // Синхронизировано с AdminView (border-b-2)
+            bar: 'bg-yellow-800 border-2 border-yellow-900',
             window: 'bg-sky-200/40 border-2 border-sky-300',
         };
         classes += ' ' + (decoStyles[(element as DecoElement).type] || 'bg-gray-400');
@@ -140,7 +137,7 @@ const Deco: React.FC<{
         if (element.type === 'window') {
             content = (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-px h-full bg-sky-300/50"></div>
+                    <div className="w-0.5 h-full bg-sky-300/50"></div>
                 </div>
             );
         }
@@ -228,8 +225,12 @@ const UserView: React.FC = () => {
     }
 
     return (
-        <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full flex flex-col">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+        // ГЛАВНЫЙ КОНТЕЙНЕР
+        // Mobile: h-full (на весь экран)
+        // Desktop (md): h-auto (растет по контенту), min-h-full (чтобы не схлопнулся, если контента мало)
+        <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full md:h-auto md:min-h-full flex flex-col">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 flex-none">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
                     <p className="text-gray-400 text-sm">Нажмите на зеленый столик для брони.</p>
@@ -253,15 +254,28 @@ const UserView: React.FC = () => {
                 )}
             </div>
 
-            <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[400px]">
-                <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
+            {/* Scrollable Map Container */}
+            {/* 
+               Mobile: flex-grow (занимает всё место), min-h-[400px], overflow-hidden (обрезает лишнее, внутри свой скролл)
+               Desktop (md): block (не flex item), h-auto (высота по контенту), overflow-visible (никаких полос прокрутки)
+            */}
+            <div className="w-full bg-brand-secondary rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow md:flex-none min-h-[400px] md:min-h-0 md:h-auto overflow-hidden md:overflow-visible">
+
+                {/* 
+                   Mobile: absolute inset-0 + overflow-auto (плавающее окно со скроллом внутри фиксированного родителя)
+                   Desktop (md): static + overflow-visible (просто блок в потоке, растягивающий родителя)
+                */}
+                <div className="absolute inset-0 overflow-auto md:static md:overflow-visible touch-pan-x touch-pan-y w-full h-full md:h-auto">
+
+                    {/* WRAPPER 
+                        Desktop: md:mx-auto (центрирование если карта маленькая), scale-100 (реальный размер)
+                    */}
                     <div
-                        className="relative w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100"
+                        className="relative transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100 md:mx-auto"
                         style={{
                             width: `${dynamicWidth}px`,
                             height: `${dynamicHeight}px`,
-                            minWidth: `${dynamicWidth}px`,
-                            minHeight: `${dynamicHeight}px`,
+                            // На ПК оставляем реальные размеры, на мобилке скейлим
                         }}
                     >
                         {activeFloorElements.map((element) =>
@@ -275,6 +289,7 @@ const UserView: React.FC = () => {
                                     offsetY={bounds.minY}
                                 />
                             ) : (
+                                // @ts-ignore
                                 <Deco
                                     key={element.id}
                                     element={element as DecoElement}
@@ -287,7 +302,8 @@ const UserView: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+            {/* Legend */}
+            <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm flex-none">
                 <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-brand-green mr-2"></div>
                     <span>Доступен</span>
