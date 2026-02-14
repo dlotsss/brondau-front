@@ -107,6 +107,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             if (isToday && time < minBookingMins) continue;
 
             // Check for conflict with ANY existing booking (1 hour gap)
+            // Логика: если разница меньше 60 минут, то конфликт.
+            // Если бронь в 19:00 (1140 мин), а мы хотим 18:00 (1080 мин):
+            // |1080 - 1140| = 60. 60 < 60 -> FALSE. Конфликта нет. Слот доступен.
             const hasConflict = bookingMinsList.some(bm => Math.abs(time - bm) < 60);
             if (hasConflict) continue;
 
@@ -179,12 +182,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             dateTime.setDate(dateTime.getDate() + 1);
         }
 
+        // Предупреждение пользователю, если следующая бронь близко
         const nextBooking = restaurant?.bookings
             .filter(b =>
                 b.tableId === table.id &&
                 (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
                 b.dateTime > dateTime &&
-                (b.dateTime.getTime() - dateTime.getTime()) < 12 * 60 * 60 * 1000 // Only warn if next booking is within 12 hours
+                (b.dateTime.getTime() - dateTime.getTime()) < 12 * 60 * 60 * 1000
             )
             .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
 
