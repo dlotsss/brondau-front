@@ -107,9 +107,7 @@ const UserView: React.FC = () => {
     useEffect(() => {
         if (restaurant && !isInitialized) {
             const floors = restaurant.floors || [];
-            if (floors.length > 0) {
-                setActiveFloorId(floors[0].id);
-            }
+            if (floors.length > 0) setActiveFloorId(floors[0].id);
             setIsInitialized(true);
         }
     }, [restaurant, isInitialized]);
@@ -121,62 +119,29 @@ const UserView: React.FC = () => {
         const tables = restaurant.layout.filter(el => el.type === 'table') as TableElement[];
 
         tables.forEach(table => {
-            const activePending = restaurant.bookings
-                .filter(b => b.tableId === table.id && b.status === BookingStatus.PENDING && b.dateTime <= now)
-                .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())[0];
+            const activePending = restaurant.bookings.find(b => b.tableId === table.id && b.status === BookingStatus.PENDING && b.dateTime <= now);
+            const activeConfirmed = restaurant.bookings.find(b => b.tableId === table.id && (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) && b.dateTime <= now);
 
-            const activeConfirmed = restaurant.bookings
-                .filter(
-                    b =>
-                        b.tableId === table.id &&
-                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                        b.dateTime <= now
-                )
-                .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())[0];
-
-            if (activePending) {
-                statuses[table.id] = 'pending';
-            } else if (activeConfirmed) {
-                statuses[table.id] = 'confirmed';
-            } else {
-                // Feature: Mark as 'confirmed' (red) if next booking is within 1 hour
-                const nextBooking = restaurant.bookings
-                    .filter(b =>
-                        b.tableId === table.id &&
-                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                        b.dateTime > now
-                    )
-                    .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
-
-                if (nextBooking && (nextBooking.dateTime.getTime() - now.getTime()) < 60 * 60 * 1000) {
-                    statuses[table.id] = 'confirmed';
-                } else {
-                    statuses[table.id] = 'available';
-                }
-            }
+            if (activePending) statuses[table.id] = 'pending';
+            else if (activeConfirmed) statuses[table.id] = 'confirmed';
+            else statuses[table.id] = 'available';
         });
         return statuses;
     }, [restaurant]);
 
-    if (!restaurant) {
-        return <div className="text-center text-gray-400">Загрузка данных ресторана...</div>;
-    }
+    if (!restaurant) return <div className="text-center text-gray-400">Загрузка...</div>;
 
     return (
-        <div className="bg-brand-primary p-6 rounded-lg shadow-xl">
-            <div className="flex justify-between items-center mb-6">
+        <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full flex flex-col">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-white leading-tight">Добро пожаловать в {restaurant.name}!</h2>
-                    <p className="text-gray-400">Нажмите на свободный зеленый столик для бронирования.</p>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
+                    <p className="text-gray-400 text-sm">Нажмите на зеленый столик для брони.</p>
                 </div>
                 {restaurant.floors && restaurant.floors.length > 1 && (
-                    <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent">
+                    <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto w-full md:w-auto">
                         {restaurant.floors.map(f => (
-                            <button
-                                key={f.id}
-                                onClick={() => setActiveFloorId(f.id)}
-                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                            >
+                            <button key={f.id} onClick={() => setActiveFloorId(f.id)} className={`px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400'}`}>
                                 {f.name}
                             </button>
                         ))}
@@ -184,19 +149,26 @@ const UserView: React.FC = () => {
                 )}
             </div>
 
-            <div className="w-full h-[600px] bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner">
-                {restaurant.layout
-                    .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
-                    .map(element =>
-                        element.type === 'table'
-                            ? <Table key={element.id} table={element as TableElement} status={tableStatuses[element.id] || 'available'} onClick={() => setSelectedTable(element as TableElement)} />
-                            : <Deco key={element.id} element={element as DecoElement} />
-                    )}
+            {/* Scrollable Map Container */}
+            <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[500px]">
+                <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
+                    <div className="relative min-w-[800px] min-h-[600px] w-full h-full">
+                        {restaurant.layout
+                            .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
+                            .map(element =>
+                                element.type === 'table'
+                                    ? <Table key={element.id} table={element as TableElement} status={tableStatuses[element.id] || 'available'} onClick={() => setSelectedTable(element as TableElement)} />
+                                    // @ts-ignore - Using original Deco logic in real code
+                                    : <Deco key={element.id} element={element as DecoElement} />
+                            )}
+                    </div>
+                </div>
             </div>
-            <div className="flex justify-center space-x-6 mt-4">
-                <div className="flex items-center"><div className="w-4 h-4 rounded-full bg-brand-green mr-2"></div><span>Свободно</span></div>
-                <div className="flex items-center"><div className="w-4 h-4 rounded-full bg-brand-yellow mr-2"></div><span>Ожидает подтверждения</span></div>
-                <div className="flex items-center"><div className="w-4 h-4 rounded-full bg-brand-red mr-2"></div><span>Забронировано</span></div>
+
+            <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+                <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-brand-green mr-2"></div><span>Свободно</span></div>
+                <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-brand-yellow mr-2"></div><span>Ожидает</span></div>
+                <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-brand-red mr-2"></div><span>Занято</span></div>
             </div>
 
             {selectedTable && selectedRestaurantId && <BookingModal table={selectedTable} restaurantId={selectedRestaurantId} onClose={() => setSelectedTable(null)} />}
