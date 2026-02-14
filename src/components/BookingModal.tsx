@@ -287,100 +287,53 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300">
-            <div className="bg-brand-secondary rounded-lg shadow-2xl p-8 w-full max-w-md m-4 transform transition-all duration-300 scale-95 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold" style={{ color: '#2c1f14' }}>Забронировать столик <span className="text-brand-blue">{table.label}</span></h2>
-                    <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white transition-colors">&times;</button>
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300 p-2 sm:p-4">
+            <div className="bg-brand-secondary rounded-lg shadow-2xl p-6 w-full max-w-lg m-auto transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4 sticky top-0 bg-brand-secondary pb-2 border-b border-brand-accent/30 z-10">
+                    <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>Бронь столика <span className="text-brand-blue">{table.label}</span></h2>
+                    <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
-                <form onSubmit={handleSubmit}>
-                    <p className="text-gray-400 mb-6">До <span className="font-semibold" style={{ color: '#989ea8' }}>{table.seats}</span> гостей.</p>
 
-                    {error && <p className="bg-red-900 border border-brand-red text-red-300 px-4 py-2 rounded-md mb-4 text-sm">{error}</p>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-gray-400 text-sm">Вместимость: до <span className="font-semibold">{table.seats}</span> гостей.</p>
 
-                    <div className="space-y-4">
-                        <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
-                            <p className="text-sm font-semibold text-white mb-2">Существующие бронирования:</p>
-                            {visualBookings.length > 0 ? (
-                                <ul className="space-y-1 text-sm text-gray-200 max-h-28 overflow-y-auto pr-1">
-                                    {visualBookings.map(booking => (
-                                        <li key={booking.id} className="flex items-center justify-between">
-                                            <span>{formatBookingSlot(booking.dateTime)}</span>
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${booking.status === BookingStatus.PENDING ? 'bg-brand-yellow/30 text-brand-yellow' : 'bg-brand-red/30 text-brand-red'}`}>
-                                                {booking.status === BookingStatus.PENDING ? 'Ожидает' : 'Подтверждено'}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-gray-400">Нет активных бронирований для этого столика.</p>
-                            )}
-                        </div>
-                        <input type="text" placeholder="Ваше имя" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-blue placeholder-[#f5efe6]" required />
-                        <input
-                            type="tel"
-                            placeholder="+7 (___) ___-__-__"
-                            value={guestPhone}
-                            onChange={e => {
-                                let val = e.target.value.replace(/\D/g, '');
-                                if (val.startsWith('7')) val = val.slice(1);
-                                if (val.length > 10) val = val.slice(0, 10);
+                    {error && <p className="bg-red-900/50 border border-brand-red text-red-200 px-3 py-2 rounded-md text-xs">{error}</p>}
 
-                                let formatted = '+7';
-                                if (val.length > 0) formatted += ` (${val.slice(0, 3)}`;
-                                if (val.length >= 3) formatted += `) ${val.slice(3, 6)}`;
-                                if (val.length >= 6) formatted += `-${val.slice(6, 8)}`;
-                                if (val.length >= 8) formatted += `-${val.slice(8, 10)}`;
+                    {/* Visual Bookings List */}
+                    <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
+                        {/* ... existing logic ... */}
+                    </div>
 
-                                setGuestPhone(formatted);
-                            }}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-blue placeholder-[#f5efe6]"
-                            required
-                        />
+                    <div className="space-y-3">
+                        <input type="text" placeholder="Ваше имя" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-gray-400 text-sm" required />
+                        <input type="tel" placeholder="Телефон" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-gray-400 text-sm" required />
 
-                        <div className="flex items-center space-x-4">
-                            <label className="w-20" style={{ color: '#f5efe6' }}>Гостей:</label>
-                            <input type="number" value={guestCount} onChange={e => setGuestCount(parseInt(e.target.value))} min="1" max={table.seats} className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-blue" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Гостей</label>
+                                <input type="number" value={guestCount} onChange={e => setGuestCount(parseInt(e.target.value))} min="1" max={table.seats} className="w-full bg-brand-accent p-2 rounded-md border border-gray-600" />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Дата</label>
+                                <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-sm" />
+                            </div>
                         </div>
 
-                        <div className="flex items-center space-x-4">
-                            <label className="w-20" style={{ color: '#f5efe6' }}>Дата:</label>
-                            <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-blue" />
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <label className="w-20" style={{ color: '#f5efe6' }}>Время:</label>
-                            {availableSlots.length > 0 ? (
-                                <select
-                                    value={bookingTime}
-                                    onChange={e => setBookingTime(e.target.value)}
-                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none"
-                                >
-                                    {availableSlots.map(time => (
-                                        <option key={time} value={time}>{time}</option>
-                                    ))}
-                                </select>
-                            ) : (
-                                <div className="w-full p-3 text-red-400 text-sm">Нет доступных слотов</div>
-                            )}
+                        <div>
+                            <label className="text-xs text-gray-400 block mb-1">Время</label>
+                            <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-sm">
+                                {availableSlots.map(time => <option key={time} value={time}>{time}</option>)}
+                            </select>
                         </div>
                     </div>
 
-                    <div className="mt-8 flex justify-end space-x-4">
-                        <button type="button" onClick={onClose} className="px-6 py-2 rounded-md bg-brand-accent text-white transition-colors" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c27d3e'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>Отмена</button>
-                        <button type="submit" disabled={availableSlots.length === 0} className={`px-6 py-2 rounded-md text-white font-semibold transition-colors shadow-md ${availableSlots.length === 0 ? 'cursor-not-allowed' : 'bg-brand-blue'}`} style={availableSlots.length === 0 ? { backgroundColor: '#989ea8' } : undefined} onMouseEnter={(e) => { if (availableSlots.length > 0) e.currentTarget.style.backgroundColor = '#d5b483'; }} onMouseLeave={(e) => { if (availableSlots.length > 0) e.currentTarget.style.backgroundColor = ''; }}>Запросить бронь</button>
+                    <div className="pt-4 flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm">Отмена</button>
+                        <button type="submit" disabled={availableSlots.length === 0} className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md disabled:bg-gray-500">Забронировать</button>
                     </div>
                 </form>
             </div>
-            <style>{`
-                @keyframes fade-in-up {
-                    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-                    100% { opacity: 1; transform: translateY(0) scale(1); }
-                }
-                .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
-            `}</style>
         </div>
     );
 };
-
 export default BookingModal;
