@@ -124,32 +124,22 @@ const UserView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
-    const boundingBox = useMemo(() => {
-        if (!restaurant) return { minX: 0, minY: 0, maxX: LOGICAL_WIDTH, maxY: LOGICAL_HEIGHT };
-        const floorElements = restaurant.layout.filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId);
-        if (floorElements.length === 0) return { minX: 0, minY: 0, maxX: LOGICAL_WIDTH, maxY: LOGICAL_HEIGHT };
+    const tableStatuses = useMemo(() => {
+        if (!restaurant) return {};
+        const statuses: { [key: string]: string } = {};
+        const now = new Date();
+        const tables = restaurant.layout.filter(el => el.type === 'table') as TableElement[];
 
-        let minX = LOGICAL_WIDTH, minY = LOGICAL_HEIGHT, maxX = 0, maxY = 0;
-        floorElements.forEach(el => {
-            const hw = ((el as any).width || 40) / 2;
-            const hh = ((el as any).height || 40) / 2;
-            minX = Math.min(minX, el.x - hw);
-            minY = Math.min(minY, el.y - hh);
-            maxX = Math.max(maxX, el.x + hw);
-            maxY = Math.max(maxY, el.y + hh);
+        tables.forEach(table => {
+            const activePending = restaurant.bookings.find(b => b.tableId === table.id && b.status === BookingStatus.PENDING && b.dateTime <= now);
+            const activeConfirmed = restaurant.bookings.find(b => b.tableId === table.id && (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) && b.dateTime <= now);
+
+            if (activePending) statuses[table.id] = 'pending';
+            else if (activeConfirmed) statuses[table.id] = 'confirmed';
+            else statuses[table.id] = 'available';
         });
-
-        const padding = 60;
-        return {
-            minX: Math.max(0, minX - padding),
-            minY: Math.max(0, minY - padding),
-            maxX: Math.min(LOGICAL_WIDTH, maxX + padding),
-            maxY: Math.min(LOGICAL_HEIGHT, maxY + padding)
-        };
-    }, [restaurant, activeFloorId]);
-
-    const effectiveWidth = boundingBox.maxX - boundingBox.minX;
-    const effectiveHeight = boundingBox.maxY - boundingBox.minY;
+        return statuses;
+    }, [restaurant]);
 
     if (!restaurant) return <div className="text-center text-gray-400">Загрузка...</div>;
 
@@ -172,34 +162,26 @@ const UserView: React.FC = () => {
             </div>
 
             {/* Scrollable Map Container */}
-            <div className="w-full bg-brand-secondary rounded-xl relative border-2 border-brand-accent shadow-inner flex-grow min-h-[500px] overflow-hidden">
-                <div className="w-full h-full overflow-auto p-4 flex items-center justify-center">
+            <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[500px]">
+                <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
                     {/* SCALABLE WRAPPER */}
                     <div
-                        className="relative transform origin-center transition-transform duration-300 scale-[0.7] md:scale-100"
+                        className="relative w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100"
                         style={{
-                            width: `${effectiveWidth}px`,
-                            height: `${effectiveHeight}px`,
-                            minWidth: `${effectiveWidth}px`,
-                            minHeight: `${effectiveHeight}px`
+                            width: `${LOGICAL_WIDTH}px`,
+                            height: `${LOGICAL_HEIGHT}px`,
+                            minWidth: `${LOGICAL_WIDTH}px`,
+                            minHeight: `${LOGICAL_HEIGHT}px`
                         }}
                     >
-                        <div style={{ position: 'absolute', left: `-${boundingBox.minX}px`, top: `-${boundingBox.minY}px`, width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT }}>
-                            {restaurant.layout
-                                .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
-                                .map(element => {
-                                    const status = element.type === 'table' ? (() => {
-                                        const now = new Date();
-                                        const activePending = restaurant.bookings.find(b => b.tableId === element.id && b.status === BookingStatus.PENDING && b.dateTime <= now);
-                                        const activeConfirmed = restaurant.bookings.find(b => b.tableId === element.id && (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) && b.dateTime <= now);
-                                        return activePending ? 'pending' : (activeConfirmed ? 'confirmed' : 'available');
-                                    })() : 'available';
-
-                                    return element.type === 'table'
-                                        ? <Table key={element.id} table={element as TableElement} status={status} onClick={() => setSelectedTable(element as TableElement)} />
-                                        : <Deco key={element.id} element={element as DecoElement} />;
-                                })}
-                        </div>
+                        {restaurant.layout
+                            .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
+                            .map(element =>
+                                element.type === 'table'
+                                    ? <Table key={element.id} table={element as TableElement} status={tableStatuses[element.id] || 'available'} onClick={() => setSelectedTable(element as TableElement)} />
+                                    // @ts-ignore - Using original Deco logic in real code
+                                    : <Deco key={element.id} element={element as DecoElement} />
+                            )}
                     </div>
                 </div>
             </div>
