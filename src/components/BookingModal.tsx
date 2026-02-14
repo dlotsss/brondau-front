@@ -82,7 +82,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         const bookingsOnShift = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
-            if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
+            if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED && b.status !== BookingStatus.PENDING) return false;
 
             const shiftStart = new Date(selectedDate);
             shiftStart.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
@@ -98,15 +98,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             bookingsOnShift.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
             const first = bookingsOnShift[0];
 
-            const timeDiff = (first.dateTime.getTime() - new Date(selectedDate).setHours(Math.floor(startMins / 60), startMins % 60, 0, 0)) / 60000;
-            const absoluteBookingMins = startMins + timeDiff;
+            // Calculate minutes from start of day for the first booking
+            const bookingDate0 = new Date(first.dateTime);
+            bookingDate0.setHours(0, 0, 0, 0);
+            const absoluteBookingMins = (first.dateTime.getTime() - bookingDate0.getTime()) / 60000;
 
-            if (absoluteBookingMins < firstBookingMins) firstBookingMins = absoluteBookingMins;
+            // Handle overnight shifts: if booking is on the next calendar day but part of this shift
+            let adjustedBookingMins = absoluteBookingMins;
+            const startOfDayMins = new Date(selectedDate).setHours(0, 0, 0, 0);
+            const shiftStartAbsoluteMins = (new Date(selectedDate).setHours(Math.floor(startMins / 60), startMins % 60, 0, 0) - startOfDayMins) / 60000;
+
+            if (adjustedBookingMins < shiftStartAbsoluteMins) {
+                adjustedBookingMins += 24 * 60;
+            }
+
+            if (adjustedBookingMins < firstBookingMins) firstBookingMins = adjustedBookingMins;
         }
 
-        for (let time = startMins; time <= endMins - 30; time += 30) {
+        // Only allow booking up to 1 hour before end of work day
+        for (let time = startMins; time <= endMins - 60; time += 30) {
             if (isToday && time < minBookingMins) continue;
-            if (time >= firstBookingMins) continue;
+            // Must be at least 1 hour before first booking
+            if (time + 60 > firstBookingMins) continue;
 
             const h = Math.floor(time / 60) % 24;
             const m = time % 60;
@@ -181,7 +194,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             .filter(b =>
                 b.tableId === table.id &&
                 (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                b.dateTime > dateTime
+                b.dateTime > dateTime &&
+                (b.dateTime.getTime() - dateTime.getTime()) < 12 * 60 * 60 * 1000 // Only warn if next booking is within 12 hours
             )
             .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
 
@@ -189,20 +203,18 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             const diffMs = nextBooking.dateTime.getTime() - dateTime.getTime();
             const diffHours = diffMs / (1000 * 60 * 60);
 
-            if (diffHours < 6) {
-                const hours = Math.floor(diffHours);
-                const minutes = Math.floor((diffHours - hours) * 60);
-                const durationStr = minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
+            const hours = Math.floor(diffHours);
+            const minutes = Math.floor((diffHours - hours) * 60);
+            const durationStr = minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
 
-                const nextTimeStr = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(nextBooking.dateTime);
+            const nextTimeStr = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(nextBooking.dateTime);
 
-                const confirmed = window.confirm(
-                    `Внимание! На этот столик есть бронь в ${nextTimeStr}.\n` +
-                    `У вас будет только ${durationStr}.\n\n` +
-                    `Продолжить?`
-                );
-                if (!confirmed) return;
-            }
+            const confirmed = window.confirm(
+                `Внимание! На этот столик есть бронь в ${nextTimeStr}.\n` +
+                `Нужно будет освободить столик к этому времени (у вас будет ${durationStr}).\n\n` +
+                `Продолжить?`
+            );
+            if (!confirmed) return;
         }
 
         try {
