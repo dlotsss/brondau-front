@@ -427,7 +427,7 @@ const ConstructorView: React.FC = () => {
                             </div>
                             <div className="flex gap-2 items-center">
                                 <input type="range" min="20" max="500" step="5" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="flex-1" />
-                                <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600" />
+                                <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600 text-gray-600" />
                             </div>
                         </div>
 
@@ -438,7 +438,7 @@ const ConstructorView: React.FC = () => {
                             </div>
                             <div className="flex gap-2 items-center">
                                 <input type="range" min="20" max="500" step="5" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="flex-1" />
-                                <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600" />
+                                <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600 text-gray-600" />
                             </div>
                         </div>
                     </div>
