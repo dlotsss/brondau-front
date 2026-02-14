@@ -21,6 +21,28 @@ const formatLocalDate = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
+// Функция для форматирования телефона
+const formatPhoneNumber = (value: string): string => {
+    // Убираем все нецифровые символы
+    const digits = value.replace(/\D/g, '');
+
+    // Ограничиваем до 11 цифр (7 + 10)
+    const limitedDigits = digits.slice(0, 11);
+
+    // Если начинается с 8, заменяем на 7
+    const normalizedDigits = limitedDigits.startsWith('8')
+        ? '7' + limitedDigits.slice(1)
+        : limitedDigits;
+
+    // Форматируем
+    if (normalizedDigits.length === 0) return '';
+    if (normalizedDigits.length <= 1) return `+${normalizedDigits}`;
+    if (normalizedDigits.length <= 4) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1)}`;
+    if (normalizedDigits.length <= 7) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4)}`;
+    if (normalizedDigits.length <= 9) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4, 7)}-${normalizedDigits.slice(7)}`;
+    return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4, 7)}-${normalizedDigits.slice(7, 9)}-${normalizedDigits.slice(9, 11)}`;
+};
+
 const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose }) => {
     const { addBooking, getRestaurant } = useData();
     const [guestName, setGuestName] = useState('');
@@ -34,6 +56,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [bookingDate, setBookingDate] = useState(formatLocalDate(new Date()));
     const [bookingTime, setBookingTime] = useState('');
     const [error, setError] = useState('');
+
+    // Обработчик изменения телефона с маской
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatPhoneNumber(e.target.value);
+        setGuestPhone(formatted);
+    };
 
     // Generate available time slots based on work hours and constraints
     const availableSlots = useMemo(() => {
@@ -224,7 +252,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                     {/* Visual Bookings List */}
                     <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
-                        <h3 className="text-sm font-semibold text-gray-300 mb-2">Существующие брони:</h3>
+                        <h3 className="text-sm font-semibold text-white mb-2">Существующие брони:</h3>
                         {visualBookings.length > 0 ? (
                             <ul className="space-y-1 text-xs text-gray-400">
                                 {visualBookings.map(b => (
@@ -235,7 +263,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-xs text-gray-400 text-center py-2">
+                            <p className="text-sm text-white text-center py-2">
                                 На этот столик пока нет броней
                             </p>
                         )}
@@ -252,9 +280,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         />
                         <input
                             type="tel"
-                            placeholder="Телефон: +7 (XXX) XXX-XX-XX"
+                            placeholder="+7 (___) ___-__-__"
                             value={guestPhone}
-                            onChange={e => setGuestPhone(e.target.value)}
+                            onChange={handlePhoneChange}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-gray-400 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required
                         />
@@ -311,7 +339,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         <button
                             type="submit"
                             disabled={availableSlots.length === 0}
-                            className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+                            className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:brightness-90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all"
                         >
                             Забронировать
                         </button>
