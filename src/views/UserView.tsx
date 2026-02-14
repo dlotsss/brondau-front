@@ -169,21 +169,38 @@ const UserView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
+    // ИСПРАВЛЕННАЯ ЛОГИКА СТАТУСОВ
     const tableStatuses = useMemo(() => {
         if (!restaurant) return {};
         const statuses: { [key: string]: string } = {};
-        const now = new Date();
+        const nowTime = Date.now();
+        const DURATION = 2 * 60 * 60 * 1000; // 2 часа — стандартное время брони для отображения на карте
 
         const tables = restaurant.layout.filter(el => el.type === 'table') as TableElement[];
         tables.forEach(table => {
-            const activePending = restaurant.bookings.find(
-                b => b.tableId === table.id && b.status === BookingStatus.PENDING && b.dateTime > now
-            );
-            const activeConfirmed = restaurant.bookings.find(
-                b => b.tableId === table.id &&
-                    (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                    b.dateTime > now
-            );
+            // Ищем активную PENDING бронь, которая происходит ПРЯМО СЕЙЧАС
+            const activePending = restaurant.bookings.find(b => {
+                if (b.tableId !== table.id) return false;
+                if (b.status !== BookingStatus.PENDING) return false;
+
+                const bookingStart = new Date(b.dateTime).getTime();
+                const bookingEnd = bookingStart + DURATION;
+
+                // Проверка: "Сейчас" попадает в интервал брони?
+                return nowTime >= bookingStart && nowTime < bookingEnd;
+            });
+
+            // Ищем активную CONFIRMED/OCCUPIED бронь, которая происходит ПРЯМО СЕЙЧАС
+            const activeConfirmed = restaurant.bookings.find(b => {
+                if (b.tableId !== table.id) return false;
+                if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
+
+                const bookingStart = new Date(b.dateTime).getTime();
+                const bookingEnd = bookingStart + DURATION;
+
+                // Проверка: "Сейчас" попадает в интервал брони?
+                return nowTime >= bookingStart && nowTime < bookingEnd;
+            });
 
             if (activePending) {
                 statuses[table.id] = 'pending';
