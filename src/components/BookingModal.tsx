@@ -78,7 +78,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const isToday = selectedDate.toDateString() === now.toDateString();
         const currentMins = now.getHours() * 60 + now.getMinutes();
 
-        const minBookingMins = isToday ? Math.ceil(currentMins / 60) * 60 : 0;
+        const minBookingMins = isToday ? currentMins + 15 : 0;
 
         const bookingsOnShift = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
@@ -104,7 +104,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             if (absoluteBookingMins < firstBookingMins) firstBookingMins = absoluteBookingMins;
         }
 
-        for (let time = startMins; time <= endMins - 60; time += 30) {
+        for (let time = startMins; time <= endMins - 30; time += 30) {
             if (isToday && time < minBookingMins) continue;
             if (time >= firstBookingMins) continue;
 
@@ -211,7 +211,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 guestName,
                 guestPhone,
                 guestCount,
-                dateTime
+                dateTime,
+                timezoneOffset: dateTime.getTimezoneOffset()
             });
 
             const normalizedPhone = guestPhone.replace(/\D/g, '');

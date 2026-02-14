@@ -8,7 +8,7 @@ const getBaseUrl = () => {
     return 'http://localhost:3001/api';
 };
 
-const API_BASE_URL = getBaseUrl();
+export const API_BASE_URL = getBaseUrl();
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

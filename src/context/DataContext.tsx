@@ -206,6 +206,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const b = await api.restaurants.createBooking(restaurantId, {
       ...bookingData,
       dateTime: bookingData.dateTime.toISOString(),
+      timezoneOffset: (bookingData as any).timezoneOffset,
       tableLabel,
     });
 

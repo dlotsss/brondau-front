@@ -71,6 +71,7 @@ export interface Booking {
   guestName: string;
   guestPhone: string;
   guestCount: number;
+  timezoneOffset?: number;
   declineReason?: string;
   createdAt: Date;
 }
