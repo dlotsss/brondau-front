@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { LayoutElement, TableElement, BookingStatus, DecoElement, TextElement } from '../types';
@@ -152,7 +151,10 @@ const UserView: React.FC = () => {
             {/* Scrollable Map Container */}
             <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[500px]">
                 <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
-                    <div className="relative min-w-[800px] min-h-[600px] w-full h-full">
+                    {/* SCALABLE WRAPPER */}
+                    {/* min-w-[1200px] гарантирует, что даже если scale=0.65, контент не обрежется */}
+                    {/* scale-[0.65] на мобильном (уменьшение), scale-100 на десктопе */}
+                    <div className="relative min-w-[1200px] min-h-[1200px] w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100">
                         {restaurant.layout
                             .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
                             .map(element =>
