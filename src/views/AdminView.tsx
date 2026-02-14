@@ -82,6 +82,8 @@ const AdminView: React.FC = () => {
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
+    const [scale, setScale] = useState(1);
+    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
 
@@ -94,6 +96,20 @@ const AdminView: React.FC = () => {
             setIsInitialized(true);
         }
     }, [restaurant, isInitialized]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (containerRef.current) {
+                const containerWidth = containerRef.current.offsetWidth;
+                const newScale = Math.min(1, containerWidth / 800);
+                setScale(newScale);
+            }
+        };
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Subscribe admin to push notifications
     const pushSubscribed = useRef(false);
@@ -138,9 +154,9 @@ const AdminView: React.FC = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 p-4 md:p-0">
             <div className="lg:col-span-1">
-                <h2 className="text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы на бронирование</h2>
+                <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы</h2>
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     {pendingBookings.length > 0 ? (
                         pendingBookings.map(b => <BookingRequestCard key={b.id} booking={b} restaurantId={restaurant.id} />)
@@ -226,114 +242,127 @@ const AdminView: React.FC = () => {
                         </div>
                     )}
                 </div>
-                <div className="w-full h-[600px] bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner">
-                    {restaurant.layout
-                        .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
-                        .map(el => {
-                            if (el.type !== 'table') {
-                                let content = null;
-                                let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center`;
+                <div
+                    ref={containerRef}
+                    className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex justify-center items-center"
+                    style={{ height: `${600 * scale}px` }}
+                >
+                    <div
+                        className="absolute origin-center"
+                        style={{
+                            width: '800px',
+                            height: '600px',
+                            transform: `scale(${scale})`
+                        }}
+                    >
+                        {restaurant.layout
+                            .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
+                            .map(el => {
+                                if (el.type !== 'table') {
+                                    let content = null;
+                                    let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center`;
 
-                                if (el.type === 'text') {
-                                    const textEl = el as TextElement;
-                                    classes += ` bg-transparent text-center leading-tight overflow-hidden`;
-                                    content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1">{textEl.label}</div>;
-                                } else if (el.type === 'arrow') {
-                                    classes += ` text-[#2c1f14]`;
-                                    content = (
-                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
-                                            <path d="M12 2L12 22M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    );
-                                } else if (el.type === 'stairs') {
-                                    classes += ` bg-gray-300`;
-                                    content = (
-                                        <div className="w-full h-full flex flex-col justify-evenly">
-                                            {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-500"></div>)}
-                                        </div>
-                                    );
-                                } else if (el.type === 'plant') {
-                                    classes += ` bg-transparent`;
-                                    content = (
-                                        <div className="relative w-full h-full flex items-center justify-center">
-                                            <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
-                                            <div className="absolute w-full h-full flex items-center justify-center">
-                                                {/* Leaves */}
-                                                <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
-                                                <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
-                                                <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
-                                                <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                    if (el.type === 'text') {
+                                        const textEl = el as TextElement;
+                                        classes += ` bg-transparent text-center leading-tight overflow-hidden`;
+                                        content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1">{textEl.label}</div>;
+                                    } else if (el.type === 'arrow') {
+                                        classes += ` text-[#2c1f14]`;
+                                        content = (
+                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                                                <path d="M12 2L12 22M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        );
+                                    } else if (el.type === 'stairs') {
+                                        classes += ` bg-gray-300`;
+                                        content = (
+                                            <div className="w-full h-full flex flex-col justify-evenly">
+                                                {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-500"></div>)}
                                             </div>
+                                        );
+                                    } else if (el.type === 'plant') {
+                                        classes += ` bg-transparent`;
+                                        content = (
+                                            <div className="relative w-full h-full flex items-center justify-center">
+                                                <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
+                                                <div className="absolute w-full h-full flex items-center justify-center">
+                                                    {/* Leaves */}
+                                                    <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
+                                                    <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                                    <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
+                                                    <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    } else {
+                                        const styles: { [key: string]: string } = {
+                                            wall: 'bg-gray-500',
+                                            bar: 'bg-yellow-800 border-b-2 border-yellow-900',
+                                            window: 'bg-sky-200/40 border-2 border-sky-300'
+                                        };
+                                        classes += ` ${styles[el.type] || 'bg-gray-400'}`;
+                                        if (el.type === 'window') {
+                                            content = <div className="w-full h-full flex items-center justify-center"><div className="w-px h-full bg-sky-300/50"></div></div>;
+                                        }
+                                    }
+
+                                    return (
+                                        <div
+                                            key={el.id}
+                                            style={{ left: `${el.x}px`, top: `${el.y}px`, width: `${(el as any).width}px`, height: `${(el as any).height}px` }}
+                                            className={classes}
+                                        >
+                                            {content}
                                         </div>
                                     );
-                                } else {
-                                    const styles: { [key: string]: string } = {
-                                        wall: 'bg-gray-500',
-                                        bar: 'bg-yellow-800 border-b-2 border-yellow-900',
-                                        window: 'bg-sky-200/40 border-2 border-sky-300'
-                                    };
-                                    classes += ` ${styles[el.type] || 'bg-gray-400'}`;
-                                    if (el.type === 'window') {
-                                        content = <div className="w-full h-full flex items-center justify-center"><div className="w-px h-full bg-sky-300/50"></div></div>;
+                                }
+
+                                const now = new Date();
+                                const currentBooking = restaurant.bookings
+                                    .filter(
+                                        b =>
+                                            b.tableId === el.id &&
+                                            (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
+                                            b.dateTime <= now
+                                    )
+                                    .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())[0];
+                                const isPending = restaurant.bookings.some(
+                                    b => b.tableId === el.id && b.status === BookingStatus.PENDING && b.dateTime <= now
+                                );
+
+                                let statusColor = 'bg-brand-green/80';
+                                if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed';
+                                if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait';
+
+                                // Feature: Mark as red if next booking is within 1 hour
+                                if (!currentBooking && !isPending) {
+                                    const nextBooking = restaurant.bookings
+                                        .filter(b =>
+                                            b.tableId === el.id &&
+                                            (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
+                                            b.dateTime > now
+                                        )
+                                        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
+
+                                    if (nextBooking && (nextBooking.dateTime.getTime() - now.getTime()) < 60 * 60 * 1000) {
+                                        statusColor = 'bg-brand-red/80 cursor-not-allowed';
                                     }
                                 }
+
+                                const shapeClasses = el.shape === 'circle' ? 'rounded-full w-12 h-12' : 'rounded-md w-14 h-14';
 
                                 return (
                                     <div
                                         key={el.id}
-                                        style={{ left: `${el.x}px`, top: `${el.y}px`, width: `${(el as any).width}px`, height: `${(el as any).height}px` }}
-                                        className={classes}
+                                        style={{ left: `${el.x}px`, top: `${el.y}px` }}
+                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-colors ${shapeClasses} ${statusColor} cursor-pointer hover:scale-110 transition-transform`}
+                                        onClick={() => setSelectedTable(el as TableElement)}
                                     >
-                                        {content}
+                                        {el.label}
                                     </div>
                                 );
-                            }
-
-                            const now = new Date();
-                            const currentBooking = restaurant.bookings
-                                .filter(
-                                    b =>
-                                        b.tableId === el.id &&
-                                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                                        b.dateTime <= now
-                                )
-                                .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())[0];
-                            const isPending = restaurant.bookings.some(
-                                b => b.tableId === el.id && b.status === BookingStatus.PENDING && b.dateTime <= now
-                            );
-
-                            let statusColor = 'bg-brand-green/80';
-                            if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed';
-                            if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait';
-
-                            // Feature: Mark as red if next booking is within 1 hour
-                            if (!currentBooking && !isPending) {
-                                const nextBooking = restaurant.bookings
-                                    .filter(b =>
-                                        b.tableId === el.id &&
-                                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                                        b.dateTime > now
-                                    )
-                                    .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
-
-                                if (nextBooking && (nextBooking.dateTime.getTime() - now.getTime()) < 60 * 60 * 1000) {
-                                    statusColor = 'bg-brand-red/80 cursor-not-allowed';
-                                }
-                            }
-
-                            const shapeClasses = el.shape === 'circle' ? 'rounded-full w-12 h-12' : 'rounded-md w-14 h-14';
-
-                            return (
-                                <div
-                                    key={el.id}
-                                    style={{ left: `${el.x}px`, top: `${el.y}px` }}
-                                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-colors ${shapeClasses} ${statusColor} cursor-pointer hover:scale-110 transition-transform`}
-                                    onClick={() => setSelectedTable(el as TableElement)}
-                                >
-                                    {el.label}
-                                </div>
-                            );
-                        })}
+                            })}
+                    </div>
                 </div>
             </div>
             {selectedTable && (

@@ -101,6 +101,8 @@ const UserView: React.FC = () => {
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
+    const [scale, setScale] = useState(1);
+    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
 
@@ -113,6 +115,24 @@ const UserView: React.FC = () => {
             setIsInitialized(true);
         }
     }, [restaurant, isInitialized]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (containerRef.current) {
+                const containerWidth = containerRef.current.offsetWidth;
+                // Assuming base width is 800px (standard desktop size for the plan)
+                // If it's larger than 800, we don't scale up (or we can if needed)
+                // Actually the design is fixed height 600px.
+                // Let's assume the container should fit 800px width.
+                const newScale = Math.min(1, containerWidth / 800);
+                setScale(newScale);
+            }
+        };
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const tableStatuses = useMemo(() => {
         if (!restaurant) return {};
@@ -163,19 +183,19 @@ const UserView: React.FC = () => {
     }
 
     return (
-        <div className="bg-brand-primary p-6 rounded-lg shadow-xl">
-            <div className="flex justify-between items-center mb-6">
+        <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-white leading-tight">Добро пожаловать в {restaurant.name}!</h2>
-                    <p className="text-gray-400">Нажмите на свободный зеленый столик для бронирования.</p>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">Добро пожаловать в {restaurant.name}!</h2>
+                    <p className="text-gray-400 text-sm md:text-base">Нажмите на свободный зеленый столик для бронирования.</p>
                 </div>
                 {restaurant.floors && restaurant.floors.length > 1 && (
-                    <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent">
+                    <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto w-full md:w-auto">
                         {restaurant.floors.map(f => (
                             <button
                                 key={f.id}
                                 onClick={() => setActiveFloorId(f.id)}
-                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all whitespace-nowrap ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
                             >
                                 {f.name}
                             </button>
@@ -184,19 +204,32 @@ const UserView: React.FC = () => {
                 )}
             </div>
 
-            <div className="w-full h-[600px] bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner">
-                {restaurant.layout
-                    .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
-                    .map(element =>
-                        element.type === 'table'
-                            ? <Table key={element.id} table={element as TableElement} status={tableStatuses[element.id] || 'available'} onClick={() => setSelectedTable(element as TableElement)} />
-                            : <Deco key={element.id} element={element as DecoElement} />
-                    )}
+            <div
+                ref={containerRef}
+                className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex justify-center items-center"
+                style={{ height: `${600 * scale}px` }}
+            >
+                <div
+                    className="absolute origin-center"
+                    style={{
+                        width: '800px',
+                        height: '600px',
+                        transform: `scale(${scale})`
+                    }}
+                >
+                    {restaurant.layout
+                        .filter(el => !activeFloorId || el.floorId === activeFloorId || !el.floorId)
+                        .map(element =>
+                            element.type === 'table'
+                                ? <Table key={element.id} table={element as TableElement} status={tableStatuses[element.id] || 'available'} onClick={() => setSelectedTable(element as TableElement)} />
+                                : <Deco key={element.id} element={element as DecoElement} />
+                        )}
+                </div>
             </div>
-            <div className="flex justify-center space-x-6 mt-4">
-                <div className="flex items-center"><div className="w-4 h-4 rounded-full bg-brand-green mr-2"></div><span>Свободно</span></div>
-                <div className="flex items-center"><div className="w-4 h-4 rounded-full bg-brand-yellow mr-2"></div><span>Ожидает подтверждения</span></div>
-                <div className="flex items-center"><div className="w-4 h-4 rounded-full bg-brand-red mr-2"></div><span>Забронировано</span></div>
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 mt-4 pb-2">
+                <div className="flex items-center text-sm md:text-base"><div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-brand-green mr-2"></div><span>Свободно</span></div>
+                <div className="flex items-center text-sm md:text-base"><div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-brand-yellow mr-2"></div><span>Ожидает</span></div>
+                <div className="flex items-center text-sm md:text-base"><div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-brand-red mr-2"></div><span>Занято</span></div>
             </div>
 
             {selectedTable && selectedRestaurantId && <BookingModal table={selectedTable} restaurantId={selectedRestaurantId} onClose={() => setSelectedTable(null)} />}
