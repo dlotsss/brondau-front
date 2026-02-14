@@ -38,12 +38,12 @@ const calculateBounds = (elements: LayoutElement[]) => {
 };
 
 const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
-    const [timeLeft, setTimeLeft] = useState(180);
+    const [timeLeft, setTimeLeft] = useState(3600);
 
     useEffect(() => {
         const updateTimer = () => {
             const elapsed = (new Date().getTime() - createdAt.getTime()) / 1000;
-            const remaining = 180 - elapsed;
+            const remaining = 3600 - elapsed;
             setTimeLeft(Math.max(0, remaining));
         };
         updateTimer();
