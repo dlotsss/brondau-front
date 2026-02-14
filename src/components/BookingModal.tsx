@@ -23,18 +23,12 @@ const formatLocalDate = (date: Date) => {
 
 // Функция для форматирования телефона
 const formatPhoneNumber = (value: string): string => {
-    // Убираем все нецифровые символы
     const digits = value.replace(/\D/g, '');
-
-    // Ограничиваем до 11 цифр (7 + 10)
     const limitedDigits = digits.slice(0, 11);
-
-    // Если начинается с 8, заменяем на 7
     const normalizedDigits = limitedDigits.startsWith('8')
         ? '7' + limitedDigits.slice(1)
         : limitedDigits;
 
-    // Форматируем
     if (normalizedDigits.length === 0) return '';
     if (normalizedDigits.length <= 1) return `+${normalizedDigits}`;
     if (normalizedDigits.length <= 4) return `+${normalizedDigits[0]} (${normalizedDigits.slice(1)}`;
@@ -57,7 +51,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [bookingTime, setBookingTime] = useState('');
     const [error, setError] = useState('');
 
-    // Обработчик изменения телефона с маской
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPhoneNumber(e.target.value);
         setGuestPhone(formatted);
@@ -89,6 +82,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         const bookingsOnShift = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
+            // Учитываем только активные статусы. COMPLETED и DECLINED игнорируем.
             if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED && b.status !== BookingStatus.PENDING) return false;
             return b.dateTime >= shiftStart && b.dateTime < shiftEnd;
         }) || [];
@@ -97,19 +91,24 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const bookingMinsList = bookingsOnShift.map(b => {
             const bDate = new Date(b.dateTime);
             let bMins = bDate.getHours() * 60 + bDate.getMinutes();
-            // Handle overnight shifts
             if (bMins < startMins) bMins += 24 * 60;
             return bMins;
         });
 
-        // Only allow booking up to 1 hour before end of work day
         for (let time = startMins; time <= endMins - 60; time += 30) {
             if (isToday && time < minBookingMins) continue;
 
-            // Check for conflict with ANY existing booking (1 hour gap)
-            // Логика: если разница меньше 60 минут, то конфликт.
-            // Если бронь в 19:00 (1140 мин), а мы хотим 18:00 (1080 мин):
-            // |1080 - 1140| = 60. 60 < 60 -> FALSE. Конфликта нет. Слот доступен.
+            // !!! НОВАЯ ЛОГИКА !!!
+            // Если есть активная бронь, которая начинается РАНЬШЕ или в то же время, что и текущий слот 'time',
+            // то этот слот (и все последующие в этот день) недоступен.
+            // (Подразумевается, что люди сидят до закрытия или пока админ не освободит стол)
+            const isBlockedByEarlierBooking = bookingMinsList.some(bm => bm <= time);
+            if (isBlockedByEarlierBooking) continue;
+
+            // Проверка на пересечение "вперед" (если вдруг есть бронь, которая начинается позже,
+            // но так близко, что мы не успеем посидеть час).
+            // В нашей новой логике "Rest of day" это менее актуально, но оставим для надежности,
+            // если вдруг 'bm' > time, но time + 60 > bm.
             const hasConflict = bookingMinsList.some(bm => Math.abs(time - bm) < 60);
             if (hasConflict) continue;
 
@@ -180,34 +179,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const workStartH = parseInt(workStarts.split(':')[0]);
         if (h < workStartH && parseTime(bookingTime) < parseTime(workStarts)) {
             dateTime.setDate(dateTime.getDate() + 1);
-        }
-
-        // Предупреждение пользователю, если следующая бронь близко
-        const nextBooking = restaurant?.bookings
-            .filter(b =>
-                b.tableId === table.id &&
-                (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                b.dateTime > dateTime &&
-                (b.dateTime.getTime() - dateTime.getTime()) < 12 * 60 * 60 * 1000
-            )
-            .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
-
-        if (nextBooking) {
-            const diffMs = nextBooking.dateTime.getTime() - dateTime.getTime();
-            const diffHours = diffMs / (1000 * 60 * 60);
-
-            const hours = Math.floor(diffHours);
-            const minutes = Math.floor((diffHours - hours) * 60);
-            const durationStr = minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
-
-            const nextTimeStr = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(nextBooking.dateTime);
-
-            const confirmed = window.confirm(
-                `Внимание! На этот столик есть бронь в ${nextTimeStr}.\n` +
-                `Нужно будет освободить столик к этому времени (у вас будет ${durationStr}).\n\n` +
-                `Продолжить?`
-            );
-            if (!confirmed) return;
         }
 
         try {
