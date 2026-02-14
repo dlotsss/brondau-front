@@ -119,7 +119,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         for (let time = startMins; time <= endMins - 60; time += 30) {
             if (isToday && time < minBookingMins) continue;
             // Must be at least 1 hour before first booking
-            if (time >= firstBookingMins) continue;
+            // Must be at least 1 hour before first booking
+            if (time + 60 > firstBookingMins) continue;
 
             const h = Math.floor(time / 60) % 24;
             const m = time % 60;
