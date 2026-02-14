@@ -59,25 +59,19 @@ const ConstructorView: React.FC = () => {
             if (!containerRef.current) return;
 
             if (mobile) {
-                // На мобильных не масштабируем принудительно под экран, даем скроллить
-                // Можно поставить 0.7 или 1, как удобнее
                 setScale(0.8);
             } else {
-                // На десктопе вычисляем scale, чтобы вписать LOGICAL размер в контейнер
                 const { clientWidth, clientHeight } = containerRef.current;
-                // Отнимаем отступы (padding) если есть
                 const wRatio = (clientWidth - 40) / LOGICAL_WIDTH;
                 const hRatio = (clientHeight - 40) / LOGICAL_HEIGHT;
-                const newScale = Math.min(wRatio, hRatio, 1); // Не увеличиваем больше 1
+                const newScale = Math.min(wRatio, hRatio, 1);
                 setScale(newScale);
             }
         };
 
-        // ResizeObserver следит за изменением размера контейнера
         const observer = new ResizeObserver(handleResize);
         if (containerRef.current) observer.observe(containerRef.current);
 
-        // Начальный вызов
         handleResize();
 
         return () => observer.disconnect();
@@ -110,11 +104,9 @@ const ConstructorView: React.FC = () => {
             resizeDirection: direction
         };
 
-        // Специальная обработка для rotation - нам нужны экранные координаты центра
         if (mode === 'rotate') {
             const rect = containerRef.current?.getBoundingClientRect();
             if (rect) {
-                // Координаты центра элемента на экране
                 const centerX = rect.left + (element.x * scale);
                 const centerY = rect.top + (element.y * scale);
                 dragState.current.startX = centerX;
@@ -124,9 +116,8 @@ const ConstructorView: React.FC = () => {
     };
 
     const handleMouseDown = (e: ReactMouseEvent, id: string) => {
-        e.stopPropagation(); // Не даем клику уйти на фон (чтобы не сбросить выделение)
+        e.stopPropagation();
         e.preventDefault();
-        // Левая кнопка мыши
         if (e.button === 0) {
             handleStart(e.clientX, e.clientY, id, 'move');
         }
@@ -139,8 +130,7 @@ const ConstructorView: React.FC = () => {
     };
 
     const handleTouchStart = (e: ReactTouchEvent, id: string) => {
-        e.stopPropagation(); // Важно! Чтобы не сработал клик по контейнеру
-        // Здесь e.preventDefault() не нужен, так как touch-action: none в CSS сделает своё дело для элемента
+        e.stopPropagation();
         const touch = e.touches[0];
         handleStart(touch.clientX, touch.clientY, id, 'move');
     };
@@ -196,7 +186,6 @@ const ConstructorView: React.FC = () => {
     useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleEnd);
-        // passive: false нужно для некоторых браузеров, чтобы работали preventDefault при драге, если понадобится
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         window.addEventListener('touchend', handleEnd);
         return () => {
@@ -212,7 +201,6 @@ const ConstructorView: React.FC = () => {
 
     const addElement = (type: any) => {
         const newId = `el-${Date.now()}`;
-        // Добавляем в центр логического холста
         const startX = LOGICAL_WIDTH / 2;
         const startY = LOGICAL_HEIGHT / 2;
 
@@ -224,6 +212,10 @@ const ConstructorView: React.FC = () => {
             newElement = { ...base, type: 'table', width: 80, height: 80, seats: 4, shape: type === 'table-square' ? 'square' : 'circle', label: (count + 1).toString() } as TableElement;
         } else if (type === 'text') {
             newElement = { ...base, type: 'text', width: 150, height: 50, label: 'Текст', fontSize: 24 } as TextElement;
+        } else if (type === 'stairs') {
+            newElement = { ...base, type: 'stairs', width: 100, height: 100 } as DecoElement;
+        } else if (type === 'plant') {
+            newElement = { ...base, type: 'plant', width: 60, height: 60 } as DecoElement;
         } else {
             const isV = type === 'wall' || type === 'window';
             newElement = { ...base, type: type, width: isV ? 15 : (type === 'bar' ? 200 : 60), height: isV ? 200 : 60 } as DecoElement;
@@ -363,9 +355,7 @@ const ConstructorView: React.FC = () => {
                 {/* КОНТЕЙНЕР ХОЛСТА */}
                 <div
                     ref={containerRef}
-                    // На мобильном - auto (скролл), на десктопе - hidden (все влезает scale)
                     className={`flex-grow bg-brand-secondary relative border-2 border-brand-accent bg-grid ${isMobile ? 'overflow-auto' : 'overflow-hidden'}`}
-                    // Клик по фону снимает выделение
                     onClick={() => setSelectedElementId(null)}
                 >
                     {/* ТРАНСФОРМИРУЕМЫЙ СЛОЙ */}
@@ -375,8 +365,6 @@ const ConstructorView: React.FC = () => {
                             height: `${LOGICAL_HEIGHT}px`,
                             transform: `scale(${scale})`,
                             transformOrigin: 'top left',
-                            // На мобильном принудительно задаем размер, чтобы работал скролл
-                            // На десктопе скейлится, но место занимает scale-зависимое
                             position: 'absolute',
                             left: 0,
                             top: 0
@@ -389,26 +377,58 @@ const ConstructorView: React.FC = () => {
                             let content = null;
                             let shapeClass = '';
                             let bgClass = '';
+
                             if (el.type === 'table') {
                                 shapeClass = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
                                 bgClass = 'bg-gray-500 text-white font-bold shadow-md';
                                 const fontSize = Math.min(el.width, el.height) * 0.4;
                                 content = <span style={{ fontSize: `${fontSize}px` }}>{(el as TableElement).label}</span>;
+
                             } else if (el.type === 'text') {
                                 content = <span style={{ fontSize: (el as TextElement).fontSize, whiteSpace: 'nowrap', color: '#000000', fontWeight: 'bold' }}>{(el as TextElement).label}</span>;
+
+                            } else if (el.type === 'stairs') {
+                                // ОБНОВЛЕННАЯ ЛОГИКА ДЛЯ ЛЕСТНИЦЫ (как в UserView)
+                                bgClass = 'bg-gray-300';
+                                content = (
+                                    <div className="w-full h-full flex flex-col justify-evenly">
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="w-full h-px bg-gray-500"></div>
+                                        ))}
+                                    </div>
+                                );
+
                             } else if (el.type === 'plant') {
-                                content = <div className="w-2/3 h-2/3 bg-green-700 rounded-full opacity-80"></div>;
+                                // ОБНОВЛЕННАЯ ЛОГИКА ДЛЯ РАСТЕНИЯ (как в UserView)
+                                bgClass = 'bg-transparent';
+                                content = (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
+                                        <div className="absolute w-full h-full flex items-center justify-center">
+                                            <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
+                                            <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                            <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
+                                            <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                        </div>
+                                    </div>
+                                );
+
+                            } else if (el.type === 'arrow') {
+                                bgClass = 'text-black';
+                                content = (
+                                    <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
+                                        <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
+                                        <path d={`M ${el.width - 25} ${el.height / 2 - 10} L ${el.width - 5} ${el.height / 2} L ${el.width - 25} ${el.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                );
                             } else {
-                                const map: any = { wall: 'bg-gray-600', window: 'bg-sky-200/50 border-2 border-sky-300', bar: 'bg-yellow-800 border-b-4 border-yellow-900', arrow: 'text-2xl text-black' };
+                                // Wall, Window, Bar
+                                const map: any = {
+                                    wall: 'bg-gray-600',
+                                    window: 'bg-sky-200/50 border-2 border-sky-300',
+                                    bar: 'bg-yellow-800 border-b-4 border-yellow-900'
+                                };
                                 bgClass = map[el.type] || 'bg-brand-accent';
-                                if (el.type === 'arrow') {
-                                    content = (
-                                        <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
-                                            <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
-                                            <path d={`M ${el.width - 25} ${el.height / 2 - 10} L ${el.width - 5} ${el.height / 2} L ${el.width - 25} ${el.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    );
-                                }
                             }
 
                             return (
@@ -420,15 +440,13 @@ const ConstructorView: React.FC = () => {
                                         left: `${el.x}px`, top: `${el.y}px`,
                                         width: `${el.width}px`, height: `${el.height}px`,
                                         zIndex: isSelected ? 50 : 10,
-                                        transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`, // Центрируем координату + вращение
+                                        transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`,
                                         outline: isSelected ? '3px solid #3b82f6' : 'none',
-                                        // ВАЖНО для мобильного скролла карты:
-                                        // touch-action: none на ЭЛЕМЕНТЕ запрещает скролл браузера, когда тянешь элемент.
                                         touchAction: 'none'
                                     }}
                                     className={`absolute flex items-center justify-center cursor-move select-none ${shapeClass} ${bgClass}`}
                                     onClick={(e) => {
-                                        e.stopPropagation(); // Гарантируем, что клик по элементу выберет его и не уйдет на контейнер
+                                        e.stopPropagation();
                                         setSelectedElementId(el.id);
                                     }}
                                 >
