@@ -67,6 +67,7 @@ const Table: React.FC<{
     );
 };
 
+// Обновленный компонент Deco, полностью соответствующий AdminView
 const Deco: React.FC<{
     element: LayoutElement;
     offsetX: number;
@@ -105,6 +106,7 @@ const Deco: React.FC<{
             </svg>
         );
     } else if (element.type === 'stairs') {
+        // ЛОГИКА ИЗ ADMIN VIEW: Лестница
         classes += ' bg-gray-300';
         content = (
             <div className="w-full h-full flex flex-col justify-evenly">
@@ -114,6 +116,7 @@ const Deco: React.FC<{
             </div>
         );
     } else if (element.type === 'plant') {
+        // ЛОГИКА ИЗ ADMIN VIEW: Растение
         classes += ' bg-transparent';
         content = (
             <div className="relative w-full h-full flex items-center justify-center">
@@ -129,7 +132,7 @@ const Deco: React.FC<{
     } else {
         const decoStyles: { [key: string]: string } = {
             wall: 'bg-gray-500',
-            bar: 'bg-yellow-800 border-2 border-yellow-900',
+            bar: 'bg-yellow-800 border-b-2 border-yellow-900', // Синхронизировано с AdminView (border-b-2)
             window: 'bg-sky-200/40 border-2 border-sky-300',
         };
         classes += ' ' + (decoStyles[(element as DecoElement).type] || 'bg-gray-400');
@@ -137,7 +140,7 @@ const Deco: React.FC<{
         if (element.type === 'window') {
             content = (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-0.5 h-full bg-sky-300/50"></div>
+                    <div className="w-px h-full bg-sky-300/50"></div>
                 </div>
             );
         }
@@ -169,36 +172,27 @@ const UserView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
-    // ИСПРАВЛЕННАЯ ЛОГИКА СТАТУСОВ
     const tableStatuses = useMemo(() => {
         if (!restaurant) return {};
         const statuses: { [key: string]: string } = {};
         const nowTime = Date.now();
-        const DURATION = 2 * 60 * 60 * 1000; // 2 часа — стандартное время брони для отображения на карте
+        const DURATION = 2 * 60 * 60 * 1000;
 
         const tables = restaurant.layout.filter(el => el.type === 'table') as TableElement[];
         tables.forEach(table => {
-            // Ищем активную PENDING бронь, которая происходит ПРЯМО СЕЙЧАС
             const activePending = restaurant.bookings.find(b => {
                 if (b.tableId !== table.id) return false;
                 if (b.status !== BookingStatus.PENDING) return false;
-
                 const bookingStart = new Date(b.dateTime).getTime();
                 const bookingEnd = bookingStart + DURATION;
-
-                // Проверка: "Сейчас" попадает в интервал брони?
                 return nowTime >= bookingStart && nowTime < bookingEnd;
             });
 
-            // Ищем активную CONFIRMED/OCCUPIED бронь, которая происходит ПРЯМО СЕЙЧАС
             const activeConfirmed = restaurant.bookings.find(b => {
                 if (b.tableId !== table.id) return false;
                 if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
-
                 const bookingStart = new Date(b.dateTime).getTime();
                 const bookingEnd = bookingStart + DURATION;
-
-                // Проверка: "Сейчас" попадает в интервал брони?
                 return nowTime >= bookingStart && nowTime < bookingEnd;
             });
 
@@ -214,7 +208,6 @@ const UserView: React.FC = () => {
         return statuses;
     }, [restaurant]);
 
-    // Вычисляем динамические границы карты
     const activeFloorElements = useMemo(() => {
         if (!restaurant) return [];
         return restaurant.layout.filter(el =>
@@ -236,7 +229,6 @@ const UserView: React.FC = () => {
 
     return (
         <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full flex flex-col">
-            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
@@ -261,10 +253,8 @@ const UserView: React.FC = () => {
                 )}
             </div>
 
-            {/* Scrollable Map Container */}
             <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[400px]">
                 <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
-                    {/* SCALABLE WRAPPER */}
                     <div
                         className="relative w-full h-full transform origin-top-left transition-transform duration-300 scale-[0.65] md:scale-100"
                         style={{
@@ -285,7 +275,6 @@ const UserView: React.FC = () => {
                                     offsetY={bounds.minY}
                                 />
                             ) : (
-                                // @ts-ignore - Using original Deco logic in real code
                                 <Deco
                                     key={element.id}
                                     element={element as DecoElement}
@@ -298,7 +287,6 @@ const UserView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Legend */}
             <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
                 <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-brand-green mr-2"></div>
