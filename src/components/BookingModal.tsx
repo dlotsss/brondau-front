@@ -275,7 +275,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             placeholder="Ваше имя"
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-gray-400 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required
                         />
                         <input
@@ -283,7 +283,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             placeholder="+7 (___) ___-__-__"
                             value={guestPhone}
                             onChange={handlePhoneChange}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-gray-400 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required
                         />
 
