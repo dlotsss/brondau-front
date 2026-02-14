@@ -116,19 +116,25 @@ const UserView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
-    React.useLayoutEffect(() => {
+    useEffect(() => {
         if (!containerRef.current) return;
 
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const containerWidth = entry.contentRect.width;
-                // Base width is 800px. We scale down to fit container width.
-                const newScale = Math.min(1, containerWidth / 800);
-                setScale(newScale);
+        const updateScale = () => {
+            if (containerRef.current) {
+                const containerWidth = containerRef.current.clientWidth;
+                if (containerWidth > 0) {
+                    const newScale = Math.min(1, containerWidth / 800);
+                    setScale(newScale);
+                }
             }
-        });
+        };
 
+        const observer = new ResizeObserver(updateScale);
         observer.observe(containerRef.current);
+
+        // Immediate call to handle initial render
+        updateScale();
+
         return () => observer.disconnect();
     }, []);
 

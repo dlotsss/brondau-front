@@ -49,18 +49,23 @@ const ConstructorView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
-    React.useLayoutEffect(() => {
+    useEffect(() => {
         if (!containerRef.current) return;
 
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const containerWidth = entry.contentRect.width;
-                const newScale = Math.min(1, containerWidth / 800);
-                setScale(newScale);
+        const updateScale = () => {
+            if (containerRef.current) {
+                const containerWidth = containerRef.current.clientWidth;
+                if (containerWidth > 0) {
+                    const newScale = Math.min(1, containerWidth / 800);
+                    setScale(newScale);
+                }
             }
-        });
+        };
 
+        const observer = new ResizeObserver(updateScale);
         observer.observe(containerRef.current);
+        updateScale();
+
         return () => observer.disconnect();
     }, []);
 
@@ -309,7 +314,7 @@ const ConstructorView: React.FC = () => {
                         style={{ backgroundColor: '#f5efe6', height: `${600 * scale}px` }}
                     >
                         <div
-                            className="absolute origin-top"
+                            className="relative origin-top shrink-0"
                             style={{
                                 width: '800px',
                                 height: '600px',
