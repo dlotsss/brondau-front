@@ -282,22 +282,22 @@ const ConstructorView: React.FC = () => {
                             {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
                                 <div>
                                     <label className="text-gray-400 block">Название / Текст</label>
-                                    <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" />
+                                    <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                                 </div>
                             )}
                             {selectedElement.type === 'table' && (
                                 <div>
                                     <label className="text-gray-400 block">Мест</label>
-                                    <input type="number" value={(selectedElement as TableElement).seats} onChange={e => updateElement(selectedElement.id, { seats: parseInt(e.target.value) } as any)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" />
+                                    <input type="number" value={(selectedElement as TableElement).seats} onChange={e => updateElement(selectedElement.id, { seats: parseInt(e.target.value) } as any)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                                 </div>
                             )}
                             <div>
                                 <label className="text-gray-400 block">Ширина</label>
-                                <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" />
+                                <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                             </div>
                             <div>
                                 <label className="text-gray-400 block">Высота</label>
-                                <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" />
+                                <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                             </div>
                             <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">Удалить</button>
                         </div>
