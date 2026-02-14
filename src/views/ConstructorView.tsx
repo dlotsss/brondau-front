@@ -3,21 +3,17 @@ import { useData } from '../context/DataContext';
 import { LayoutElement, TableElement, DecoElement, TextElement, Floor } from '../types';
 import { useApp } from '../context/AppContext';
 
-type DraggableItem = {
+// Типы для обработки жестов
+type DragState = {
     id: string;
-    offsetX: number;
-    offsetY: number;
-};
-
-type ResizableItem = {
-    id: string;
-    direction: 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
-    startMouseX: number;
-    startMouseY: number;
-    startWidth: number;
-    startHeight: number;
+    mode: 'move' | 'resize' | 'none';
     startX: number;
     startY: number;
+    initialElementX: number;
+    initialElementY: number;
+    initialDistance: number; // Расстояние между пальцами для зума
+    initialWidth: number;
+    initialHeight: number;
 };
 
 const ConstructorView: React.FC = () => {
@@ -29,11 +25,10 @@ const ConstructorView: React.FC = () => {
     const [floors, setFloors] = useState<Floor[]>([]);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
-
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
-    const draggableRef = useRef<DraggableItem | null>(null);
-    const resizableRef = useRef<ResizableItem | null>(null);
+    // Ссылка на текущее состояние перетаскивания/ресайза
+    const gestureRef = useRef<DragState | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -48,145 +43,170 @@ const ConstructorView: React.FC = () => {
 
     const selectedElement = elements.find(el => el.id === selectedElementId);
 
-    // MOUSE EVENTS
-    const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>, id: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const targetElement = e.currentTarget;
-        const rect = targetElement.getBoundingClientRect();
-        draggableRef.current = { id, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
-        setSelectedElementId(id);
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+
+    // Расстояние между двумя точками касания (для щипка)
+    const getDistance = (touch1: React.Touch, touch2: React.Touch) => {
+        return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     };
 
-    // TOUCH EVENTS (Mobile)
-    const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>, id: string) => {
-        // e.preventDefault(); // Sometimes needed, but might block scroll.
-        e.stopPropagation();
-        const targetElement = e.currentTarget;
-        const rect = targetElement.getBoundingClientRect();
-        const touch = e.touches[0];
-        draggableRef.current = { id, offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top };
-        setSelectedElementId(id);
+    const updateElement = (id: string, updates: Partial<LayoutElement>) => {
+        setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
     };
 
-    const handleResizeStart = (e: ReactMouseEvent<HTMLDivElement>, id: string, direction: ResizableItem['direction']) => {
-        e.preventDefault();
+    // --- ОБРАБОТЧИКИ СОБЫТИЙ (MOUSE & TOUCH) ---
+
+    // Начало касания (или клика)
+    const handleStart = (clientX: number, clientY: number, id: string, e: any) => {
         e.stopPropagation();
         const element = elements.find(el => el.id === id);
         if (!element) return;
-        resizableRef.current = {
-            id, direction,
-            startMouseX: e.clientX, startMouseY: e.clientY,
-            startWidth: element.width, startHeight: element.height,
-            startX: element.x, startY: element.y
-        };
+
+        setSelectedElementId(id);
+
+        // Если это touch событие и пальцев 2 -> режим ресайза
+        if (e.touches && e.touches.length === 2) {
+            const dist = getDistance(e.touches[0], e.touches[1]);
+            gestureRef.current = {
+                id,
+                mode: 'resize',
+                startX: 0, startY: 0, initialElementX: 0, initialElementY: 0, // Не используются для ресайза
+                initialDistance: dist,
+                initialWidth: element.width,
+                initialHeight: element.height
+            };
+        } else {
+            // Режим перемещения (1 палец или мышь)
+            gestureRef.current = {
+                id,
+                mode: 'move',
+                startX: clientX,
+                startY: clientY,
+                initialElementX: element.x,
+                initialElementY: element.y,
+                initialDistance: 0,
+                initialWidth: 0, initialHeight: 0
+            };
+        }
     };
 
-    // Shared Move Logic
-    const moveElement = (clientX: number, clientY: number) => {
-        if (resizableRef.current && canvasRef.current) {
-            // Resizing logic (Mouse only typically for precision, but could map to touch)
-            const { id, direction, startMouseX, startMouseY, startWidth, startHeight, startX, startY } = resizableRef.current;
-            const deltaX = clientX - startMouseX;
-            const deltaY = clientY - startMouseY;
+    const handleMouseDown = (e: ReactMouseEvent, id: string) => {
+        e.preventDefault(); // Предотвращаем выделение текста
+        handleStart(e.clientX, e.clientY, id, e);
+    };
 
-            setElements(prev => prev.map(el => {
-                if (el.id !== id) return el;
-                let newWidth = startWidth, newHeight = startHeight, newX = startX, newY = startY;
+    const handleTouchStart = (e: ReactTouchEvent, id: string) => {
+        // e.preventDefault() здесь нельзя, иначе скролл не будет работать, если промахнулся
+        // Но если попали по элементу, скролл нам мешает.
+        // Решим через CSS touch-action: none на элементе
+        const touch = e.touches[0];
+        handleStart(touch.clientX, touch.clientY, id, e);
+    };
 
-                if (direction.includes('e')) { newWidth = Math.max(20, startWidth + deltaX); newX = startX + (newWidth - startWidth) / 2; }
-                if (direction.includes('w')) { newWidth = Math.max(20, startWidth - deltaX); newX = startX - (newWidth - startWidth) / 2; }
-                if (direction.includes('s')) { newHeight = Math.max(20, startHeight + deltaY); newY = startY + (newHeight - startHeight) / 2; }
-                if (direction.includes('n')) { newHeight = Math.max(20, startHeight - deltaY); newY = startY - (newHeight - startHeight) / 2; }
+    // Движение
+    const handleMove = useCallback((clientX: number, clientY: number, e: any) => {
+        if (!gestureRef.current) return;
+        const { id, mode, startX, startY, initialElementX, initialElementY, initialDistance, initialWidth, initialHeight } = gestureRef.current;
 
-                return { ...el, width: newWidth, height: newHeight, x: newX, y: newY };
-            }));
+        // Обработка 2 пальцев (щипок/растягивание)
+        if (mode === 'resize' && e.touches && e.touches.length === 2) {
+            e.preventDefault(); // Блокируем зум браузера
+            const currentDist = getDistance(e.touches[0], e.touches[1]);
+            const scale = currentDist / initialDistance;
+
+            // Ограничиваем минимальный размер
+            const newWidth = Math.max(20, Math.round(initialWidth * scale));
+            const newHeight = Math.max(20, Math.round(initialHeight * scale));
+
+            updateElement(id, { width: newWidth, height: newHeight });
             return;
         }
 
-        if (draggableRef.current && canvasRef.current) {
-            const { id, offsetX, offsetY } = draggableRef.current;
-            const canvasRect = canvasRef.current.getBoundingClientRect();
-            // Calculate relative to scrollable canvas content if needed, 
-            // but here we just need relative to viewport minus canvas offset
+        // Обработка 1 пальца (перемещение)
+        if (mode === 'move') {
+            // Для touch предотвращаем скролл страницы, пока тащим элемент
+            if (e.type === 'touchmove') e.preventDefault();
 
-            // Adjust for scroll? If the container scrolls, clientX relative to viewport is fine, 
-            // but we need the element position relative to the container.
+            // Учитываем зум браузера и скролл контейнера, если нужно, но пока просто дельта
+            // ВАЖНО: clientX - это координаты экрана. Canvas может быть проскроллен.
+            // Но мы меняем absolute left/top внутри relative контейнера.
+            // Дельта движения пальца равна дельте движения элемента.
 
-            // Note: If canvas has overflow, getBoundingClientRect returns the visible box.
-            // But 'scrollLeft' matters for the coordinate inside.
-            const scrollLeft = canvasRef.current.scrollLeft || 0;
-            const scrollTop = canvasRef.current.scrollTop || 0;
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
 
-            let newX = clientX - canvasRect.left + scrollLeft;
-            let newY = clientY - canvasRect.top + scrollTop;
-
-            setElements(prev => prev.map(el => {
-                if (el.id !== id) return el;
-                const pivotX = el.width / 2;
-                const pivotY = el.height / 2;
-                return { ...el, x: newX - offsetX + pivotX, y: newY - offsetY + pivotY };
-            }));
+            updateElement(id, {
+                x: initialElementX + deltaX,
+                y: initialElementY + deltaY
+            });
         }
-    };
+    }, []);
 
     const handleMouseMove = useCallback((e: globalThis.MouseEvent) => {
-        if (draggableRef.current || resizableRef.current) moveElement(e.clientX, e.clientY);
-    }, []);
+        if (gestureRef.current) handleMove(e.clientX, e.clientY, e);
+    }, [handleMove]);
 
     const handleTouchMove = useCallback((e: globalThis.TouchEvent) => {
-        if (draggableRef.current) {
+        if (gestureRef.current) {
             const touch = e.touches[0];
-            moveElement(touch.clientX, touch.clientY);
+            handleMove(touch.clientX, touch.clientY, e);
         }
-    }, []);
+    }, [handleMove]);
 
-    const handleMouseUp = useCallback(() => {
-        draggableRef.current = null;
-        resizableRef.current = null;
+    const handleEnd = useCallback(() => {
+        gestureRef.current = null;
     }, []);
 
     useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('mouseup', handleEnd);
+        // non-passive чтобы работал preventDefault внутри для блокировки скролла при драге
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
-        window.addEventListener('touchend', handleMouseUp);
+        window.addEventListener('touchend', handleEnd);
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('mouseup', handleEnd);
             window.removeEventListener('touchmove', handleTouchMove);
-            window.removeEventListener('touchend', handleMouseUp);
+            window.removeEventListener('touchend', handleEnd);
         };
-    }, [handleMouseMove, handleMouseUp, handleTouchMove]);
+    }, [handleMouseMove, handleTouchMove, handleEnd]);
+
+    // --- ЛОГИКА ДОБАВЛЕНИЯ ЭЛЕМЕНТОВ ---
 
     const addElement = (type: any) => {
         const newId = `el-${Date.now()}`;
-        // Default center of visible area approx
-        const startX = (canvasRef.current?.scrollLeft || 0) + 150;
-        const startY = (canvasRef.current?.scrollTop || 0) + 150;
+        // Добавляем в центр видимой области (примерно) или просто со сдвигом от скролла
+        const scrollX = canvasRef.current?.scrollLeft || 0;
+        const scrollY = canvasRef.current?.scrollTop || 0;
+        const startX = scrollX + 150;
+        const startY = scrollY + 200;
 
         let newElement: LayoutElement;
-        if (type === 'table-square' || type === 'table-circle') {
-            const tableCount = elements.filter(e => e.type === 'table').length;
-            newElement = { id: newId, type: 'table', x: startX, y: startY, width: 60, height: 60, seats: 4, shape: type === 'table-square' ? 'square' : 'circle', label: (tableCount + 1).toString(), floorId: activeFloorId } as TableElement;
+        const baseProps = { id: newId, x: startX, y: startY, floorId: activeFloorId };
+
+        if (type.startsWith('table')) {
+            const count = elements.filter(e => e.type === 'table').length;
+            newElement = { ...baseProps, type: 'table', width: 60, height: 60, seats: 4, shape: type === 'table-square' ? 'square' : 'circle', label: (count + 1).toString() } as TableElement;
         } else if (type === 'text') {
-            newElement = { id: newId, type: 'text', x: startX, y: startY, width: 100, height: 40, label: 'Текст', fontSize: 16, floorId: activeFloorId } as TextElement;
+            newElement = { ...baseProps, type: 'text', width: 100, height: 40, label: 'Текст', fontSize: 16 } as TextElement;
         } else {
-            const isVertical = type === 'wall' || type === 'window';
-            newElement = { id: newId, type: type, x: startX, y: startY, width: isVertical ? 10 : (type === 'bar' ? 150 : 40), height: isVertical ? 100 : 40, floorId: activeFloorId } as DecoElement;
+            const isV = type === 'wall' || type === 'window';
+            newElement = { ...baseProps, type: type, width: isV ? 10 : (type === 'bar' ? 150 : 40), height: isV ? 100 : 40 } as DecoElement;
         }
         setElements(prev => [...prev, newElement]);
-    };
-
-    const updateSelectedElement = (prop: string, value: any) => {
-        if (!selectedElementId) return;
-        setElements(prev => prev.map(el => el.id === selectedElementId ? { ...el, [prop]: value } : el));
+        setSelectedElementId(newId); // Сразу выбираем добавленный
     };
 
     const deleteSelectedElement = () => {
         if (!selectedElementId) return;
         setElements(prev => prev.filter(el => el.id !== selectedElementId));
         setSelectedElementId(null);
+    };
+
+    const handleSaveLayout = () => {
+        if (!selectedRestaurantId) return;
+        updateLayout(selectedRestaurantId, elements, floors);
+        alert('Сохранено!');
     };
 
     const addFloor = () => {
@@ -198,117 +218,163 @@ const ConstructorView: React.FC = () => {
         }
     };
 
-    const handleSaveLayout = () => {
-        if (!selectedRestaurantId) return;
-        updateLayout(selectedRestaurantId, elements, floors);
-        alert('План зала сохранен!');
-    };
-
-    if (!restaurant) return <div className="text-center text-gray-400">Загрузка...</div>;
+    if (!restaurant) return <div className="p-4 text-center text-gray-500">Загрузка...</div>;
 
     const currentFloorElements = elements.filter(el => el.floorId === activeFloorId);
 
     return (
-        <div className="flex flex-col gap-4 h-[calc(100vh-100px)]">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-                <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>Конструктор</h2>
-                <div className="flex items-center space-x-2 bg-brand-secondary p-1 rounded-md border border-brand-accent overflow-x-auto max-w-full">
+        <div className="flex flex-col h-[calc(100vh-64px)] relative overflow-hidden bg-brand-secondary">
+
+            {/* 1. ВЕРХНЯЯ ПАНЕЛЬ: Залы и Сохранение */}
+            <div className="flex justify-between items-center p-2 bg-brand-primary shadow-md z-10">
+                <div className="flex gap-2 overflow-x-auto max-w-[70%] no-scrollbar">
                     {floors.map(f => (
-                        <button key={f.id} onClick={() => setActiveFloorId(f.id)} className={`px-3 py-1 rounded text-sm font-medium whitespace-nowrap ${activeFloorId === f.id ? 'bg-brand-blue text-white' : 'text-gray-400'}`}>{f.name}</button>
+                        <button key={f.id} onClick={() => setActiveFloorId(f.id)} className={`px-3 py-1.5 rounded text-sm whitespace-nowrap ${activeFloorId === f.id ? 'bg-brand-blue text-white' : 'bg-brand-accent text-gray-200'}`}>
+                            {f.name}
+                        </button>
                     ))}
-                    <button onClick={addFloor} className="px-3 py-1 rounded text-sm font-medium text-brand-blue">+</button>
+                    <button onClick={addFloor} className="px-3 py-1.5 rounded bg-brand-accent/50 text-brand-blue font-bold">+</button>
+                </div>
+                <button onClick={handleSaveLayout} className="px-3 py-1.5 rounded bg-green-600 text-white text-sm font-bold shadow">
+                    Save
+                </button>
+            </div>
+
+            {/* 2. ПАНЕЛЬ ИНСТРУМЕНТОВ (Скролл по горизонтали) */}
+            <div className="bg-brand-secondary border-b border-brand-accent p-2 overflow-x-auto z-10">
+                <div className="flex space-x-3 min-w-max">
+                    <ToolButton label="Квадрат" onClick={() => addElement('table-square')} />
+                    <ToolButton label="Круг" onClick={() => addElement('table-circle')} />
+                    <ToolButton label="Стена" onClick={() => addElement('wall')} />
+                    <ToolButton label="Окно" onClick={() => addElement('window')} />
+                    <ToolButton label="Бар" onClick={() => addElement('bar')} />
+                    <ToolButton label="Цветок" onClick={() => addElement('plant')} />
+                    <ToolButton label="Текст" onClick={() => addElement('text')} />
+                    <ToolButton label="Стрелка" onClick={() => addElement('arrow')} />
+                    <ToolButton label="Лестн." onClick={() => addElement('stairs')} />
                 </div>
             </div>
 
-            {/* Tools Panel - Scrollable horizontally on mobile */}
-            <div className="bg-brand-primary p-2 rounded-lg shadow border border-brand-accent overflow-x-auto">
-                <div className="flex flex-row space-x-2 min-w-max pb-1">
-                    <button onClick={() => addElement('table-square')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Квадрат</button>
-                    <button onClick={() => addElement('table-circle')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Круг</button>
-                    <button onClick={() => addElement('wall')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Стена</button>
-                    <button onClick={() => addElement('window')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Окно</button>
-                    <button onClick={() => addElement('bar')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Бар</button>
-                    <button onClick={() => addElement('plant')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Цветок</button>
-                    <button onClick={() => addElement('text')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Текст</button>
-                    <button onClick={() => addElement('arrow')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Стрелка</button>
-                    <button onClick={() => addElement('stairs')} className="bg-brand-accent px-3 py-2 rounded text-xs whitespace-nowrap hover:bg-[#c27d3e]">Лестница</button>
-                    <div className="w-px bg-gray-600 mx-2"></div>
-                    <button onClick={handleSaveLayout} className="bg-brand-blue text-white font-bold px-4 py-2 rounded text-xs shadow">Сохранить</button>
+            {/* 3. ХОЛСТ (CANVAS) */}
+            <div ref={canvasRef} className="flex-grow overflow-auto relative bg-grid touch-pan-x touch-pan-y" onClick={() => setSelectedElementId(null)}>
+                <div className="w-[1500px] h-[1500px] relative">
+                    {currentFloorElements.map(el => {
+                        const isSelected = el.id === selectedElementId;
+                        return (
+                            <div
+                                key={el.id}
+                                onMouseDown={(e) => handleMouseDown(e, el.id)}
+                                onTouchStart={(e) => handleTouchStart(e, el.id)}
+                                style={{
+                                    left: el.x, top: el.y, width: el.width, height: el.height,
+                                    zIndex: isSelected ? 50 : 10,
+                                    // transform translate нужен, чтобы x,y были центром элемента (как в админке)
+                                    transform: 'translate(-50%, -50%)',
+                                    outline: isSelected ? '3px solid #3b82f6' : 'none',
+                                    touchAction: 'none' // ВАЖНО: блокирует скролл браузера при касании элемента
+                                }}
+                                className={`absolute flex items-center justify-center shadow-sm select-none
+                                    ${el.type === 'table' ? (el.shape === 'circle' ? 'rounded-full bg-gray-500 text-white' : 'rounded-md bg-gray-500 text-white') : ''}
+                                    ${el.type === 'wall' ? 'bg-gray-600' : ''}
+                                    ${el.type === 'window' ? 'bg-sky-200/50 border-2 border-sky-300' : ''}
+                                    ${el.type === 'bar' ? 'bg-yellow-800 border-b-4 border-yellow-900' : ''}
+                                    ${el.type === 'text' ? 'border border-dashed border-gray-400' : ''}
+                                `}
+                            >
+                                {/* Рендер содержимого (упрощено для примера) */}
+                                {el.type === 'table' && <span className="font-bold">{(el as TableElement).label}</span>}
+                                {el.type === 'text' && <span style={{ fontSize: (el as TextElement).fontSize }}>{(el as TextElement).label}</span>}
+                                {el.type === 'plant' && <div className="w-2/3 h-2/3 bg-green-700 rounded-full opacity-80"></div>}
+                                {el.type === 'arrow' && <span className="text-2xl text-black">➔</span>}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-4 flex-grow overflow-hidden">
-                {/* Canvas Container */}
-                <div ref={canvasRef} className="flex-grow w-full bg-brand-secondary rounded-lg relative overflow-auto border-2 border-brand-accent bg-grid touch-none">
-                    <div className="w-[1200px] h-[1200px] relative"> {/* Large workspace */}
-                        {currentFloorElements.map(el => {
-                            const isSelected = el.id === selectedElementId;
-                            const baseStyles = {
-                                left: `${el.x}px`, top: `${el.y}px`,
-                                width: `${el.width}px`, height: `${el.height}px`,
-                                zIndex: isSelected ? 10 : 1,
-                                outline: isSelected ? '2px solid #d5b483' : 'none',
-                            };
-
-                            let content = null;
-                            let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move shadow-sm group flex items-center justify-center select-none`;
-
-                            // ... (rendering logic same as original, omitted for brevity) ...
-                            // Insert content rendering logic here from original file
-                            if (el.type === 'table') {
-                                classes += el.shape === 'circle' ? ' rounded-full bg-gray-500 text-white font-bold shadow-md' : ' rounded-md bg-gray-500 text-white font-bold shadow-md';
-                                content = (el as TableElement).label;
-                            } else if (el.type === 'text') {
-                                classes += ' bg-transparent border-dashed border border-gray-400';
-                                content = <div style={{ fontSize: `${(el as TextElement).fontSize}px` }}>{(el as TextElement).label}</div>;
-                            } else {
-                                classes += el.type === 'wall' ? ' bg-gray-600' : ' bg-brand-accent';
-                            }
-
-                            return (
-                                <div
-                                    key={el.id}
-                                    onMouseDown={(e) => handleMouseDown(e, el.id)}
-                                    onTouchStart={(e) => handleTouchStart(e, el.id)}
-                                    style={baseStyles}
-                                    className={classes}
-                                >
-                                    {content}
-                                    {/* Resizers only for mouse for now to keep mobile simple */}
-                                    {isSelected && (
-                                        <div className="hidden md:block">
-                                            <div onMouseDown={(e) => handleResizeStart(e, el.id, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-se-resize z-20"></div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+            {/* 4. НИЖНЯЯ ПАНЕЛЬ СВОЙСТВ (BOTTOM SHEET) - Только если выбран элемент */}
+            {selectedElement && (
+                <div className="bg-brand-primary border-t-2 border-brand-blue p-4 pb-8 shadow-2xl z-50 animate-slide-up">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-white font-bold text-lg">Настройки элемента</h3>
+                        <button onClick={deleteSelectedElement} className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-sm font-bold border border-red-500/50">
+                            Удалить
+                        </button>
                     </div>
-                </div>
 
-                {/* Properties Panel (Bottom on mobile, Side on desktop) */}
-                {selectedElement && (
-                    <div className="lg:w-64 bg-brand-primary p-4 rounded-lg shadow-lg overflow-y-auto max-h-[200px] lg:max-h-full">
-                        <h4 className="font-bold mb-2 text-sm text-white">Свойства</h4>
-                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 text-xs">
-                            {selectedElement.type === 'table' && (
-                                <>
-                                    <div><label className="text-gray-400 block">Название</label><input type="text" value={(selectedElement as TableElement).label} onChange={e => updateSelectedElement('label', e.target.value)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" /></div>
-                                    <div><label className="text-gray-400 block">Мест</label><input type="number" value={(selectedElement as TableElement).seats} onChange={e => updateSelectedElement('seats', parseInt(e.target.value))} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" /></div>
-                                </>
-                            )}
-                            {'width' in selectedElement && <div><label className="text-gray-400 block">Ширина</label><input type="number" value={(selectedElement as any).width} onChange={e => updateSelectedElement('width', parseInt(e.target.value))} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" /></div>}
-                            {'height' in selectedElement && <div><label className="text-gray-400 block">Высота</label><input type="number" value={(selectedElement as any).height} onChange={e => updateSelectedElement('height', parseInt(e.target.value))} className="w-full bg-brand-secondary p-1 rounded border border-gray-600" /></div>}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Имя / Текст */}
+                        {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
+                            <div className="col-span-2">
+                                <label className="text-gray-400 text-xs block mb-1">Название / Текст</label>
+                                <input
+                                    type="text"
+                                    value={(selectedElement as any).label}
+                                    onChange={(e) => updateElement(selectedElement.id, { label: e.target.value } as any)}
+                                    className="w-full bg-brand-secondary p-2 rounded text-white border border-gray-600"
+                                />
+                            </div>
+                        )}
+
+                        {/* Места (для столов) */}
+                        {selectedElement.type === 'table' && (
+                            <div className="col-span-2">
+                                <label className="text-gray-400 text-xs block mb-1">Количество мест: {(selectedElement as TableElement).seats}</label>
+                                <input
+                                    type="range" min="1" max="12" step="1"
+                                    value={(selectedElement as TableElement).seats}
+                                    onChange={(e) => updateElement(selectedElement.id, { seats: parseInt(e.target.value) } as any)}
+                                    className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                                />
+                            </div>
+                        )}
+
+                        {/* Слайдеры размеров - Удобно для мобилок */}
+                        <div className="col-span-2 space-y-3 pt-2 border-t border-gray-700 mt-2">
+                            <p className="text-gray-400 text-xs">Размеры (Растягивание)</p>
+                            <div className="flex items-center gap-3">
+                                <span className="text-white text-xs w-8">Шир:</span>
+                                <input
+                                    type="range" min="20" max="400" step="5"
+                                    value={selectedElement.width}
+                                    onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) })}
+                                    className="flex-1 h-2 bg-brand-accent rounded-lg appearance-none cursor-pointer"
+                                />
+                                <span className="text-gray-400 text-xs w-6 text-right">{selectedElement.width}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-white text-xs w-8">Выс:</span>
+                                <input
+                                    type="range" min="20" max="400" step="5"
+                                    value={selectedElement.height}
+                                    onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) })}
+                                    className="flex-1 h-2 bg-brand-accent rounded-lg appearance-none cursor-pointer"
+                                />
+                                <span className="text-gray-400 text-xs w-6 text-right">{selectedElement.height}</span>
+                            </div>
                         </div>
-                        <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 text-xs font-bold uppercase">Удалить</button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
             <style>{`
                 .bg-grid { background-image: linear-gradient(to right, #d5b483 1px, transparent 1px), linear-gradient(to bottom, #d5b483 1px, transparent 1px); background-size: 40px 40px; }
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+                .animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
             `}</style>
         </div>
     );
 };
+
+const ToolButton: React.FC<{ label: string, onClick: () => void }> = ({ label, onClick }) => (
+    <button
+        onClick={onClick}
+        className="flex-shrink-0 bg-brand-accent hover:bg-orange-700 text-white text-xs font-semibold px-4 py-3 rounded-lg shadow-sm transition-colors border border-brand-primary/20"
+    >
+        {label}
+    </button>
+);
 
 export default ConstructorView;
