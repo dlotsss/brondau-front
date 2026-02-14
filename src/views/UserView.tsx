@@ -245,7 +245,7 @@ const UserView: React.FC = () => {
             </div>
 
             {/* Scrollable Map Container */}
-            <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[500px]">
+            <div className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex-grow min-h-[300px]">
                 <div className="overflow-auto w-full h-full absolute inset-0 touch-pan-x touch-pan-y">
                     {/* SCALABLE WRAPPER */}
                     <div
