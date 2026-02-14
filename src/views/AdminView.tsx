@@ -97,18 +97,19 @@ const AdminView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
-    useEffect(() => {
-        const handleResize = () => {
-            if (containerRef.current) {
-                const containerWidth = containerRef.current.offsetWidth;
+    React.useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const containerWidth = entry.contentRect.width;
                 const newScale = Math.min(1, containerWidth / 800);
                 setScale(newScale);
             }
-        };
+        });
 
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
     }, []);
 
     // Subscribe admin to push notifications
@@ -244,11 +245,11 @@ const AdminView: React.FC = () => {
                 </div>
                 <div
                     ref={containerRef}
-                    className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex justify-center items-center"
+                    className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex justify-center"
                     style={{ height: `${600 * scale}px` }}
                 >
                     <div
-                        className="absolute origin-center"
+                        className="absolute origin-top"
                         style={{
                             width: '800px',
                             height: '600px',

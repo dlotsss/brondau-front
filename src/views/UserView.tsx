@@ -116,22 +116,20 @@ const UserView: React.FC = () => {
         }
     }, [restaurant, isInitialized]);
 
-    useEffect(() => {
-        const handleResize = () => {
-            if (containerRef.current) {
-                const containerWidth = containerRef.current.offsetWidth;
-                // Assuming base width is 800px (standard desktop size for the plan)
-                // If it's larger than 800, we don't scale up (or we can if needed)
-                // Actually the design is fixed height 600px.
-                // Let's assume the container should fit 800px width.
+    React.useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const containerWidth = entry.contentRect.width;
+                // Base width is 800px. We scale down to fit container width.
                 const newScale = Math.min(1, containerWidth / 800);
                 setScale(newScale);
             }
-        };
+        });
 
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
     }, []);
 
     const tableStatuses = useMemo(() => {
@@ -206,11 +204,11 @@ const UserView: React.FC = () => {
 
             <div
                 ref={containerRef}
-                className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex justify-center items-center"
+                className="w-full bg-brand-secondary rounded-xl relative overflow-hidden border-2 border-brand-accent shadow-inner flex justify-center"
                 style={{ height: `${600 * scale}px` }}
             >
                 <div
-                    className="absolute origin-center"
+                    className="absolute origin-top"
                     style={{
                         width: '800px',
                         height: '600px',
