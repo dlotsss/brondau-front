@@ -16,7 +16,6 @@ export enum BookingStatus {
   OCCUPIED = 'OCCUPIED', // For walk-ins or manual assignment
   COMPLETED = 'COMPLETED'
 }
-
 export interface TableElement {
   id: string;
   type: 'table';
@@ -27,6 +26,7 @@ export interface TableElement {
   label: string;
   width: number;
   height: number;
+  rotation?: number;
   floorId?: string;
 }
 
@@ -39,6 +39,7 @@ export interface TextElement {
   height: number;
   label: string; // The text content
   fontSize?: number;
+  rotation?: number;
   floorId?: string;
 }
 
@@ -49,6 +50,7 @@ export interface DecoElement {
   y: number;
   width: number;
   height: number;
+  rotation?: number;
   floorId?: string;
 }
 

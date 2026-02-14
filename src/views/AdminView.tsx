@@ -7,8 +7,8 @@ import { registerServiceWorker, subscribeToPush } from '../services/pushService'
 import { LayoutElement } from '../types';
 
 // Константы логического размера холста (виртуальные единицы)
-const LOGICAL_WIDTH = 1000;
-const LOGICAL_HEIGHT = 800;
+const LOGICAL_WIDTH = 1500;
+const LOGICAL_HEIGHT = 1000;
 
 const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
     const [timeLeft, setTimeLeft] = useState(180);
@@ -250,7 +250,7 @@ const AdminView: React.FC = () => {
                                 .map(el => {
                                     if (el.type !== 'table') {
                                         let content = null;
-                                        let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center`;
+                                        let classes = `absolute flex items-center justify-center`;
 
                                         if (el.type === 'text') {
                                             const textEl = el as TextElement;
@@ -259,8 +259,9 @@ const AdminView: React.FC = () => {
                                         } else if (el.type === 'arrow') {
                                             classes += ` text-[#2c1f14]`;
                                             content = (
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full p-1">
-                                                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                                                <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
+                                                    <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
+                                                    <path d={`M ${el.width - 25} ${el.height / 2 - 10} L ${el.width - 5} ${el.height / 2} L ${el.width - 25} ${el.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
                                             );
                                         } else if (el.type === 'stairs') {
@@ -298,7 +299,13 @@ const AdminView: React.FC = () => {
                                         return (
                                             <div
                                                 key={el.id}
-                                                style={{ left: `${el.x}px`, top: `${el.y}px`, width: `${(el as any).width}px`, height: `${(el as any).height}px` }}
+                                                style={{
+                                                    left: `${el.x}px`,
+                                                    top: `${el.y}px`,
+                                                    width: `${(el as any).width}px`,
+                                                    height: `${(el as any).height}px`,
+                                                    transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
+                                                }}
                                                 className={classes}
                                             >
                                                 {content}
@@ -343,8 +350,14 @@ const AdminView: React.FC = () => {
                                     return (
                                         <div
                                             key={el.id}
-                                            style={{ left: `${el.x}px`, top: `${el.y}px`, width: `${(el as any).width}px`, height: `${(el as any).height}px` }}
-                                            className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-white transition-colors ${shapeClasses} ${statusColor} cursor-pointer hover:scale-110 transition-transform`}
+                                            style={{
+                                                left: `${el.x}px`,
+                                                top: `${el.y}px`,
+                                                width: `${(el as any).width}px`,
+                                                height: `${(el as any).height}px`,
+                                                transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
+                                            }}
+                                            className={`absolute flex items-center justify-center font-bold text-white transition-colors ${shapeClasses} ${statusColor} cursor-pointer hover:scale-110 transition-transform`}
                                             onClick={() => setSelectedTable(el as TableElement)}
                                         >
                                             <span style={{ fontSize: `${fontSize}px` }}>{el.label}</span>

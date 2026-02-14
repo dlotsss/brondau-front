@@ -5,8 +5,8 @@ import BookingModal from '../components/BookingModal';
 import { useApp } from '../context/AppContext';
 
 // Константы логического размера холста (виртуальные единицы)
-const LOGICAL_WIDTH = 1000;
-const LOGICAL_HEIGHT = 800;
+const LOGICAL_WIDTH = 1500;
+const LOGICAL_HEIGHT = 1000;
 
 const Table: React.FC<{ table: TableElement; status: string; onClick: () => void }> = ({ table, status, onClick }) => {
     const statusClasses: { [key: string]: string } = {
@@ -21,7 +21,13 @@ const Table: React.FC<{ table: TableElement; status: string; onClick: () => void
 
     return (
         <div
-            style={{ left: `${table.x}px`, top: `${table.y}px`, width: `${table.width}px`, height: `${table.height}px` }}
+            style={{
+                left: `${table.x}px`,
+                top: `${table.y}px`,
+                width: `${table.width}px`,
+                height: `${table.height}px`,
+                transform: `translate(-50%, -50%) rotate(${table.rotation || 0}deg)`
+            }}
             className={`${baseClasses} ${shapeClasses} ${statusClasses[status]}`}
             onClick={status === 'available' ? onClick : undefined}
             tabIndex={status === 'available' ? 0 : -1}
@@ -38,11 +44,12 @@ const Deco: React.FC<{ element: LayoutElement }> = ({ element }) => {
     const baseStyles = {
         left: `${element.x}px`, top: `${element.y}px`,
         width: `${element.width}px`,
-        height: `${element.height}px`
+        height: `${element.height}px`,
+        transform: `translate(-50%, -50%) rotate(${element.rotation || 0}deg)`
     };
 
     let content = null;
-    let classes = `absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center`;
+    let classes = `absolute flex items-center justify-center`;
 
     if (element.type === 'text') {
         const textEl = element as TextElement;
@@ -51,8 +58,9 @@ const Deco: React.FC<{ element: LayoutElement }> = ({ element }) => {
     } else if (element.type === 'arrow') {
         classes += ` text-[#2c1f14]`;
         content = (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full p-1">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+            <svg viewBox={`0 0 ${element.width} ${element.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
+                <path d={`M 5 ${element.height / 2} H ${element.width - 15}`} strokeLinecap="round" />
+                <path d={`M ${element.width - 25} ${element.height / 2 - 10} L ${element.width - 5} ${element.height / 2} L ${element.width - 25} ${element.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
         );
     } else if (element.type === 'stairs') {

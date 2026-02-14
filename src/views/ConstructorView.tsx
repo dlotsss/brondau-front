@@ -7,7 +7,7 @@ import { useApp } from '../context/AppContext';
 const LOGICAL_WIDTH = 1500;
 const LOGICAL_HEIGHT = 1000;
 
-type DragMode = 'move' | 'resize';
+type DragMode = 'move' | 'resize' | 'rotate';
 type DragState = {
     id: string;
     mode: DragMode;
@@ -109,6 +109,18 @@ const ConstructorView: React.FC = () => {
             initialHeight: element.height,
             resizeDirection: direction
         };
+
+        // Специальная обработка для rotation - нам нужны экранные координаты центра
+        if (mode === 'rotate') {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+                // Координаты центра элемента на экране
+                const centerX = rect.left + (element.x * scale);
+                const centerY = rect.top + (element.y * scale);
+                dragState.current.startX = centerX;
+                dragState.current.startY = centerY;
+            }
+        }
     };
 
     const handleMouseDown = (e: ReactMouseEvent, id: string) => {
@@ -140,8 +152,6 @@ const ConstructorView: React.FC = () => {
 
         const { id, mode, startX, startY, initialX, initialY, initialWidth, initialHeight, resizeDirection } = dragState.current;
 
-        // КОРРЕКЦИЯ НА МАСШТАБ
-        // Если экран уменьшен (scale=0.5), движение мыши на 10px должно двигать объект на 20px логических.
         const deltaX = (clientX - startX) / scale;
         const deltaY = (clientY - startY) / scale;
 
@@ -151,19 +161,22 @@ const ConstructorView: React.FC = () => {
                 y: initialY + deltaY
             });
         } else if (mode === 'resize' && resizeDirection) {
-            // Логика ресайза (упрощенная для центральной точки)
             let newWidth = initialWidth;
             let newHeight = initialHeight;
 
-            if (resizeDirection.includes('e')) newWidth = Math.max(20, initialWidth + deltaX * 2); // *2 т.к. центр фиксирован
+            if (resizeDirection.includes('e')) newWidth = Math.max(20, initialWidth + deltaX * 2);
             if (resizeDirection.includes('w')) newWidth = Math.max(20, initialWidth - deltaX * 2);
             if (resizeDirection.includes('s')) newHeight = Math.max(20, initialHeight + deltaY * 2);
             if (resizeDirection.includes('n')) newHeight = Math.max(20, initialHeight - deltaY * 2);
 
-            // Для простоты UI мы меняем размеры относительно центра
             updateElement(id, { width: newWidth, height: newHeight });
+        } else if (mode === 'rotate') {
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+            updateElement(id, { rotation: angle });
         }
-    }, [scale]); // scale в зависимостях важен!
+    }, [scale, elements]);
 
     const handleMouseMove = useCallback((e: globalThis.MouseEvent) => {
         if (dragState.current) handleMove(e.clientX, e.clientY);
@@ -390,8 +403,9 @@ const ConstructorView: React.FC = () => {
                                 bgClass = map[el.type] || 'bg-brand-accent';
                                 if (el.type === 'arrow') {
                                     content = (
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full p-1">
-                                            <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                                        <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
+                                            <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
+                                            <path d={`M ${el.width - 25} ${el.height / 2 - 10} L ${el.width - 5} ${el.height / 2} L ${el.width - 25} ${el.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                     );
                                 }
@@ -406,7 +420,7 @@ const ConstructorView: React.FC = () => {
                                         left: `${el.x}px`, top: `${el.y}px`,
                                         width: `${el.width}px`, height: `${el.height}px`,
                                         zIndex: isSelected ? 50 : 10,
-                                        transform: 'translate(-50%, -50%)', // Центрируем координату
+                                        transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`, // Центрируем координату + вращение
                                         outline: isSelected ? '3px solid #3b82f6' : 'none',
                                         // ВАЖНО для мобильного скролла карты:
                                         // touch-action: none на ЭЛЕМЕНТЕ запрещает скролл браузера, когда тянешь элемент.
@@ -423,6 +437,15 @@ const ConstructorView: React.FC = () => {
                                     {/* Уголки ресайза (Только Desktop) */}
                                     {isSelected && !isMobile && (
                                         <>
+                                            {/* Ручка вращения */}
+                                            <div
+                                                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); handleStart(e.clientX, e.clientY, el.id, 'rotate'); }}
+                                                className="absolute -top-10 left-1/2 -translate-x-1/2 w-4 h-4 bg-brand-accent border-2 border-white rounded-full cursor-alias z-30"
+                                                title="Повернуть"
+                                            >
+                                                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-brand-accent" />
+                                            </div>
+
                                             <div onMouseDown={(e) => handleResizeMouseDown(e, el.id, 'nw')} className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border border-blue-500 cursor-nw-resize z-20 rounded-full" />
                                             <div onMouseDown={(e) => handleResizeMouseDown(e, el.id, 'ne')} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border border-blue-500 cursor-ne-resize z-20 rounded-full" />
                                             <div onMouseDown={(e) => handleResizeMouseDown(e, el.id, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-white border border-blue-500 cursor-sw-resize z-20 rounded-full" />
