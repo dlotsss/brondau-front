@@ -240,6 +240,23 @@ const ConstructorView: React.FC = () => {
         }
     };
 
+    const deleteFloor = (floorId: string) => {
+        if (floors.length <= 1) {
+            alert('Нельзя удалить единственный зал.');
+            return;
+        }
+        if (confirm('Вы уверены, что хотите удалить этот зал и все его элементы?')) {
+            setFloors(prev => {
+                const updated = prev.filter(f => f.id !== floorId);
+                if (activeFloorId === floorId) {
+                    setActiveFloorId(updated[0]?.id || '');
+                }
+                return updated;
+            });
+            setElements(prev => prev.filter(el => el.floorId !== floorId));
+        }
+    };
+
     if (!restaurant) return <div className="text-center text-gray-400 p-8">Загрузка...</div>;
     const currentFloorElements = elements.filter(el => el.floorId === activeFloorId);
 
@@ -313,9 +330,18 @@ const ConstructorView: React.FC = () => {
                 <div className="bg-brand-secondary p-2 rounded-t-md border-b border-brand-accent">
                     <div className="flex flex-wrap gap-2">
                         {floors.map(f => (
-                            <button key={f.id} onClick={() => setActiveFloorId(f.id)} className={`px-3 py-1.5 rounded text-sm font-medium ${activeFloorId === f.id ? 'bg-brand-blue text-white' : 'bg-brand-primary text-gray-300'}`}>
-                                {f.name}
-                            </button>
+                            <div key={f.id} className="relative group">
+                                <button onClick={() => setActiveFloorId(f.id)} className={`px-3 py-1.5 rounded text-sm font-medium pr-8 ${activeFloorId === f.id ? 'bg-brand-blue text-white' : 'bg-brand-primary text-gray-300'}`}>
+                                    {f.name}
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); deleteFloor(f.id); }}
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/20 text-white/50 hover:text-white transition-colors"
+                                    title="Удалить зал"
+                                >
+                                    &times;
+                                </button>
+                            </div>
                         ))}
                         <button onClick={addFloor} className="px-3 py-1.5 rounded bg-brand-accent/30 text-brand-blue font-bold text-sm">+</button>
                     </div>
