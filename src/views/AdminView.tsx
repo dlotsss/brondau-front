@@ -80,6 +80,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string }> =
                 </div>
             </div>
             <p className="text-sm" style={{ color: '#f5efe6' }}>{booking.guestName} ({booking.guestCount} гостей)</p>
+            <p className="text-sm font-medium" style={{ color: '#e6d5c0' }}>{booking.guestPhone}</p>
             <p className="text-sm text-gray-400">{booking.dateTime.toLocaleString('ru-RU')}</p>
 
             {isDeclining ? (
@@ -241,6 +242,7 @@ const AdminView: React.FC = () => {
                                         <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/40 rounded-md p-3">
                                             <div>
                                                 <p className="font-semibold text-sm">{booking.guestName} ({booking.guestCount} ч.)</p>
+                                                <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
                                                 <p className="text-xs text-gray-300">
                                                     Ст. {booking.tableLabel} • {booking.dateTime.toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
                                                 </p>
