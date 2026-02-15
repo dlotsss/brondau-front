@@ -238,7 +238,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     <div className="space-y-3">
                         <input
                             type="text"
-                            placeholder="Имя гостя (опционально для админа)"
+                            placeholder="Имя гостя"
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
