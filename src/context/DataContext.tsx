@@ -9,7 +9,13 @@ interface DataContextType {
   getAdminRestaurants: (email: string) => Promise<{ id: string, name: string }[]>;
   getOwnerRestaurants: (email: string) => Promise<{ id: string, name: string }[]>;
   addRestaurant: (name: string) => Promise<Restaurant | null>;
-  addBooking: (restaurantId: string, bookingData: Omit<Booking, 'id' | 'restaurantId' | 'tableLabel' | 'status' | 'createdAt' | 'declineReason'>) => Promise<void>;
+  addBooking: (
+    restaurantId: string,
+    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'tableLabel' | 'status' | 'createdAt' | 'declineReason'> & {
+      isAdmin?: boolean;
+      timezoneOffset?: number;
+    }
+  ) => Promise<void>;
   updateBookingStatus: (restaurantId: string, bookingId: string, status: BookingStatus, reason?: string) => Promise<void>;
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
   loadRestaurants: () => Promise<void>;
@@ -196,7 +202,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addBooking = useCallback(async (
     restaurantId: string,
-    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'tableLabel' | 'status' | 'createdAt' | 'declineReason'>
+    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'tableLabel' | 'status' | 'createdAt' | 'declineReason'> & {
+      isAdmin?: boolean;
+      timezoneOffset?: number;
+    }
   ) => {
     const tableLabel = restaurants.find(r => r.id === restaurantId)
       ?.layout.find(el => el.id === bookingData.tableId && el.type === 'table')
@@ -206,8 +215,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const b = await api.restaurants.createBooking(restaurantId, {
       ...bookingData,
       dateTime: bookingData.dateTime.toISOString(),
-      timezoneOffset: (bookingData as any).timezoneOffset,
+      timezoneOffset: bookingData.timezoneOffset,
       tableLabel,
+      isAdmin: bookingData.isAdmin || false, // Передаем isAdmin в API
     });
 
     setRestaurants(prev => prev.map(r =>
@@ -231,6 +241,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         : r
     ));
   }, [restaurants]);
+
 
   const updateBookingStatus = useCallback(async (
     restaurantId: string,

@@ -12,6 +12,7 @@ interface BookingModalProps {
     table: TableElement;
     restaurantId: string;
     onClose: () => void;
+    isAdmin?: boolean; // <-- ДОБАВЛЕНО
 }
 
 const formatLocalDate = (date: Date) => {
@@ -21,7 +22,6 @@ const formatLocalDate = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
-// Функция для форматирования телефона
 const formatPhoneNumber = (value: string): string => {
     const digits = value.replace(/\D/g, '');
     const limitedDigits = digits.slice(0, 11);
@@ -37,7 +37,7 @@ const formatPhoneNumber = (value: string): string => {
     return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4, 7)}-${normalizedDigits.slice(7, 9)}-${normalizedDigits.slice(9, 11)}`;
 };
 
-const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose }) => {
+const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false }) => {
     const { addBooking, getRestaurant } = useData();
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
@@ -56,8 +56,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         setGuestPhone(formatted);
     };
 
-    // Generate available time slots based on work hours and constraints
+    // Генерируем слоты ТОЛЬКО если это не Админ. Админу слоты не нужны, он вводит время вручную.
     const availableSlots = useMemo(() => {
+        if (isAdmin) return []; // Админу не нужен этот расчет
+
         const slots: string[] = [];
         const startMins = parseTime(workStarts);
         let endMins = parseTime(workEnds);
@@ -74,7 +76,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         const minBookingMins = isToday ? currentMins + 15 : 0;
 
-        // Shift boundaries for filtering bookings
         const shiftStart = new Date(selectedDate);
         shiftStart.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
         const shiftEnd = new Date(selectedDate);
@@ -82,12 +83,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         const bookingsOnShift = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
-            // Учитываем только активные статусы. COMPLETED и DECLINED игнорируем.
             if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED && b.status !== BookingStatus.PENDING) return false;
             return b.dateTime >= shiftStart && b.dateTime < shiftEnd;
         }) || [];
 
-        // Convert bookings to minutes relative to shift start
         const bookingMinsList = bookingsOnShift.map(b => {
             const bDate = new Date(b.dateTime);
             let bMins = bDate.getHours() * 60 + bDate.getMinutes();
@@ -97,18 +96,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         for (let time = startMins; time <= endMins - 60; time += 30) {
             if (isToday && time < minBookingMins) continue;
-
-            // !!! НОВАЯ ЛОГИКА !!!
-            // Если есть активная бронь, которая начинается РАНЬШЕ или в то же время, что и текущий слот 'time',
-            // то этот слот (и все последующие в этот день) недоступен.
-            // (Подразумевается, что люди сидят до закрытия или пока админ не освободит стол)
             const isBlockedByEarlierBooking = bookingMinsList.some(bm => bm <= time);
             if (isBlockedByEarlierBooking) continue;
-
-            // Проверка на пересечение "вперед" (если вдруг есть бронь, которая начинается позже,
-            // но так близко, что мы не успеем посидеть час).
-            // В нашей новой логике "Rest of day" это менее актуально, но оставим для надежности,
-            // если вдруг 'bm' > time, но time + 60 > bm.
             const hasConflict = bookingMinsList.some(bm => Math.abs(time - bm) < 60);
             if (hasConflict) continue;
 
@@ -119,28 +108,30 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         }
 
         return slots;
-    }, [bookingDate, restaurant?.bookings, table.id, workStarts, workEnds]);
+    }, [bookingDate, restaurant?.bookings, table.id, workStarts, workEnds, isAdmin]);
 
     useEffect(() => {
-        if (availableSlots.length > 0) {
-            if (!bookingTime || !availableSlots.includes(bookingTime)) {
-                setBookingTime(availableSlots[0]);
+        if (!isAdmin) {
+            if (availableSlots.length > 0) {
+                if (!bookingTime || !availableSlots.includes(bookingTime)) {
+                    setBookingTime(availableSlots[0]);
+                }
+            } else {
+                setBookingTime('');
             }
-        } else {
-            setBookingTime('');
+        } else if (!bookingTime) {
+            // Для админа по умолчанию ставим текущее время
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            setBookingTime(timeStr);
         }
-    }, [availableSlots, bookingTime]);
+    }, [availableSlots, bookingTime, isAdmin]);
 
     const formatBookingSlot = (date: Date) =>
         new Intl.DateTimeFormat('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
         }).format(date);
 
-    // Existing bookings for display
     const visualBookings = restaurant?.bookings
         .filter(booking =>
             booking.tableId === table.id &&
@@ -153,13 +144,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         e.preventDefault();
         setError('');
 
-        if (!guestName || !guestPhone) {
+        // Для админа телефон не обязателен
+        if (!isAdmin && (!guestName || !guestPhone)) {
             setError('Пожалуйста, введите ваше имя и номер телефона.');
             return;
         }
 
         const phoneDigits = guestPhone.replace(/\D/g, '');
-        if (phoneDigits.length !== 11) {
+        if (!isAdmin && phoneDigits.length !== 11) {
             setError('Пожалуйста, введите корректный номер телефона: +7 (XXX) XXX-XX-XX');
             return;
         }
@@ -168,7 +160,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             return;
         }
         if (!bookingTime) {
-            setError('Не выбран доступный временной слот.');
+            setError('Не выбрано время.');
             return;
         }
 
@@ -176,6 +168,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const dateTime = new Date(bookingDate);
         dateTime.setHours(h, m, 0, 0);
 
+        // Корректировка даты для ночных смен (если время меньше времени открытия)
         const workStartH = parseInt(workStarts.split(':')[0]);
         if (h < workStartH && parseTime(bookingTime) < parseTime(workStarts)) {
             dateTime.setDate(dateTime.getDate() + 1);
@@ -184,20 +177,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         try {
             await addBooking(restaurantId, {
                 tableId: table.id,
-                guestName,
+                guestName: guestName || (isAdmin ? "Гость (Walk-in)" : ""),
                 guestPhone,
                 guestCount,
                 dateTime,
-                timezoneOffset: dateTime.getTimezoneOffset()
+                timezoneOffset: dateTime.getTimezoneOffset(),
+                isAdmin
             });
 
-            const normalizedPhone = guestPhone.replace(/\D/g, '');
-            subscribeToPush('GUEST', undefined, normalizedPhone);
+            if (!isAdmin) {
+                const normalizedPhone = guestPhone.replace(/\D/g, '');
+                subscribeToPush('GUEST', undefined, normalizedPhone);
+            }
 
-            alert('Ваш запрос на бронирование отправлен!');
+            alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
             onClose();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
+            setError(err instanceof Error ? err.message : 'Не удалось создать бронирование.');
         }
     };
 
@@ -206,14 +202,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             <div className="bg-brand-secondary rounded-lg shadow-2xl p-6 w-full max-w-lg m-auto transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4 sticky top-0 bg-brand-secondary pb-2 border-b border-brand-accent/30 z-10">
                     <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>
-                        Бронь столика <span className="text-brand-blue">{table.label}</span>
+                        {isAdmin ? 'Посадить гостей: ' : 'Бронь столика '} <span className="text-brand-blue">{table.label}</span>
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 text-3xl leading-none hover:text-white transition-colors"
-                    >
-                        &times;
-                    </button>
+                    <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white transition-colors">&times;</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -222,38 +213,36 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     </p>
 
                     {error && (
-                        <p className="bg-red-900/50 border border-brand-red text-red-200 px-3 py-2 rounded-md text-xs">
-                            {error}
-                        </p>
+                        <p className="bg-red-900/50 border border-brand-red text-red-200 px-3 py-2 rounded-md text-xs">{error}</p>
                     )}
 
-                    {/* Visual Bookings List */}
-                    <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
-                        <h3 className="text-sm font-semibold text-white mb-2">Существующие брони:</h3>
-                        {visualBookings.length > 0 ? (
-                            <ul className="space-y-1 text-xs text-gray-400">
-                                {visualBookings.map(b => (
-                                    <li key={b.id} className="flex justify-between">
-                                        <span>{b.guestName}</span>
-                                        <span className="font-mono">{formatBookingSlot(b.dateTime)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-white text-center py-2">
-                                На этот столик пока нет броней
-                            </p>
-                        )}
-                    </div>
+                    {/* Визуализация броней для информации */}
+                    {!isAdmin && (
+                        <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
+                            <h3 className="text-sm font-semibold text-white mb-2">Существующие брони:</h3>
+                            {visualBookings.length > 0 ? (
+                                <ul className="space-y-1 text-xs text-gray-400">
+                                    {visualBookings.map(b => (
+                                        <li key={b.id} className="flex justify-between">
+                                            <span>{b.guestName}</span>
+                                            <span className="font-mono">{formatBookingSlot(b.dateTime)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-white text-center py-2">На этот столик пока нет броней</p>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-3">
                         <input
                             type="text"
-                            placeholder="Ваше имя"
+                            placeholder="Имя гостя (опционально для админа)"
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                            required
+                            required={!isAdmin}
                         />
                         <input
                             type="tel"
@@ -261,7 +250,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             value={guestPhone}
                             onChange={handlePhoneChange}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                            required
+                            required={!isAdmin}
                         />
 
                         <div className="grid grid-cols-2 gap-3">
@@ -288,37 +277,43 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-400 block mb-1">Время</label>
-                            <select
-                                value={bookingTime}
-                                onChange={e => setBookingTime(e.target.value)}
-                                className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                            >
-                                {availableSlots.length > 0 ? (
-                                    availableSlots.map(time => (
-                                        <option key={time} value={time}>{time}</option>
-                                    ))
-                                ) : (
-                                    <option value="">Нет доступных слотов</option>
-                                )}
-                            </select>
+                            <label className="text-xs text-gray-400 block mb-1">Время {isAdmin && '(Администратор: любое время)'}</label>
+                            {isAdmin ? (
+                                // Для админа - свободный ввод времени
+                                <input
+                                    type="time"
+                                    value={bookingTime}
+                                    onChange={e => setBookingTime(e.target.value)}
+                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                    required
+                                />
+                            ) : (
+                                // Для гостя - строгий список слотов
+                                <select
+                                    value={bookingTime}
+                                    onChange={e => setBookingTime(e.target.value)}
+                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                >
+                                    {availableSlots.length > 0 ? (
+                                        availableSlots.map(time => (
+                                            <option key={time} value={time}>{time}</option>
+                                        ))
+                                    ) : (
+                                        <option value="">Нет доступных слотов</option>
+                                    )}
+                                </select>
+                            )}
                         </div>
                     </div>
 
                     <div className="pt-4 flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors"
-                        >
-                            Отмена
-                        </button>
+                        <button type="button" onClick={onClose} className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">Отмена</button>
                         <button
                             type="submit"
-                            disabled={availableSlots.length === 0}
+                            disabled={!isAdmin && availableSlots.length === 0}
                             className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:brightness-90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all"
                         >
-                            Забронировать
+                            {isAdmin ? 'Занять столик' : 'Забронировать'}
                         </button>
                     </div>
                 </form>

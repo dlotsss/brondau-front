@@ -416,6 +416,7 @@ const AdminView: React.FC = () => {
                     table={selectedTable}
                     restaurantId={restaurant.id}
                     onClose={() => setSelectedTable(null)}
+                    isAdmin={true} // <-- ВОТ ЗДЕСЬ ИЗМЕНЕНИЕ
                 />
             )}
         </div>
