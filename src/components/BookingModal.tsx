@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BookingStatus, TableElement } from '../types';
 import { useData } from '../context/DataContext';
-import { subscribeToPush } from '../services/pushService';
 
 const parseTime = (timeStr: string): number => {
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -145,9 +144,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         e.preventDefault();
         setError('');
 
-        // Для админа телефон не обязателен
-        if (!isAdmin && (!guestName || !guestPhone)) {
-            setError('Пожалуйста, введите ваше имя и номер телефона.');
+        // Для админа телефон и email не обязательны
+        if (!isAdmin && (!guestName || !guestPhone || !guestEmail)) {
+            setError('Пожалуйста, заполните имя, телефон и email.');
             return;
         }
 
@@ -186,11 +185,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 timezoneOffset: dateTime.getTimezoneOffset(),
                 isAdmin
             });
-
-            if (!isAdmin) {
-                const normalizedPhone = guestPhone.replace(/\D/g, '');
-                subscribeToPush('GUEST', undefined, normalizedPhone);
-            }
 
             alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
             onClose();
@@ -256,11 +250,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         />
                         <input
                             type="email"
-                            placeholder="Email гостя"
+                            placeholder="Email"
                             value={guestEmail}
                             onChange={e => setGuestEmail(e.target.value)}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            required={!isAdmin}
                         />
+
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
