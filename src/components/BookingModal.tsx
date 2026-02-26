@@ -41,6 +41,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const { addBooking, getRestaurant } = useData();
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
+    const [guestEmail, setGuestEmail] = useState('');
     const [guestCount, setGuestCount] = useState<number>(2);
 
     const restaurant = getRestaurant(restaurantId);
@@ -179,6 +180,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 tableId: table.id,
                 guestName: guestName || (isAdmin ? "Гость (Walk-in)" : ""),
                 guestPhone,
+                guestEmail,
                 guestCount,
                 dateTime,
                 timezoneOffset: dateTime.getTimezoneOffset(),
@@ -251,6 +253,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             onChange={handlePhoneChange}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required={!isAdmin}
+                        />
+                        <input
+                            type="email"
+                            placeholder="Email гостя"
+                            value={guestEmail}
+                            onChange={e => setGuestEmail(e.target.value)}
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                         />
 
                         <div className="grid grid-cols-2 gap-3">

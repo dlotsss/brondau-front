@@ -70,6 +70,7 @@ export interface Booking {
   status: BookingStatus;
   guestName: string;
   guestPhone: string;
+  guestEmail?: string;
   guestCount: number;
   timezoneOffset?: number;
   declineReason?: string;
