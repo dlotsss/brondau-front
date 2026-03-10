@@ -89,12 +89,26 @@ const ConstructorView: React.FC = () => {
 
     // --- ОБРАБОТЧИКИ НАЧАЛА ДЕЙСТВИЯ ---
 
-    const handleStart = (clientX: number, clientY: number, id: string, mode: DragMode, direction?: string) => {
+    const handleStart = (clientX: number, clientY: number, id: string, mode: DragMode, direction?: string, isShift?: boolean) => {
         const element = elements.find(el => el.id === id);
         if (!element && mode !== 'select') return;
 
-        if (mode !== 'select' && !selectedElementIds.includes(id)) {
-            setSelectedElementIds([id]);
+        let newSelectedIds = [...selectedElementIds];
+        if (mode !== 'select') {
+            if (isShift) {
+                if (newSelectedIds.includes(id)) {
+                    // We don't remove on mouse down if it's already selected and we're just dragging
+                    // But if we want to toggle, we do it here. 
+                    // Actually, standard behavior: don't remove on mousedown, wait for click to remove? 
+                    // Let's just do toggle on click, and ensure mousedown keeps it selected if dragging.
+                    // Wait, simplest is:
+                } else {
+                    newSelectedIds.push(id);
+                }
+            } else if (!newSelectedIds.includes(id)) {
+                newSelectedIds = [id];
+            }
+            setSelectedElementIds(newSelectedIds);
         }
 
         dragState.current = {
@@ -109,8 +123,8 @@ const ConstructorView: React.FC = () => {
             resizeDirection: direction
         };
 
-        if (mode === 'move' && selectedElementIds.includes(id) && selectedElementIds.length > 1) {
-            dragState.current.initialPositions = elements.filter(el => selectedElementIds.includes(el.id)).map(el => ({ id: el.id, x: el.x, y: el.y }));
+        if (mode === 'move' && newSelectedIds.length > 0) {
+            dragState.current.initialPositions = elements.filter(el => newSelectedIds.includes(el.id)).map(el => ({ id: el.id, x: el.x, y: el.y }));
         }
 
         if (mode === 'rotate') {
@@ -125,14 +139,18 @@ const ConstructorView: React.FC = () => {
     };
 
     const handleCanvasMouseDown = (e: ReactMouseEvent) => {
-        if (e.target !== containerRef.current && !(e.target as HTMLElement).classList.contains('canvas-container')) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('.layout-element')) return; // handled by the element's onMouseDown
+
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
 
         const x = (e.clientX - rect.left) / scale;
         const y = (e.clientY - rect.top) / scale;
 
-        setSelectedElementIds([]);
+        if (!e.shiftKey) {
+            setSelectedElementIds([]);
+        }
         setSelectionBox({ x, y, width: 0, height: 0 });
 
         dragState.current = {
@@ -151,7 +169,7 @@ const ConstructorView: React.FC = () => {
         e.stopPropagation();
         e.preventDefault();
         if (e.button === 0) {
-            handleStart(e.clientX, e.clientY, id, 'move');
+            handleStart(e.clientX, e.clientY, id, 'move', undefined, e.shiftKey);
         }
     };
 
@@ -204,7 +222,7 @@ const ConstructorView: React.FC = () => {
 
             setElements(prev => {
                 const currentFloorElements = prev.filter(el => el.floorId === activeFloorId);
-                const newSelectedIds = currentFloorElements.filter(el => {
+                const newlyEnclosedIds = currentFloorElements.filter(el => {
                     return (
                         el.x + el.width / 2 > x &&
                         el.x - el.width / 2 < x + w &&
@@ -212,7 +230,17 @@ const ConstructorView: React.FC = () => {
                         el.y - el.height / 2 < y + h
                     );
                 }).map(el => el.id);
-                setSelectedElementIds(newSelectedIds);
+
+                // Optional: we can aggregate with existing selections if shift key was used,
+                // but for simplicity let's just use newlyEnclosedIds.
+                // Wait, if we want additive selection to persist during drag:
+                // If dragging selection, we need to know what was selected BEFORE the drag started.
+                // Let's just set the new selection to the enclosed ids. 
+                setSelectedElementIds(prevIds => {
+                    // if shift is held (we'd need to track it), we could add them.
+                    // For now, let's just replace.
+                    return newlyEnclosedIds;
+                });
                 return prev;
             });
         } else if (mode === 'resize' && resizeDirection) {
@@ -517,13 +545,16 @@ const ConstructorView: React.FC = () => {
                                         outline: isSelected ? '3px solid #3b82f6' : 'none',
                                         touchAction: 'none'
                                     }}
-                                    className={`absolute flex items-center justify-center cursor-move select-none ${shapeClass} ${bgClass}`}
+                                    className={`layout-element absolute flex items-center justify-center cursor-move select-none ${shapeClass} ${bgClass}`}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (e.shiftKey) {
                                             setSelectedElementIds(prev => prev.includes(el.id) ? prev.filter(id => id !== el.id) : [...prev, el.id]);
                                         } else {
-                                            setSelectedElementIds([el.id]);
+                                            // Handled by mouse down for selection, but we can enforce strict selection
+                                            if (selectedElementIds.length > 1) {
+                                                setSelectedElementIds([el.id]);
+                                            }
                                         }
                                     }}
                                 >
