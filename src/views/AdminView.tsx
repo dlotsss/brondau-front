@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { Booking, BookingStatus, TableElement, TextElement, DecoElement } from '../types';
 import { useApp } from '../context/AppContext';
@@ -6,7 +6,6 @@ import BookingModal from '../components/BookingModal';
 import { registerServiceWorker, subscribeToPush } from '../services/pushService';
 import { LayoutElement } from '../types';
 
-// Константы логического размера холста (виртуальные единицы)
 const LOGICAL_WIDTH = 1500;
 const LOGICAL_HEIGHT = 1000;
 
@@ -90,7 +89,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string }> =
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="Причина отказа"
-                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm"
+                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm focus:outline-none focus:border-brand-blue"
                     />
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                         <button onClick={handleDecline} className="flex-1 bg-brand-red text-white px-3 py-2 text-sm rounded-md hover:bg-red-700">Подтвердить</button>
@@ -163,8 +162,6 @@ const AdminView: React.FC = () => {
             .filter((item): item is { table: TableElement; booking: Booking } => item !== null);
     }, [restaurant]);
 
-    // --- ИСПРАВЛЕНИЕ: Вычисляем элементы и bounds ДО проверки if (!restaurant) ---
-    // Используем useMemo, чтобы это считалось хуком. Если ресторана нет, возвращаем пустой массив.
     const activeFloorElements = useMemo(() => {
         if (!restaurant) return [];
         return restaurant.layout.filter(el =>
@@ -172,16 +169,162 @@ const AdminView: React.FC = () => {
         );
     }, [restaurant, activeFloorId]);
 
-    // Хук useMemo вызывается ВСЕГДА, независимо от наличия ресторана
-    const bounds = useMemo(() =>
-        calculateBounds(activeFloorElements),
-        [activeFloorElements]
-    );
-
+    const bounds = useMemo(() => calculateBounds(activeFloorElements), [activeFloorElements]);
     const dynamicWidth = bounds.maxX - bounds.minX;
     const dynamicHeight = bounds.maxY - bounds.minY;
 
-    // --- ТЕПЕРЬ МОЖНО ДЕЛАТЬ РАННИЙ RETURN ---
+    // === ПЕРЕМЕЩЕНИЕ И ЗУМ (Pan & Zoom) ===
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+    const isDragging = useRef(false);
+    const draggedRef = useRef(false);
+    const activePointers = useRef<Map<number, { x: number, y: number }>>(new Map());
+    const startPan = useRef({ x: 0, y: 0 });
+    const pinchStart = useRef<{ dist: number, scale: number, cx: number, cy: number, x: number, y: number } | null>(null);
+
+    const enforceTransformBounds = useCallback((x: number, y: number, scale: number) => {
+        if (!containerRef.current) return { x, y, scale };
+        const cw = containerRef.current.clientWidth;
+        const ch = containerRef.current.clientHeight;
+        const minScale = 0.2;
+        const maxScale = 5;
+        const s = Math.min(Math.max(scale, minScale), maxScale);
+
+        const rw = (dynamicWidth || 500) * s;
+        const rh = (dynamicHeight || 500) * s;
+
+        const marginX = Math.min(cw * 0.4, 150);
+        const marginY = Math.min(ch * 0.4, 150);
+        const minX = cw - rw - marginX;
+        const maxX = marginX;
+        const minY = ch - rh - marginY;
+        const maxY = marginY;
+
+        return {
+            x: Math.min(Math.max(x, Math.min(minX, maxX)), Math.max(minX, maxX)),
+            y: Math.min(Math.max(y, Math.min(minY, maxY)), Math.max(minY, maxY)),
+            scale: s
+        };
+    }, [dynamicWidth, dynamicHeight]);
+
+    const fitToContainer = useCallback(() => {
+        if (!containerRef.current || !bounds) return;
+        const cw = containerRef.current.clientWidth;
+        const ch = containerRef.current.clientHeight;
+        const mw = dynamicWidth || 500;
+        const mh = dynamicHeight || 500;
+
+        const padding = 40;
+        let scale = Math.min((cw - padding) / mw, (ch - padding) / mh);
+        scale = Math.min(Math.max(scale, 0.2), 5);
+        const x = (cw - mw * scale) / 2;
+        const y = (ch - mh * scale) / 2;
+        setTransform(enforceTransformBounds(x, y, scale));
+    }, [bounds, dynamicWidth, dynamicHeight, enforceTransformBounds]);
+
+    useEffect(() => {
+        fitToContainer();
+    }, [fitToContainer, activeFloorId]);
+
+    // Колесо мыши (Зум)
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const rect = container.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            setTransform(prev => {
+                const newScale = prev.scale * (1 + delta);
+                const ratio = newScale / prev.scale;
+                return enforceTransformBounds(
+                    cx - (cx - prev.x) * ratio,
+                    cy - (cy - prev.y) * ratio,
+                    newScale
+                );
+            });
+        };
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => container.removeEventListener('wheel', handleWheel);
+    }, [enforceTransformBounds]);
+
+    const onPointerDown = (e: React.PointerEvent) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.current.size === 1) {
+            isDragging.current = true;
+            draggedRef.current = false;
+            startPan.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+            e.currentTarget.setPointerCapture(e.pointerId);
+        } else if (activePointers.current.size === 2) {
+            isDragging.current = false;
+            const pts = Array.from(activePointers.current.values()) as { x: number, y: number }[];
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+                const cx = (pts[0].x + pts[1].x) / 2 - rect.left;
+                const cy = (pts[0].y + pts[1].y) / 2 - rect.top;
+                pinchStart.current = { dist, scale: transform.scale, cx, cy, x: transform.x, y: transform.y };
+            }
+        }
+    };
+
+    const onPointerMove = (e: React.PointerEvent) => {
+        if (!activePointers.current.has(e.pointerId)) return;
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.current.size === 1 && isDragging.current) {
+            if (Math.hypot(e.clientX - (startPan.current.x + transform.x), e.clientY - (startPan.current.y + transform.y)) > 5) {
+                draggedRef.current = true;
+            }
+            setTransform(prev => enforceTransformBounds(
+                e.clientX - startPan.current.x,
+                e.clientY - startPan.current.y,
+                prev.scale
+            ));
+        } else if (activePointers.current.size === 2 && pinchStart.current) {
+            draggedRef.current = true;
+            const pts = Array.from(activePointers.current.values()) as { x: number, y: number }[];
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+
+            const scaleRatio = dist / pinchStart.current.dist;
+            const newScale = pinchStart.current.scale * scaleRatio;
+            const currentRatio = newScale / pinchStart.current.scale;
+
+            const rect = containerRef.current?.getBoundingClientRect();
+            const cx = (pts[0].x + pts[1].x) / 2 - (rect ? rect.left : 0);
+            const cy = (pts[0].y + pts[1].y) / 2 - (rect ? rect.top : 0);
+
+            const dx = cx - pinchStart.current.cx;
+            const dy = cy - pinchStart.current.cy;
+
+            setTransform(enforceTransformBounds(
+                pinchStart.current.x + dx - (pinchStart.current.cx - pinchStart.current.x) * (currentRatio - 1),
+                pinchStart.current.y + dy - (pinchStart.current.cy - pinchStart.current.y) * (currentRatio - 1),
+                newScale
+            ));
+        }
+    };
+
+    const onPointerUp = (e: React.PointerEvent) => {
+        activePointers.current.delete(e.pointerId);
+        if (activePointers.current.size < 2) pinchStart.current = null;
+        if (activePointers.current.size === 1) {
+            const pt = Array.from(activePointers.current.values())[0] as { x: number, y: number };
+            isDragging.current = true;
+            startPan.current = { x: pt.x - transform.x, y: pt.y - transform.y };
+        } else if (activePointers.current.size === 0) {
+            isDragging.current = false;
+        }
+        e.currentTarget.releasePointerCapture(e.pointerId);
+    };
+
+    // === КОНЕЦ ЛОГИКИ PAN & ZOOM ===
+
+
     if (!restaurant) {
         return <div className="text-center text-gray-400">Загрузка данных ресторана...</div>;
     }
@@ -203,7 +346,7 @@ const AdminView: React.FC = () => {
             {/* Column 2 & 3: Map and Lists */}
             <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
 
-                {/* Status Sections (Collapsible on mobile could be nice, but stacked is fine) */}
+                {/* Status Sections */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
                         <h3 className="text-lg md:text-xl font-semibold mb-3">Занятые столики</h3>
@@ -219,7 +362,7 @@ const AdminView: React.FC = () => {
                                         </div>
                                         <button
                                             onClick={() => updateBookingStatus(restaurant.id, booking.id, BookingStatus.COMPLETED)}
-                                            className="bg-brand-green text-white px-2 py-1 text-xs font-semibold rounded-md hover:bg-green-700"
+                                            className="bg-brand-green text-white px-2 py-1 text-xs font-semibold rounded-md hover:bg-green-700 transition-colors"
                                         >
                                             Освободить
                                         </button>
@@ -249,7 +392,7 @@ const AdminView: React.FC = () => {
                                             </div>
                                             <button
                                                 onClick={() => updateBookingStatus(restaurant.id, booking.id, BookingStatus.DECLINED, "Отменено администратором")}
-                                                className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center"
+                                                className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center hover:bg-red-700 transition-colors"
                                             >
                                                 Отменить
                                             </button>
@@ -262,7 +405,7 @@ const AdminView: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Map Section */}
+                {/* Map Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
                     <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>План зала</h2>
                     {restaurant.floors && restaurant.floors.length > 1 && (
@@ -280,29 +423,33 @@ const AdminView: React.FC = () => {
                     )}
                 </div>
 
-                {/* Scrollable Map Container */}
-                <div className="w-full border-2 border-brand-accent rounded-xl shadow-inner overflow-hidden bg-brand-secondary">
-                    <div className="overflow-auto w-full h-[500px] md:h-[600px] relative touch-pan-x touch-pan-y">
-                        <div
-                            className="relative w-full h-full transform origin-top-left transition-transform duration-300"
-                            style={{
-                                width: `${dynamicWidth}px`,
-                                height: `${dynamicHeight}px`,
-                                minWidth: `${dynamicWidth}px`,
-                                minHeight: `${dynamicHeight}px`
-                            }}
-                        >
+                {/* Map Container */}
+                <div
+                    ref={containerRef}
+                    className="w-full bg-[#3d2e23] bg-opacity-50 rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow min-h-[400px] h-[500px] md:h-[600px] overflow-hidden"
+                    style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerUp}
+                    onPointerLeave={onPointerUp}
+                >
+                    <div
+                        className="absolute top-0 left-0 origin-top-left will-change-transform"
+                        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                    >
+                        <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
                             {activeFloorElements.map(el => {
                                 if (el.type !== 'table') {
                                     let content = null;
-                                    let classes = `absolute flex items-center justify-center`;
+                                    let classes = `absolute flex items-center justify-center pointer-events-none`;
 
                                     if (el.type === 'text') {
                                         const textEl = el as TextElement;
                                         classes += ` bg-transparent text-center leading-tight overflow-hidden`;
-                                        content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1">{textEl.label}</div>;
+                                        content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1 font-bold">{textEl.label}</div>;
                                     } else if (el.type === 'arrow') {
-                                        classes += ` text-[#2c1f14]`;
+                                        classes += ` text-[#2c1f14] opacity-60`;
                                         content = (
                                             <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
                                                 <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
@@ -310,16 +457,16 @@ const AdminView: React.FC = () => {
                                             </svg>
                                         );
                                     } else if (el.type === 'stairs') {
-                                        classes += ` bg-gray-300`;
+                                        classes += ` bg-gray-300 shadow-sm opacity-80`;
                                         content = (
                                             <div className="w-full h-full flex flex-col justify-evenly">
-                                                {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-500"></div>)}
+                                                {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-400"></div>)}
                                             </div>
                                         );
                                     } else if (el.type === 'plant') {
                                         classes += ` bg-transparent`;
                                         content = (
-                                            <div className="relative w-full h-full flex items-center justify-center">
+                                            <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                                                 <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
                                                 <div className="absolute w-full h-full flex items-center justify-center">
                                                     <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
@@ -331,8 +478,8 @@ const AdminView: React.FC = () => {
                                         );
                                     } else {
                                         const styles: { [key: string]: string } = {
-                                            wall: 'bg-gray-500',
-                                            bar: 'bg-yellow-800 border-b-2 border-yellow-900',
+                                            wall: 'bg-gray-500 shadow-sm',
+                                            bar: 'bg-yellow-800 border-2 border-yellow-900 shadow-lg',
                                             window: 'bg-sky-200/40 border-2 border-sky-300'
                                         };
                                         classes += ` ${styles[el.type] || 'bg-gray-400'}`;
@@ -371,9 +518,9 @@ const AdminView: React.FC = () => {
                                     b => b.tableId === el.id && b.status === BookingStatus.PENDING && b.dateTime <= now
                                 );
 
-                                let statusColor = 'bg-brand-green/80';
-                                if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed';
-                                if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait';
+                                let statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green';
+                                if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90';
+                                if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90';
 
                                 if (!currentBooking && !isPending) {
                                     const nextBooking = restaurant.bookings
@@ -385,7 +532,7 @@ const AdminView: React.FC = () => {
                                         .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
 
                                     if (nextBooking && (nextBooking.dateTime.getTime() - now.getTime()) < 60 * 60 * 1000) {
-                                        statusColor = 'bg-brand-red/80 cursor-not-allowed';
+                                        statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90';
                                     }
                                 }
 
@@ -402,8 +549,12 @@ const AdminView: React.FC = () => {
                                             height: `${(el as any).height}px`,
                                             transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
                                         }}
-                                        className={`absolute flex items-center justify-center font-bold text-white transition-colors ${shapeClasses} ${statusColor} cursor-pointer hover:scale-110 transition-transform`}
-                                        onClick={() => setSelectedTable(el as TableElement)}
+                                        className={`absolute flex items-center justify-center font-bold text-white transition-all duration-300 ${shapeClasses} ${statusColor} cursor-pointer hover:scale-[1.05]`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (draggedRef.current) return;
+                                            setSelectedTable(el as TableElement);
+                                        }}
                                     >
                                         <span style={{ fontSize: `${fontSize}px` }}>{el.label}</span>
                                     </div>
@@ -411,14 +562,38 @@ const AdminView: React.FC = () => {
                             })}
                         </div>
                     </div>
+
+                    {/* Zoom Controls Overlay */}
+                    <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10" onPointerDown={e => e.stopPropagation()}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
+                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
+                        >
+                            +
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
+                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
+                        >
+                            -
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); fitToContainer() }}
+                            className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
+                            title="Центрировать"
+                        >
+                            ⛶
+                        </button>
+                    </div>
                 </div>
             </div>
+
             {selectedTable && (
                 <BookingModal
                     table={selectedTable}
                     restaurantId={restaurant.id}
                     onClose={() => setSelectedTable(null)}
-                    isAdmin={true} // <-- ВОТ ЗДЕСЬ ИЗМЕНЕНИЕ
+                    isAdmin={true}
                 />
             )}
         </div>
