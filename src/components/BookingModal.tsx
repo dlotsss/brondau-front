@@ -55,76 +55,105 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         return new Date(year, month - 1, day);
     }, [bookingDate]);
 
-    // Определяем часы работы на выбранный день
-    const activeSchedule = useMemo(() => {
-        const dayOfWeek = selectedDateObj.getDay(); // 0 = Вс, 1 = Пн...
-        if (restaurant?.schedule && restaurant.schedule[dayOfWeek]) {
-            return restaurant.schedule[dayOfWeek];
-        }
-        return {
-            start: restaurant?.workStarts || '10:00',
-            end: restaurant?.workEnds || '23:00'
-        };
-    }, [selectedDateObj, restaurant]);
-
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPhoneNumber(e.target.value);
         setGuestPhone(formatted);
     };
 
+    const getScheduleForDay = (dayIndex: number) => {
+        if (restaurant?.schedule && restaurant.schedule[dayIndex]) {
+            return restaurant.schedule[dayIndex];
+        }
+        return {
+            start: restaurant?.workStarts || '10:00',
+            end: restaurant?.workEnds || '23:00'
+        };
+    };
+
     // Генерируем слоты ТОЛЬКО если это не Админ. Админу слоты не нужны, он вводит время вручную.
     const availableSlots = useMemo(() => {
-        if (isAdmin) return []; // Админу не нужен этот расчет
+        if (isAdmin) return [];
 
         const slots: string[] = [];
-        const startMins = parseTime(activeSchedule.start);
-        let endMins = parseTime(activeSchedule.end);
-
-        if (endMins <= startMins) {
-            endMins += 24 * 60;
-        }
-
         const now = new Date();
         const [year, month, day] = bookingDate.split('-').map(Number);
         const selectedDate = new Date(year, month - 1, day);
         const isToday = selectedDate.toDateString() === now.toDateString();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
 
+        const todayIndex = selectedDate.getDay();
+        const yesterdayIndex = (todayIndex + 6) % 7;
+
+        const todaySchedule = getScheduleForDay(todayIndex);
+        const yesterdaySchedule = getScheduleForDay(yesterdayIndex);
+
+        const yStartMins = parseTime(yesterdaySchedule.start);
+        const yEndMins = parseTime(yesterdaySchedule.end);
+
+        const tStartMins = parseTime(todaySchedule.start);
+        const tEndMins = parseTime(todaySchedule.end);
+
+        const slotTimesToGenerate: number[] = [];
+
+        // 1. Spillover from yesterday
+        if (yEndMins <= yStartMins) {
+            const spilloverEnd = yEndMins - 60;
+            for (let time = 0; time <= spilloverEnd; time += 30) {
+                slotTimesToGenerate.push(time);
+            }
+        }
+
+        // 2. Today's shift
+        const endForToday = (tEndMins <= tStartMins) ? (24 * 60 - 30) : (tEndMins - 60);
+        for (let time = tStartMins; time <= endForToday; time += 30) {
+            slotTimesToGenerate.push(time);
+        }
+
+        const currentMins = now.getHours() * 60 + now.getMinutes();
         const minBookingMins = isToday ? currentMins + 15 : 0;
 
-        const shiftStart = new Date(selectedDate);
-        shiftStart.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
-        const shiftEnd = new Date(selectedDate);
-        shiftEnd.setHours(Math.floor(endMins / 60), endMins % 60, 0, 0);
-
-        const bookingsOnShift = restaurant?.bookings.filter(b => {
+        const relevantBookings = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
             if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED && b.status !== BookingStatus.PENDING) return false;
-            return b.dateTime >= shiftStart && b.dateTime < shiftEnd;
+            const bDate = new Date(b.dateTime);
+            return bDate.getFullYear() === selectedDate.getFullYear() &&
+                bDate.getMonth() === selectedDate.getMonth() &&
+                bDate.getDate() === selectedDate.getDate();
         }) || [];
 
-        const bookingMinsList = bookingsOnShift.map(b => {
+        const bookingMinsList = relevantBookings.map(b => {
             const bDate = new Date(b.dateTime);
-            let bMins = bDate.getHours() * 60 + bDate.getMinutes();
-            if (bMins < startMins) bMins += 24 * 60;
-            return bMins;
+            return bDate.getHours() * 60 + bDate.getMinutes();
         });
 
-        for (let time = startMins; time <= endMins - 60; time += 30) {
+        for (const time of slotTimesToGenerate) {
             if (isToday && time < minBookingMins) continue;
-            const isBlockedByEarlierBooking = bookingMinsList.some(bm => bm <= time);
+            if (selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) continue;
+
+            const isSpillover = time < tStartMins;
+
+            const shiftBookings = bookingMinsList.filter(bm => {
+                const isBmSpillover = bm < tStartMins;
+                return isBmSpillover === isSpillover;
+            });
+
+            const isBlockedByEarlierBooking = shiftBookings.some(bm => bm <= time);
             if (isBlockedByEarlierBooking) continue;
-            const hasConflict = bookingMinsList.some(bm => Math.abs(time - bm) < 60);
+
+            const hasConflict = shiftBookings.some(bm => Math.abs(time - bm) < 60);
             if (hasConflict) continue;
 
             const h = Math.floor(time / 60) % 24;
             const m = time % 60;
             const timeString = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            slots.push(timeString);
+            if (!slots.includes(timeString)) {
+                slots.push(timeString);
+            }
         }
 
+        slots.sort((a, b) => parseTime(a) - parseTime(b));
+
         return slots;
-    }, [bookingDate, restaurant?.bookings, table.id, activeSchedule, isAdmin]);
+    }, [bookingDate, restaurant, table.id, isAdmin]);
 
     useEffect(() => {
         if (!isAdmin) {
@@ -183,12 +212,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const [h, m] = bookingTime.split(':').map(Number);
         const dateTime = new Date(bookingDate);
         dateTime.setHours(h, m, 0, 0);
-
-        // Корректировка даты для ночных смен (если время меньше времени открытия)
-        const workStartH = parseInt(activeSchedule.start.split(':')[0]);
-        if (h < workStartH && parseTime(bookingTime) < parseTime(activeSchedule.start)) {
-            dateTime.setDate(dateTime.getDate() + 1);
-        }
 
         try {
             await addBooking(restaurantId, {
