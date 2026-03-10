@@ -44,12 +44,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [guestCount, setGuestCount] = useState<number>(2);
 
     const restaurant = getRestaurant(restaurantId);
-    const workStarts = restaurant?.workStarts || '10:00';
-    const workEnds = restaurant?.workEnds || '23:00';
+
 
     const [bookingDate, setBookingDate] = useState(formatLocalDate(new Date()));
     const [bookingTime, setBookingTime] = useState('');
     const [error, setError] = useState('');
+
+    const selectedDateObj = useMemo(() => {
+        const [year, month, day] = bookingDate.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }, [bookingDate]);
+
+    // Определяем часы работы на выбранный день
+    const activeSchedule = useMemo(() => {
+        const dayOfWeek = selectedDateObj.getDay(); // 0 = Вс, 1 = Пн...
+        if (restaurant?.schedule && restaurant.schedule[dayOfWeek]) {
+            return restaurant.schedule[dayOfWeek];
+        }
+        return {
+            start: restaurant?.workStarts || '10:00',
+            end: restaurant?.workEnds || '23:00'
+        };
+    }, [selectedDateObj, restaurant]);
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPhoneNumber(e.target.value);
@@ -61,8 +77,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         if (isAdmin) return []; // Админу не нужен этот расчет
 
         const slots: string[] = [];
-        const startMins = parseTime(workStarts);
-        let endMins = parseTime(workEnds);
+        const startMins = parseTime(activeSchedule.start);
+        let endMins = parseTime(activeSchedule.end);
 
         if (endMins <= startMins) {
             endMins += 24 * 60;
@@ -108,7 +124,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         }
 
         return slots;
-    }, [bookingDate, restaurant?.bookings, table.id, workStarts, workEnds, isAdmin]);
+    }, [bookingDate, restaurant?.bookings, table.id, activeSchedule, isAdmin]);
 
     useEffect(() => {
         if (!isAdmin) {
@@ -169,8 +185,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         dateTime.setHours(h, m, 0, 0);
 
         // Корректировка даты для ночных смен (если время меньше времени открытия)
-        const workStartH = parseInt(workStarts.split(':')[0]);
-        if (h < workStartH && parseTime(bookingTime) < parseTime(workStarts)) {
+        const workStartH = parseInt(activeSchedule.start.split(':')[0]);
+        if (h < workStartH && parseTime(bookingTime) < parseTime(activeSchedule.start)) {
             dateTime.setDate(dateTime.getDate() + 1);
         }
 

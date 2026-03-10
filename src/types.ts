@@ -87,4 +87,5 @@ export interface Restaurant {
   layout: LayoutElement[];
   bookings: Booking[];
   floors?: Floor[];
+  schedule?: Record<number, { start: string; end: string }>;
 }

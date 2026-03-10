@@ -43,8 +43,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               name: restaurant.name,
               photoUrl: restaurant.photo_url,
               address: restaurant.address,
-              workStarts: restaurant.work_starts,
-              workEnds: restaurant.work_ends,
+              workStarts: restaurant.workStarts,
+              workEnds: restaurant.workEnds,
+              schedule: restaurant.schedule,
               layout: restaurant.layout || [],
               floors: restaurant.floors || [],
               bookings: bookings.map((b: any) => ({
@@ -69,6 +70,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               id: restaurant.id,
               name: restaurant.name,
               layout: restaurant.layout || [],
+              workStarts: restaurant.workStarts,
+              workEnds: restaurant.workEnds,
+              schedule: restaurant.schedule,
               floors: restaurant.floors || [],
               bookings: []
             };
@@ -179,6 +183,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: newRestaurant.id,
         name: newRestaurant.name,
         layout: newRestaurant.layout || [],
+        workStarts: newRestaurant.workStarts,
+        workEnds: newRestaurant.workEnds,
+        schedule: newRestaurant.schedule,
         bookings: []
       };
 
