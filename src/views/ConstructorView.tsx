@@ -7,7 +7,7 @@ import { useApp } from '../context/AppContext';
 const LOGICAL_WIDTH = 1500;
 const LOGICAL_HEIGHT = 1000;
 
-type DragMode = 'move' | 'resize' | 'rotate';
+type DragMode = 'move' | 'resize' | 'rotate' | 'select';
 type DragState = {
     id: string;
     mode: DragMode;
@@ -18,6 +18,7 @@ type DragState = {
     initialWidth: number;
     initialHeight: number;
     resizeDirection?: string;
+    initialPositions?: { id: string, x: number, y: number }[];
 };
 
 const ConstructorView: React.FC = () => {
@@ -30,7 +31,8 @@ const ConstructorView: React.FC = () => {
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
 
-    const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+    const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
+    const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
 
     // Масштаб для Desktop (чтобы все влезало)
     const [scale, setScale] = useState(1);
@@ -78,7 +80,8 @@ const ConstructorView: React.FC = () => {
     }, []);
 
 
-    const selectedElement = elements.find(el => el.id === selectedElementId);
+    const selectedElements = elements.filter(el => selectedElementIds.includes(el.id));
+    const selectedElement = selectedElements.length === 1 ? selectedElements[0] : null;
 
     const updateElement = (id: string, updates: Partial<LayoutElement>) => {
         setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
@@ -88,21 +91,27 @@ const ConstructorView: React.FC = () => {
 
     const handleStart = (clientX: number, clientY: number, id: string, mode: DragMode, direction?: string) => {
         const element = elements.find(el => el.id === id);
-        if (!element) return;
+        if (!element && mode !== 'select') return;
 
-        setSelectedElementId(id);
+        if (mode !== 'select' && !selectedElementIds.includes(id)) {
+            setSelectedElementIds([id]);
+        }
 
         dragState.current = {
             id,
             mode,
             startX: clientX,
             startY: clientY,
-            initialX: element.x,
-            initialY: element.y,
-            initialWidth: element.width,
-            initialHeight: element.height,
+            initialX: element?.x || 0,
+            initialY: element?.y || 0,
+            initialWidth: element?.width || 0,
+            initialHeight: element?.height || 0,
             resizeDirection: direction
         };
+
+        if (mode === 'move' && selectedElementIds.includes(id) && selectedElementIds.length > 1) {
+            dragState.current.initialPositions = elements.filter(el => selectedElementIds.includes(el.id)).map(el => ({ id: el.id, x: el.x, y: el.y }));
+        }
 
         if (mode === 'rotate') {
             const rect = containerRef.current?.getBoundingClientRect();
@@ -113,6 +122,29 @@ const ConstructorView: React.FC = () => {
                 dragState.current.startY = centerY;
             }
         }
+    };
+
+    const handleCanvasMouseDown = (e: ReactMouseEvent) => {
+        if (e.target !== containerRef.current && !(e.target as HTMLElement).classList.contains('canvas-container')) return;
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const x = (e.clientX - rect.left) / scale;
+        const y = (e.clientY - rect.top) / scale;
+
+        setSelectedElementIds([]);
+        setSelectionBox({ x, y, width: 0, height: 0 });
+
+        dragState.current = {
+            id: 'canvas',
+            mode: 'select',
+            startX: e.clientX,
+            startY: e.clientY,
+            initialX: x,
+            initialY: y,
+            initialWidth: 0,
+            initialHeight: 0
+        };
     };
 
     const handleMouseDown = (e: ReactMouseEvent, id: string) => {
@@ -140,15 +172,48 @@ const ConstructorView: React.FC = () => {
     const handleMove = useCallback((clientX: number, clientY: number) => {
         if (!dragState.current) return;
 
-        const { id, mode, startX, startY, initialX, initialY, initialWidth, initialHeight, resizeDirection } = dragState.current;
+        const { id, mode, startX, startY, initialX, initialY, initialWidth, initialHeight, resizeDirection, initialPositions } = dragState.current;
 
         const deltaX = (clientX - startX) / scale;
         const deltaY = (clientY - startY) / scale;
 
         if (mode === 'move') {
-            updateElement(id, {
-                x: initialX + deltaX,
-                y: initialY + deltaY
+            if (initialPositions) {
+                setElements(prev => prev.map(el => {
+                    const pos = initialPositions.find(p => p.id === el.id);
+                    if (pos) {
+                        return { ...el, x: pos.x + deltaX, y: pos.y + deltaY };
+                    }
+                    return el;
+                }));
+            } else {
+                updateElement(id, {
+                    x: initialX + deltaX,
+                    y: initialY + deltaY
+                });
+            }
+        } else if (mode === 'select') {
+            const currentLogicalX = initialX + deltaX;
+            const currentLogicalY = initialY + deltaY;
+            const x = Math.min(initialX, currentLogicalX);
+            const y = Math.min(initialY, currentLogicalY);
+            const w = Math.abs(currentLogicalX - initialX);
+            const h = Math.abs(currentLogicalY - initialY);
+
+            setSelectionBox({ x, y, width: w, height: h });
+
+            setElements(prev => {
+                const currentFloorElements = prev.filter(el => el.floorId === activeFloorId);
+                const newSelectedIds = currentFloorElements.filter(el => {
+                    return (
+                        el.x + el.width / 2 > x &&
+                        el.x - el.width / 2 < x + w &&
+                        el.y + el.height / 2 > y &&
+                        el.y - el.height / 2 < y + h
+                    );
+                }).map(el => el.id);
+                setSelectedElementIds(newSelectedIds);
+                return prev;
             });
         } else if (mode === 'resize' && resizeDirection) {
             let newWidth = initialWidth;
@@ -166,7 +231,7 @@ const ConstructorView: React.FC = () => {
             const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
             updateElement(id, { rotation: angle });
         }
-    }, [scale, elements]);
+    }, [scale, activeFloorId]);
 
     const handleMouseMove = useCallback((e: globalThis.MouseEvent) => {
         if (dragState.current) handleMove(e.clientX, e.clientY);
@@ -180,6 +245,9 @@ const ConstructorView: React.FC = () => {
     }, [handleMove]);
 
     const handleEnd = useCallback(() => {
+        if (dragState.current?.mode === 'select') {
+            setSelectionBox(null);
+        }
         dragState.current = null;
     }, []);
 
@@ -221,13 +289,13 @@ const ConstructorView: React.FC = () => {
             newElement = { ...base, type: type, width: isV ? 15 : (type === 'bar' ? 200 : 60), height: isV ? 200 : 60 } as DecoElement;
         }
         setElements(prev => [...prev, newElement]);
-        setSelectedElementId(newId);
+        setSelectedElementIds([newId]);
     };
 
     const deleteSelectedElement = () => {
-        if (!selectedElementId) return;
-        setElements(prev => prev.filter(el => el.id !== selectedElementId));
-        setSelectedElementId(null);
+        if (selectedElementIds.length === 0) return;
+        setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
+        setSelectedElementIds([]);
     };
 
     const handleSaveLayout = () => {
@@ -323,6 +391,11 @@ const ConstructorView: React.FC = () => {
                             </div>
                             <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">Удалить</button>
                         </div>
+                    ) : selectedElements.length > 1 ? (
+                        <div className="space-y-3 text-sm">
+                            <p className="text-gray-400">Выделено элементов: {selectedElements.length}</p>
+                            <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">Удалить выбранные</button>
+                        </div>
                     ) : (
                         <p className="text-gray-500 text-xs">Выберите элемент для редактирования</p>
                     )}
@@ -355,8 +428,8 @@ const ConstructorView: React.FC = () => {
                 {/* КОНТЕЙНЕР ХОЛСТА */}
                 <div
                     ref={containerRef}
-                    className={`flex-grow bg-brand-secondary relative border-2 border-brand-accent bg-grid ${isMobile ? 'overflow-auto' : 'overflow-hidden'}`}
-                    onClick={() => setSelectedElementId(null)}
+                    className={`flex-grow bg-brand-secondary relative border-2 border-brand-accent bg-grid canvas-container ${isMobile ? 'overflow-auto' : 'overflow-hidden'}`}
+                    onMouseDown={handleCanvasMouseDown}
                 >
                     {/* ТРАНСФОРМИРУЕМЫЙ СЛОЙ */}
                     <div
@@ -371,7 +444,7 @@ const ConstructorView: React.FC = () => {
                         }}
                     >
                         {currentFloorElements.map(el => {
-                            const isSelected = el.id === selectedElementId;
+                            const isSelected = selectedElementIds.includes(el.id);
 
                             // Стилизация
                             let content = null;
@@ -447,7 +520,11 @@ const ConstructorView: React.FC = () => {
                                     className={`absolute flex items-center justify-center cursor-move select-none ${shapeClass} ${bgClass}`}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedElementId(el.id);
+                                        if (e.shiftKey) {
+                                            setSelectedElementIds(prev => prev.includes(el.id) ? prev.filter(id => id !== el.id) : [...prev, el.id]);
+                                        } else {
+                                            setSelectedElementIds([el.id]);
+                                        }
                                     }}
                                 >
                                     {content}
@@ -473,49 +550,67 @@ const ConstructorView: React.FC = () => {
                                 </div>
                             );
                         })}
+
+                        {selectionBox && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: `${selectionBox.x}px`,
+                                    top: `${selectionBox.y}px`,
+                                    width: `${selectionBox.width}px`,
+                                    height: `${selectionBox.height}px`,
+                                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                    border: '1px solid rgba(59, 130, 246, 0.8)',
+                                    pointerEvents: 'none',
+                                    zIndex: 100
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* --- Свойства (MOBILE - Bottom Sheet) --- */}
-            {selectedElement && isMobile && (
+            {selectedElements.length > 0 && isMobile && (
                 <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-brand-primary border-t-2 border-brand-blue p-4 pb-8 shadow-2xl z-50 animate-slide-up rounded-t-xl max-h-[50vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-white font-bold">Настройки</h3>
+                        <h3 className="text-white font-bold">{selectedElements.length > 1 ? `Выделено: ${selectedElements.length}` : 'Настройки'}</h3>
                         <button onClick={deleteSelectedElement} className="bg-red-900/40 text-red-300 text-xs font-bold border border-red-500/50 px-3 py-1.5 rounded">Удалить</button>
                     </div>
 
-                    <div className="space-y-4">
-                        {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
+                    {selectedElement ? (
+                        <div className="space-y-4">
+                            {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
+                                <div>
+                                    <label className="text-gray-400 text-xs block mb-1">Текст / Название</label>
+                                    <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className={inputStyle} />
+                                </div>
+                            )}
+
+                            {/* Размер: Слайдер + Input */}
                             <div>
-                                <label className="text-gray-400 text-xs block mb-1">Текст / Название</label>
-                                <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className={inputStyle} />
+                                <div className="flex justify-between mb-1">
+                                    <label className="text-gray-400 text-xs">Ширина</label>
+                                    <span className="text-gray-500 text-xs">{selectedElement.width}px</span>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <input type="range" min="20" max="500" step="5" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="flex-1" />
+                                    <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600 text-gray-600" />
+                                </div>
                             </div>
-                        )}
 
-                        {/* Размер: Слайдер + Input */}
-                        <div>
-                            <div className="flex justify-between mb-1">
-                                <label className="text-gray-400 text-xs">Ширина</label>
-                                <span className="text-gray-500 text-xs">{selectedElement.width}px</span>
-                            </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="range" min="20" max="500" step="5" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="flex-1" />
-                                <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600 text-gray-600" />
+                            <div>
+                                <div className="flex justify-between mb-1">
+                                    <label className="text-gray-400 text-xs">Высота</label>
+                                    <span className="text-gray-500 text-xs">{selectedElement.height}px</span>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <input type="range" min="20" max="500" step="5" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="flex-1" />
+                                    <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600 text-gray-600" />
+                                </div>
                             </div>
                         </div>
-
-                        <div>
-                            <div className="flex justify-between mb-1">
-                                <label className="text-gray-400 text-xs">Высота</label>
-                                <span className="text-gray-500 text-xs">{selectedElement.height}px</span>
-                            </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="range" min="20" max="500" step="5" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="flex-1" />
-                                <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-16 bg-brand-secondary text-white p-1 rounded text-center text-sm border border-gray-600 text-gray-600" />
-                            </div>
-                        </div>
-                    </div>
+                    ) : null}
                 </div>
             )}
 
