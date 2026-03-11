@@ -43,6 +43,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [guestPhone, setGuestPhone] = useState('');
     const [guestEmail, setGuestEmail] = useState('');
     const [guestCount, setGuestCount] = useState<number>(2);
+    const [guestComment, setGuestComment] = useState('');
 
     const restaurant = getRestaurant(restaurantId);
 
@@ -276,7 +277,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 guestCount,
                 dateTime,
                 timezoneOffset: dateTime.getTimezoneOffset(),
-                isAdmin
+                isAdmin,
+                guestComment: guestComment || null
             });
 
             alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
@@ -303,13 +305,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {table && (
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-gray-500 text-sm">
                             Вместимость: до <span className="font-semibold">{table.seats}</span> гостей.
                         </p>
                     )}
 
                     {!withMap && !isAdmin && (
-                        <div className="bg-brand-accent/40 border border-brand-accent px-3 py-2 rounded-md text-sm text-gray-300">
+                        <div className="bg-brand-accent/40 border border-brand-accent px-3 py-2 rounded-md text-sm text-gray-400">
                             📋 Столик будет назначен администратором после подтверждения заявки.
                         </div>
                     )}
@@ -321,9 +323,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     {/* Show existing bookings only for map-based guest booking */}
                     {!isAdmin && withMap && table && (
                         <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
-                            <h3 className="text-sm font-semibold text-white mb-2">Существующие брони:</h3>
+                            <h3 className="text-sm font-semibold text-gray-200 mb-2">Существующие брони:</h3>
                             {visualBookings.length > 0 ? (
-                                <ul className="space-y-1 text-xs text-gray-400">
+                                <ul className="space-y-1 text-xs text-gray-500">
                                     {visualBookings.map(b => (
                                         <li key={b.id} className="flex justify-between">
                                             <span>{b.guestName}</span>
@@ -332,7 +334,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-sm text-white text-center py-2">На этот столик пока нет броней</p>
+                                <p className="text-sm text-gray-200 text-center py-2">На этот столик пока нет броней</p>
                             )}
                         </div>
                     )}
@@ -343,7 +345,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             placeholder="Имя гостя"
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required={!isAdmin}
                         />
                         <input
@@ -351,7 +353,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             placeholder="+7 (___) ___-__-__"
                             value={guestPhone}
                             onChange={handlePhoneChange}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required={!isAdmin}
                         />
                         <input
@@ -359,48 +361,58 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             placeholder="Email"
                             value={guestEmail}
                             onChange={e => setGuestEmail(e.target.value)}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required={!isAdmin}
                         />
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs text-gray-400 block mb-1">Гостей</label>
+                                <label className="text-xs text-gray-500 block mb-1">Гостей</label>
                                 <input
                                     type="number"
                                     value={guestCount}
                                     onChange={e => setGuestCount(parseInt(e.target.value))}
                                     min="1"
                                     max={table?.seats || 20}
-                                    className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-white focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                    className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-gray-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-400 block mb-1">Дата</label>
+                                <label className="text-xs text-gray-500 block mb-1">Дата</label>
                                 <input
                                     type="date"
                                     value={bookingDate}
                                     onChange={e => setBookingDate(e.target.value)}
-                                    className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                    className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-400 block mb-1">Время {isAdmin && '(Администратор: любое время)'}</label>
+                            <textarea
+                                placeholder="Комментарий к бронированию"
+                                value={guestComment}
+                                onChange={e => setGuestComment(e.target.value)}
+                                className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all resize-none"
+                                rows={2}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1">Время {isAdmin && '(Администратор: любое время)'}</label>
                             {isAdmin ? (
                                 <input
                                     type="time"
                                     value={bookingTime}
                                     onChange={e => setBookingTime(e.target.value)}
-                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                                     required
                                 />
                             ) : (
                                 <select
                                     value={bookingTime}
                                     onChange={e => setBookingTime(e.target.value)}
-                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-white text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                                 >
                                     {activeSlots.length > 0 ? (
                                         activeSlots.map(time => (

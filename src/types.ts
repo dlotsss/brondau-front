@@ -9,6 +9,15 @@ export interface User {
   restaurantIds: string[]; // Which restaurants this user can manage
 }
 
+export interface Guest {
+  phone: string;
+  name: string;
+  email?: string;
+  internalComment?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
@@ -72,6 +81,7 @@ export interface Booking {
   guestPhone: string;
   guestEmail?: string;
   guestCount: number;
+  guestComment?: string;
   timezoneOffset?: number;
   declineReason?: string;
   createdAt: Date;

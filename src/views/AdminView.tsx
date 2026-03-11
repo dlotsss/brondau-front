@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import { Booking, BookingStatus, TableElement, TextElement, DecoElement } from '../types';
 import { useApp } from '../context/AppContext';
 import BookingModal from '../components/BookingModal';
+import GuestManager from '../components/GuestManager';
 import { registerServiceWorker, subscribeToPush } from '../services/pushService';
 import { LayoutElement } from '../types';
 
@@ -96,9 +97,9 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                     Осталось: <CountdownTimer createdAt={booking.createdAt} />
                 </div>
             </div>
-            <p className="text-sm" style={{ color: '#f5efe6' }}>{booking.guestName} ({booking.guestCount} гостей)</p>
-            <p className="text-sm font-medium" style={{ color: '#e6d5c0' }}>{booking.guestPhone}</p>
-            <p className="text-sm text-gray-400">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
+            <p className="text-sm" style={{ color: '#d1c1b1' }}>{booking.guestName} ({booking.guestCount} гостей)</p>
+            <p className="text-sm font-medium" style={{ color: '#b5a48f' }}>{booking.guestPhone}</p>
+            <p className="text-sm text-gray-500">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
 
             {/* Table assignment for no-map bookings */}
             {needsTableAssignment && !isDeclining && (
@@ -146,6 +147,7 @@ const AdminView: React.FC = () => {
     const { getRestaurant, updateBookingStatus } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
+    const [activeView, setActiveView] = useState<'MAP' | 'GUESTS'>('MAP');
     const [isInitialized, setIsInitialized] = useState(false);
 
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
@@ -381,7 +383,27 @@ const AdminView: React.FC = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-6">
+            {/* View Switcher Tabs */}
+            <div className="flex border-b border-brand-accent/30 gap-6 mb-2">
+                <button 
+                    onClick={() => setActiveView('MAP')}
+                    className={`pb-3 text-lg font-bold transition-all relative ${activeView === 'MAP' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    Зал и Брони
+                    {activeView === 'MAP' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
+                </button>
+                <button 
+                    onClick={() => setActiveView('GUESTS')}
+                    className={`pb-3 text-lg font-bold transition-all relative ${activeView === 'GUESTS' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    База клиентов
+                    {activeView === 'GUESTS' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
+                </button>
+            </div>
+
+            {activeView === 'MAP' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
             {/* Column 1: Requests */}
             <div className="lg:col-span-1 order-2 lg:order-1">
                 <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы</h2>
@@ -396,7 +418,7 @@ const AdminView: React.FC = () => {
                             />
                         ))
                     ) : (
-                        <p className="text-gray-400 text-center py-8">Нет ожидающих запросов.</p>
+                        <p className="text-gray-500 text-center py-8">Нет ожидающих запросов.</p>
                     )}
                 </div>
             </div>
@@ -407,14 +429,14 @@ const AdminView: React.FC = () => {
                 {/* Status Sections */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3">Занятые столики</h3>
+                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-gray-200">Занятые столики</h3>
                         {occupiedTableBookings.length > 0 ? (
                             <div className="space-y-2 max-h-40 overflow-y-auto">
                                 {occupiedTableBookings.map(({ table, booking }) => (
                                     <div key={table.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/60 rounded-md p-3">
                                         <div>
-                                            <p className="font-semibold">Столик {table.label}</p>
-                                            <p className="text-xs text-gray-300">
+                                            <p className="font-semibold text-gray-200">Столик {table.label}</p>
+                                            <p className="text-xs text-gray-400">
                                                 {booking.guestName}
                                             </p>
                                         </div>
@@ -442,9 +464,9 @@ const AdminView: React.FC = () => {
                                     .map(booking => (
                                         <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/40 rounded-md p-3">
                                             <div>
-                                                <p className="font-semibold text-sm">{booking.guestName} ({booking.guestCount} ч.)</p>
+                                                <p className="font-semibold text-sm text-gray-200">{booking.guestName} ({booking.guestCount} ч.)</p>
                                                 <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
-                                                <p className="text-xs text-gray-300">
+                                                <p className="text-xs text-gray-400">
                                                     Ст. {booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
                                                 </p>
                                             </div>
@@ -453,7 +475,7 @@ const AdminView: React.FC = () => {
                                                 className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center hover:bg-red-700 transition-colors"
                                             >
                                                 Отменить
-                                            </button>
+                                        </button>
                                         </div>
                                     ))}
                             </div>
@@ -472,7 +494,7 @@ const AdminView: React.FC = () => {
                                 <button
                                     key={f.id}
                                     onClick={() => setActiveFloorId(f.id)}
-                                    className={`px-3 py-1 text-xs font-semibold rounded-md whitespace-nowrap transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-3 py-1 text-xs font-semibold rounded-md whitespace-nowrap transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-gray-200'}`}
                                 >
                                     {f.name}
                                 </button>
@@ -607,7 +629,7 @@ const AdminView: React.FC = () => {
                                             height: `${(el as any).height}px`,
                                             transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
                                         }}
-                                        className={`absolute flex items-center justify-center font-bold text-white transition-all duration-300 ${shapeClasses} ${statusColor} cursor-pointer hover:scale-[1.05]`}
+                                        className={`absolute flex items-center justify-center font-bold text-gray-200 transition-all duration-300 ${shapeClasses} ${statusColor} cursor-pointer hover:scale-[1.05]`}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (draggedRef.current) return;
@@ -646,13 +668,19 @@ const AdminView: React.FC = () => {
                 </div>
             </div>
 
-            {selectedTable && (
-                <BookingModal
-                    table={selectedTable}
-                    restaurantId={restaurant.id}
-                    onClose={() => setSelectedTable(null)}
-                    isAdmin={true}
-                />
+                    {selectedTable && (
+                        <BookingModal
+                            table={selectedTable}
+                            restaurantId={restaurant.id}
+                            onClose={() => setSelectedTable(null)}
+                            isAdmin={true}
+                        />
+                    )}
+                </div>
+            ) : (
+                <div className="animate-fadeIn h-[70vh]">
+                    <GuestManager />
+                </div>
             )}
         </div>
     );

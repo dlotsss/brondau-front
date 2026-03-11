@@ -1,4 +1,4 @@
-import { LayoutElement, Booking, BookingStatus, Restaurant, User, UserRole } from '../types';
+import { LayoutElement, Booking, BookingStatus, Restaurant, User, UserRole, Guest } from '../types';
 
 const getBaseUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
@@ -69,6 +69,14 @@ export const api = {
         }),
         cleanupExpired: () => request<{ updated: number, bookings: any[] }>('/bookings/cleanup-expired', {
             method: 'POST',
+        }),
+    },
+    guests: {
+        search: (phone: string) => request<Guest[]>(`/guests/search?phone=${encodeURIComponent(phone)}`),
+        getHistory: (phone: string) => request<{ stats: any, history: any[] }>(`/guests/${phone}/history`),
+        update: (phone: string, data: { internalComment?: string, name?: string, email?: string }) => request<Guest>(`/guests/${phone}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
         }),
     }
 };
