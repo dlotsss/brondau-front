@@ -152,10 +152,12 @@ const UserView: React.FC = () => {
     const { selectedRestaurantId } = useApp();
     const { getRestaurant } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
+    const [showNoMapModal, setShowNoMapModal] = useState(false);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
 
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
+    const withMap = restaurant?.with_map !== false; // default true if not set
 
     useEffect(() => {
         if (restaurant && !isInitialized) {
@@ -215,6 +217,7 @@ const UserView: React.FC = () => {
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const isDragging = useRef(false);
     const draggedRef = useRef(false);
+    const initialPointerPos = useRef({ x: 0, y: 0 });
     const activePointers = useRef<Map<number, { x: number, y: number }>>(new Map());
     const startPan = useRef({ x: 0, y: 0 });
     const pinchStart = useRef<{ dist: number, scale: number, cx: number, cy: number, x: number, y: number } | null>(null);
@@ -294,8 +297,8 @@ const UserView: React.FC = () => {
         if (activePointers.current.size === 1) {
             isDragging.current = true;
             draggedRef.current = false;
+            initialPointerPos.current = { x: e.clientX, y: e.clientY };
             startPan.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
-            e.currentTarget.setPointerCapture(e.pointerId);
         } else if (activePointers.current.size === 2) {
             isDragging.current = false;
             const pts = Array.from(activePointers.current.values()) as { x: number, y: number }[];
@@ -314,8 +317,14 @@ const UserView: React.FC = () => {
         activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
         if (activePointers.current.size === 1 && isDragging.current) {
-            if (Math.hypot(e.clientX - (startPan.current.x + transform.x), e.clientY - (startPan.current.y + transform.y)) > 5) {
-                draggedRef.current = true;
+            const dist = Math.hypot(e.clientX - initialPointerPos.current.x, e.clientY - initialPointerPos.current.y);
+            if (dist > 5) {
+                if (!draggedRef.current) {
+                    draggedRef.current = true;
+                    try {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                    } catch (err) { }
+                }
             }
             setTransform(prev => enforceTransformBounds(
                 e.clientX - startPan.current.x,
@@ -323,7 +332,12 @@ const UserView: React.FC = () => {
                 prev.scale
             ));
         } else if (activePointers.current.size === 2 && pinchStart.current) {
-            draggedRef.current = true; // Считаем зум тоже перемещением (отмена клика)
+            if (!draggedRef.current) {
+                draggedRef.current = true; // Считаем зум тоже перемещением (отмена клика)
+                try {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                } catch (err) { }
+            }
             const pts = Array.from(activePointers.current.values()) as { x: number, y: number }[];
             const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
 
@@ -356,7 +370,11 @@ const UserView: React.FC = () => {
         } else if (activePointers.current.size === 0) {
             isDragging.current = false;
         }
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        try {
+            if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+        } catch (err) { }
     };
 
     // === КОНЕЦ ЛОГИКИ PAN & ZOOM ===
@@ -365,6 +383,47 @@ const UserView: React.FC = () => {
         return <div className="text-center text-gray-400">Загрузка...</div>;
     }
 
+    // ===== NO-MAP MODE =====
+    if (!withMap) {
+        return (
+            <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full md:h-auto md:min-h-full flex flex-col">
+                <div className="flex flex-col gap-2 mb-6">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
+                    <p className="text-gray-400 text-sm">Заполните форму, и мы подберём для вас лучший столик.</p>
+                </div>
+
+                <div className="flex-grow flex flex-col items-center justify-center gap-8">
+                    <div className="text-center space-y-4 max-w-sm mx-auto">
+                        <div className="w-20 h-20 bg-brand-accent/30 rounded-full flex items-center justify-center mx-auto">
+                            <span className="text-4xl">🍽️</span>
+                        </div>
+                        <h3 className="text-xl font-semibold text-white">Онлайн-бронирование</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Оставьте заявку — наш администратор подтвердит бронь и подберёт для вас столик.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={() => setShowNoMapModal(true)}
+                        className="bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-xl transition-all duration-200"
+                    >
+                        Забронировать столик
+                    </button>
+                </div>
+
+                {showNoMapModal && selectedRestaurantId && (
+                    <BookingModal
+                        table={null}
+                        restaurantId={selectedRestaurantId}
+                        onClose={() => setShowNoMapModal(false)}
+                        withMap={false}
+                    />
+                )}
+            </div>
+        );
+    }
+
+    // ===== WITH MAP MODE =====
     return (
         <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full md:h-auto md:min-h-full flex flex-col">
             {/* Header */}

@@ -64,8 +64,8 @@ export interface Floor {
 export interface Booking {
   id: string;
   restaurantId: string;
-  tableId: string;
-  tableLabel: string;
+  tableId?: string | null;
+  tableLabel?: string | null;
   dateTime: Date;
   status: BookingStatus;
   guestName: string;
@@ -80,6 +80,7 @@ export interface Booking {
 export interface Restaurant {
   id: string;
   name: string;
+  with_map?: boolean; // If false, guests book without selecting a table
   photoUrl?: string; // Mapped from photo_url
   address?: string;
   workStarts?: string; // HH:MM

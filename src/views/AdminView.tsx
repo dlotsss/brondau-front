@@ -57,14 +57,30 @@ const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
     return <span className={`font-mono font-bold ${timeColor}`}>{minutes}:{seconds.toString().padStart(2, '0')}</span>;
 };
 
-const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string }> = ({ booking, restaurantId }) => {
+const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tables: TableElement[] }> = ({ booking, restaurantId, tables }) => {
     const { updateBookingStatus } = useData();
     const [reason, setReason] = useState('');
     const [isDeclining, setIsDeclining] = useState(false);
+    // For no-table bookings: admin assigns a table before confirming
+    const [assignedTableId, setAssignedTableId] = useState('');
+    const needsTableAssignment = !booking.tableId;
+
+    const handleConfirm = () => {
+        if (needsTableAssignment && !assignedTableId) {
+            alert('Пожалуйста, выберите столик для гостя.');
+            return;
+        }
+        if (needsTableAssignment) {
+            const assignedTable = tables.find(t => t.id === assignedTableId);
+            updateBookingStatus(restaurantId, booking.id, BookingStatus.CONFIRMED, undefined, assignedTableId, assignedTable?.label);
+        } else {
+            updateBookingStatus(restaurantId, booking.id, BookingStatus.CONFIRMED);
+        }
+    };
 
     const handleDecline = () => {
         if (!reason.trim()) {
-            alert("Пожалуйста, укажите причину отклонения.");
+            alert('Пожалуйста, укажите причину отклонения.');
             return;
         }
         updateBookingStatus(restaurantId, booking.id, BookingStatus.DECLINED, reason);
@@ -73,14 +89,33 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string }> =
     return (
         <div className="bg-brand-accent p-4 rounded-lg shadow-md transition-transform hover:scale-105">
             <div className="flex justify-between items-center flex-wrap gap-2">
-                <h4 className="font-bold text-lg">Столик {booking.tableLabel}</h4>
+                <h4 className="font-bold text-lg">
+                    {booking.tableLabel ? `Столик ${booking.tableLabel}` : <span className="text-brand-yellow">Столик не назначен</span>}
+                </h4>
                 <div className="text-sm">
                     Осталось: <CountdownTimer createdAt={booking.createdAt} />
                 </div>
             </div>
             <p className="text-sm" style={{ color: '#f5efe6' }}>{booking.guestName} ({booking.guestCount} гостей)</p>
             <p className="text-sm font-medium" style={{ color: '#e6d5c0' }}>{booking.guestPhone}</p>
-            <p className="text-sm text-gray-400">{booking.dateTime.toLocaleString('ru-RU')}</p>
+            <p className="text-sm text-gray-400">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
+
+            {/* Table assignment for no-map bookings */}
+            {needsTableAssignment && !isDeclining && (
+                <div className="mt-3">
+                    <label className="text-xs text-gray-300 block mb-1">Назначить столик:</label>
+                    <select
+                        value={assignedTableId}
+                        onChange={e => setAssignedTableId(e.target.value)}
+                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue"
+                    >
+                        <option value="">— Выберите столик —</option>
+                        {tables.map(t => (
+                            <option key={t.id} value={t.id}>Столик {t.label} ({t.seats} мест)</option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {isDeclining ? (
                 <div className="mt-4 space-y-2">
@@ -98,7 +133,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string }> =
                 </div>
             ) : (
                 <div className="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <button onClick={() => updateBookingStatus(restaurantId, booking.id, BookingStatus.CONFIRMED)} className="flex-1 bg-brand-green text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-green-700 transition-colors">Подтвердить</button>
+                    <button onClick={handleConfirm} className="flex-1 bg-brand-green text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-green-700 transition-colors">Подтвердить</button>
                     <button onClick={() => setIsDeclining(true)} className="flex-1 bg-brand-red text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-red-700 transition-colors">Отклонить</button>
                 </div>
             )}
@@ -139,7 +174,7 @@ const AdminView: React.FC = () => {
         if (!restaurant) return [];
         return restaurant.bookings
             .filter(b => b.status === BookingStatus.PENDING)
-            .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     }, [restaurant]);
 
     const occupiedTableBookings = useMemo(() => {
@@ -153,9 +188,9 @@ const AdminView: React.FC = () => {
                         b =>
                             b.tableId === table.id &&
                             (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                            b.dateTime <= now
+                            new Date(b.dateTime) <= now
                     )
-                    .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())[0];
+                    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
 
                 return activeBooking ? { table, booking: activeBooking } : null;
             })
@@ -178,6 +213,7 @@ const AdminView: React.FC = () => {
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const isDragging = useRef(false);
     const draggedRef = useRef(false);
+    const initialPointerPos = useRef({ x: 0, y: 0 });
     const activePointers = useRef<Map<number, { x: number, y: number }>>(new Map());
     const startPan = useRef({ x: 0, y: 0 });
     const pinchStart = useRef<{ dist: number, scale: number, cx: number, cy: number, x: number, y: number } | null>(null);
@@ -257,8 +293,8 @@ const AdminView: React.FC = () => {
         if (activePointers.current.size === 1) {
             isDragging.current = true;
             draggedRef.current = false;
+            initialPointerPos.current = { x: e.clientX, y: e.clientY };
             startPan.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
-            e.currentTarget.setPointerCapture(e.pointerId);
         } else if (activePointers.current.size === 2) {
             isDragging.current = false;
             const pts = Array.from(activePointers.current.values()) as { x: number, y: number }[];
@@ -277,8 +313,14 @@ const AdminView: React.FC = () => {
         activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
         if (activePointers.current.size === 1 && isDragging.current) {
-            if (Math.hypot(e.clientX - (startPan.current.x + transform.x), e.clientY - (startPan.current.y + transform.y)) > 5) {
-                draggedRef.current = true;
+            const dist = Math.hypot(e.clientX - initialPointerPos.current.x, e.clientY - initialPointerPos.current.y);
+            if (dist > 5) {
+                if (!draggedRef.current) {
+                    draggedRef.current = true;
+                    try {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                    } catch (err) { }
+                }
             }
             setTransform(prev => enforceTransformBounds(
                 e.clientX - startPan.current.x,
@@ -286,7 +328,12 @@ const AdminView: React.FC = () => {
                 prev.scale
             ));
         } else if (activePointers.current.size === 2 && pinchStart.current) {
-            draggedRef.current = true;
+            if (!draggedRef.current) {
+                draggedRef.current = true;
+                try {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                } catch (err) { }
+            }
             const pts = Array.from(activePointers.current.values()) as { x: number, y: number }[];
             const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
 
@@ -319,7 +366,11 @@ const AdminView: React.FC = () => {
         } else if (activePointers.current.size === 0) {
             isDragging.current = false;
         }
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        try {
+            if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+        } catch (err) { }
     };
 
     // === КОНЕЦ ЛОГИКИ PAN & ZOOM ===
@@ -336,7 +387,14 @@ const AdminView: React.FC = () => {
                 <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы</h2>
                 <div className="space-y-4 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto pr-2">
                     {pendingBookings.length > 0 ? (
-                        pendingBookings.map(b => <BookingRequestCard key={b.id} booking={b} restaurantId={restaurant.id} />)
+                        pendingBookings.map(b => (
+                            <BookingRequestCard
+                                key={b.id}
+                                booking={b}
+                                restaurantId={restaurant.id}
+                                tables={restaurant.layout.filter(el => el.type === 'table') as TableElement[]}
+                            />
+                        ))
                     ) : (
                         <p className="text-gray-400 text-center py-8">Нет ожидающих запросов.</p>
                     )}
@@ -376,18 +434,18 @@ const AdminView: React.FC = () => {
 
                     <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
                         <h3 className="text-lg md:text-xl font-semibold mb-3">Бронь (будущая)</h3>
-                        {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED && b.dateTime > new Date()).length > 0 ? (
+                        {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date()).length > 0 ? (
                             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                                 {restaurant.bookings
-                                    .filter(b => b.status === BookingStatus.CONFIRMED && b.dateTime > new Date())
-                                    .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+                                    .filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date())
+                                    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
                                     .map(booking => (
                                         <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/40 rounded-md p-3">
                                             <div>
                                                 <p className="font-semibold text-sm">{booking.guestName} ({booking.guestCount} ч.)</p>
                                                 <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
                                                 <p className="text-xs text-gray-300">
-                                                    Ст. {booking.tableLabel} • {booking.dateTime.toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                    Ст. {booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
                                                 </p>
                                             </div>
                                             <button
@@ -511,11 +569,11 @@ const AdminView: React.FC = () => {
                                         b =>
                                             b.tableId === el.id &&
                                             (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                                            b.dateTime <= now
+                                            new Date(b.dateTime) <= now
                                     )
-                                    .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())[0];
+                                    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
                                 const isPending = restaurant.bookings.some(
-                                    b => b.tableId === el.id && b.status === BookingStatus.PENDING && b.dateTime <= now
+                                    b => b.tableId === el.id && b.status === BookingStatus.PENDING && new Date(b.dateTime) <= now
                                 );
 
                                 let statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green';
@@ -527,11 +585,11 @@ const AdminView: React.FC = () => {
                                         .filter(b =>
                                             b.tableId === el.id &&
                                             (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                                            b.dateTime > now
+                                            new Date(b.dateTime) > now
                                         )
-                                        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
+                                        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
 
-                                    if (nextBooking && (nextBooking.dateTime.getTime() - now.getTime()) < 60 * 60 * 1000) {
+                                    if (nextBooking && (new Date(nextBooking.dateTime).getTime() - now.getTime()) < 60 * 60 * 1000) {
                                         statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90';
                                     }
                                 }

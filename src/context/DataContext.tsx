@@ -11,12 +11,12 @@ interface DataContextType {
   addRestaurant: (name: string) => Promise<Restaurant | null>;
   addBooking: (
     restaurantId: string,
-    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'tableLabel' | 'status' | 'createdAt' | 'declineReason'> & {
+    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'status' | 'createdAt' | 'declineReason'> & {
       isAdmin?: boolean;
       timezoneOffset?: number;
     }
   ) => Promise<void>;
-  updateBookingStatus: (restaurantId: string, bookingId: string, status: BookingStatus, reason?: string) => Promise<void>;
+  updateBookingStatus: (restaurantId: string, bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string) => Promise<void>;
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
   loadRestaurants: () => Promise<void>;
   loadBookings: (restaurantId: string) => Promise<void>;
@@ -41,6 +41,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return {
               id: restaurant.id,
               name: restaurant.name,
+              with_map: restaurant.with_map,
               photoUrl: restaurant.photo_url,
               address: restaurant.address,
               workStarts: restaurant.workStarts,
@@ -211,22 +212,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addBooking = useCallback(async (
     restaurantId: string,
-    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'tableLabel' | 'status' | 'createdAt' | 'declineReason'> & {
+    bookingData: Omit<Booking, 'id' | 'restaurantId' | 'status' | 'createdAt' | 'declineReason'> & {
       isAdmin?: boolean;
       timezoneOffset?: number;
     }
   ) => {
-    const tableLabel = restaurants.find(r => r.id === restaurantId)
-      ?.layout.find(el => el.id === bookingData.tableId && el.type === 'table')
-      // @ts-ignore
-      ?.label || '';
-
     const b = await api.restaurants.createBooking(restaurantId, {
       ...bookingData,
       dateTime: bookingData.dateTime.toISOString(),
       timezoneOffset: bookingData.timezoneOffset,
-      tableLabel,
-      isAdmin: bookingData.isAdmin || false, // Передаем isAdmin в API
+      tableId: bookingData.tableId || null,
+      tableLabel: bookingData.tableLabel || null,
+      isAdmin: bookingData.isAdmin || false,
     });
 
     setRestaurants(prev => prev.map(r =>
@@ -257,9 +254,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     restaurantId: string,
     bookingId: string,
     status: BookingStatus,
-    reason?: string
+    reason?: string,
+    tableId?: string,
+    tableLabel?: string
   ) => {
-    await api.bookings.updateStatus(bookingId, status, reason);
+    await api.bookings.updateStatus(bookingId, status, reason, tableId, tableLabel);
 
     setRestaurants(prev => prev.map(r => {
       if (r.id === restaurantId) {
@@ -267,7 +266,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           ...r,
           bookings: r.bookings.map(b =>
             b.id === bookingId
-              ? { ...b, status, declineReason: status === BookingStatus.DECLINED ? reason : undefined }
+              ? {
+                  ...b,
+                  status,
+                  declineReason: status === BookingStatus.DECLINED ? reason : undefined,
+                  ...(tableId ? { tableId, tableLabel } : {})
+                }
               : b
           )
         };
