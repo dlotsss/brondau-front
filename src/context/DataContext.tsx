@@ -60,6 +60,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 guestCount: b.guest_count,
                 status: b.status,
                 declineReason: b.decline_reason,
+                guestComment: b.guest_comment,
                 dateTime: new Date(b.date_time),
                 createdAt: new Date(b.created_at)
               }))
@@ -106,6 +107,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               guestCount: b.guest_count,
               status: b.status,
               declineReason: b.decline_reason,
+              guestComment: b.guest_comment,
               dateTime: new Date(b.date_time),
               createdAt: new Date(b.created_at)
             }))
@@ -241,6 +243,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             guestCount: b.guest_count,
             status: b.status,
             declineReason: b.decline_reason,
+            guestComment: b.guest_comment,
             dateTime: new Date(b.date_time),
             createdAt: new Date(b.created_at)
           }]

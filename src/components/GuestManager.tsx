@@ -194,16 +194,16 @@ const GuestManager: React.FC = () => {
                                     {history.length > 0 ? history.map((b) => (
                                         <div key={b.id} className="bg-brand-accent/20 p-4 rounded-xl border border-brand-accent/10 flex justify-between items-center group hover:bg-brand-accent/30 transition-all">
                                             <div className="space-y-1">
-                                                <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors">{formatDate(b.date_time)}</div>
-                                                <div className="text-sm text-gray-400">{b.restaurant_name} • Стол: {b.table_label || 'Не назначен'}</div>
-                                                {b.guest_comment && (
+                                                <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors">{formatDate(b.dateTime)}</div>
+                                                <div className="text-sm text-gray-400">{b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}</div>
+                                                {b.guestComment && (
                                                     <div className="text-xs text-gray-500 italic mt-1 bg-black/20 p-2 rounded">
-                                                        Коммент: {b.guest_comment}
+                                                        Коммент: {b.guestComment}
                                                     </div>
                                                 )}
-                                                {b.decline_reason && (
+                                                {b.declineReason && (
                                                     <div className="text-xs text-red-500/80">
-                                                        Причина: {b.decline_reason}
+                                                        Причина: {b.declineReason}
                                                     </div>
                                                 )}
                                             </div>
