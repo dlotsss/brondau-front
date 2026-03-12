@@ -39,13 +39,15 @@ const formatPhoneNumber = (value: string): string => {
 
 const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false, withMap = true }) => {
     const { addBooking, getRestaurant } = useData();
+    const restaurant = getRestaurant(restaurantId);
+
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
     const [guestEmail, setGuestEmail] = useState('');
+    const [duration, setDuration] = useState<number>(restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60);
+    const [loading, setLoading] = useState(false);
     const [guestCount, setGuestCount] = useState<number>(2);
     const [guestComment, setGuestComment] = useState('');
-
-    const restaurant = getRestaurant(restaurantId);
 
     const [bookingDate, setBookingDate] = useState(formatLocalDate(new Date()));
     const [bookingTime, setBookingTime] = useState('');
@@ -97,14 +99,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         // 1. Spillover from yesterday
         if (yEndMins <= yStartMins) {
-            const spilloverEnd = yEndMins - 60;
+            const spilloverEnd = yEndMins - (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60);
             for (let time = 0; time <= spilloverEnd; time += 30) {
                 slotTimesToGenerate.push(time);
             }
         }
 
         // 2. Today's shift
-        const endForToday = (tEndMins <= tStartMins) ? (24 * 60 - 30) : (tEndMins - 60);
+        const endForToday = (tEndMins <= tStartMins) ? (24 * 60 - (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60)) : (tEndMins - (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60));
         for (let time = tStartMins; time <= endForToday; time += 30) {
             slotTimesToGenerate.push(time);
         }
@@ -123,7 +125,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
         const bookingMinsList = relevantBookings.map(b => {
             const bDate = new Date(b.dateTime);
-            return bDate.getHours() * 60 + bDate.getMinutes();
+            return {
+                start: bDate.getHours() * 60 + bDate.getMinutes(),
+                end: bDate.getHours() * 60 + bDate.getMinutes() + (b.duration || 60)
+            };
         });
 
         for (const time of slotTimesToGenerate) {
@@ -132,15 +137,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
             const isSpillover = time < tStartMins;
 
-            const shiftBookings = bookingMinsList.filter(bm => {
-                const isBmSpillover = bm < tStartMins;
-                return isBmSpillover === isSpillover;
+            const hasConflict = bookingMinsList.some(b => {
+                const isBmSpillover = b.start < tStartMins;
+                if (isBmSpillover !== isSpillover) return false; // Only compare within the same "shift" (today vs yesterday spillover)
+
+                // Check for overlap with existing booking
+                // A new booking from 'time' with 'duration' conflicts if it overlaps with an existing booking 'b'
+                // Conflict if: (start1 < end2) && (end1 > start2)
+                return (time < b.end) && (time + (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60) > b.start);
             });
-
-            const isBlockedByEarlierBooking = shiftBookings.some(bm => bm <= time);
-            if (isBlockedByEarlierBooking) continue;
-
-            const hasConflict = shiftBookings.some(bm => Math.abs(time - bm) < 60);
             if (hasConflict) continue;
 
             const h = Math.floor(time / 60) % 24;
@@ -179,13 +184,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const slotTimesToGenerate: number[] = [];
 
         if (yEndMins <= yStartMins) {
-            const spilloverEnd = yEndMins - 60;
+            const spilloverEnd = yEndMins - (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60);
             for (let time = 0; time <= spilloverEnd; time += 30) {
                 slotTimesToGenerate.push(time);
             }
         }
 
-        const endForToday = (tEndMins <= tStartMins) ? (24 * 60 - 30) : (tEndMins - 60);
+        const endForToday = (tEndMins <= tStartMins) ? (24 * 60 - (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60)) : (tEndMins - (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60));
         for (let time = tStartMins; time <= endForToday; time += 30) {
             slotTimesToGenerate.push(time);
         }
@@ -193,9 +198,42 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const currentMins = now.getHours() * 60 + now.getMinutes();
         const minBookingMins = isToday ? currentMins + 15 : 0;
 
+        const relevantBookings = restaurant?.bookings.filter(b => {
+            const bDate = new Date(b.dateTime);
+            return bDate.getFullYear() === selectedDate.getFullYear() &&
+                bDate.getMonth() === selectedDate.getMonth() &&
+                bDate.getDate() === selectedDate.getDate();
+        }) || [];
+
+        const bookingMinsList = relevantBookings.map(b => {
+            const bDate = new Date(b.dateTime);
+            return {
+                start: bDate.getHours() * 60 + bDate.getMinutes(),
+                end: bDate.getHours() * 60 + bDate.getMinutes() + (b.duration || 60)
+            };
+        });
+
+        const totalTables = (restaurant?.layout || []).filter(l => l.type === 'table').length || 1;
+        const effectiveRestriction = restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60;
+
         for (const time of slotTimesToGenerate) {
             if (isToday && time < minBookingMins) continue;
             if (selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) continue;
+
+            const isSpillover = time < tStartMins;
+
+            // Count how many bookings overlap with this potential slot
+            let overlapCount = 0;
+            bookingMinsList.forEach(b => {
+                const isBmSpillover = b.start < tStartMins;
+                if (isBmSpillover !== isSpillover) return;
+
+                const hasOverlap = (time < b.end) && (time + effectiveRestriction > b.start);
+                if (hasOverlap) overlapCount++;
+            });
+
+            // If overlapCount is equal or greater than total tables, this slot is fully booked
+            if (overlapCount >= totalTables) continue;
 
             const h = Math.floor(time / 60) % 24;
             const m = time % 60;
@@ -243,23 +281,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
         if (!isAdmin && (!guestName || !guestPhone || !guestEmail)) {
             setError('Пожалуйста, заполните имя, телефон и email.');
+            setLoading(false);
             return;
         }
 
         const phoneDigits = guestPhone.replace(/\D/g, '');
         if (!isAdmin && phoneDigits.length !== 11) {
             setError('Пожалуйста, введите корректный номер телефона: +7 (XXX) XXX-XX-XX');
+            setLoading(false);
             return;
         }
         if (table && guestCount > table.seats) {
             setError(`Этот столик вмещает не более ${table.seats} гостей.`);
+            setLoading(false);
             return;
         }
         if (!bookingTime) {
             setError('Не выбрано время.');
+            setLoading(false);
             return;
         }
 
@@ -268,23 +311,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         dateTime.setHours(h, m, 0, 0);
 
         try {
-            await addBooking(restaurantId, {
-                tableId: table?.id || null,
-                tableLabel: table?.label || null,
+            const payload: any = {
                 guestName: guestName || (isAdmin ? 'Гость (Walk-in)' : ''),
                 guestPhone,
                 guestEmail,
                 guestCount,
                 dateTime,
-                timezoneOffset: dateTime.getTimezoneOffset(),
+                timezoneOffset: new Date().getTimezoneOffset(),
+                tableId: table?.id,
+                tableLabel: table?.label,
+                guestComment,
                 isAdmin,
-                guestComment: guestComment || null
-            });
+                duration
+            };
+
+            await addBooking(restaurantId, payload);
 
             alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Не удалось создать бронирование.');
+        } finally {
+            setLoading(false);
         }
     };
 

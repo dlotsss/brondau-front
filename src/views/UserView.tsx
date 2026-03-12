@@ -173,23 +173,25 @@ const UserView: React.FC = () => {
         if (!restaurant) return {};
         const statuses: { [key: string]: string } = {};
         const nowTime = Date.now();
-        const DURATION = 2 * 60 * 60 * 1000;
-
+        const effectiveRestriction = restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60;
         const tables = restaurant.layout.filter(el => el.type === 'table') as TableElement[];
+
         tables.forEach(table => {
             const activePending = restaurant.bookings.find(b => {
                 if (b.tableId !== table.id) return false;
                 if (b.status !== BookingStatus.PENDING) return false;
+                const bDuration = b.duration || effectiveRestriction;
                 const bookingStart = new Date(b.dateTime).getTime();
-                const bookingEnd = bookingStart + DURATION;
+                const bookingEnd = bookingStart + bDuration * 60000;
                 return nowTime >= bookingStart && nowTime < bookingEnd;
             });
 
             const activeConfirmed = restaurant.bookings.find(b => {
                 if (b.tableId !== table.id) return false;
                 if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
+                const bDuration = b.duration || effectiveRestriction;
                 const bookingStart = new Date(b.dateTime).getTime();
-                const bookingEnd = bookingStart + DURATION;
+                const bookingEnd = bookingStart + bDuration * 60000;
                 return nowTime >= bookingStart && nowTime < bookingEnd;
             });
 

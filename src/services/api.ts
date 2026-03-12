@@ -34,9 +34,9 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ name }),
         }),
-        updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => request<void>(`/restaurants/${restaurantId}/layout`, {
+        updateSettings: (restaurantId: string, data: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => request<Restaurant>(`/restaurants/${restaurantId}/layout`, {
             method: 'PUT',
-            body: JSON.stringify({ layout: newLayout, floors }),
+            body: JSON.stringify(data),
         }),
         getBookings: (id: string) => request<any[]>((`/restaurants/${id}/bookings`)),
         createBooking: (id: string, data: any) => request<any>(`/restaurants/${id}/bookings`, {
@@ -63,9 +63,9 @@ export const api = {
         }),
     },
     bookings: {
-        updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string) => request<any>(`/bookings/${id}/status`, {
+        updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number) => request<any>(`/bookings/${id}/status`, {
             method: 'PUT',
-            body: JSON.stringify({ status, declineReason, tableId, tableLabel }),
+            body: JSON.stringify({ status, declineReason, tableId, tableLabel, duration }),
         }),
         cleanupExpired: () => request<{ updated: number, bookings: any[] }>('/bookings/cleanup-expired', {
             method: 'POST',

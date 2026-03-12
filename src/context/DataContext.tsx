@@ -16,8 +16,9 @@ interface DataContextType {
       timezoneOffset?: number;
     }
   ) => Promise<void>;
-  updateBookingStatus: (restaurantId: string, bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string) => Promise<void>;
+  updateBookingStatus: (bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string, duration?: number) => Promise<void>;
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
+  updateRestaurantSettings: (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => Promise<void>;
   loadRestaurants: () => Promise<void>;
   loadBookings: (restaurantId: string) => Promise<void>;
 }
@@ -44,9 +45,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               with_map: restaurant.with_map,
               photoUrl: restaurant.photo_url,
               address: restaurant.address,
-              workStarts: restaurant.workStarts,
-              workEnds: restaurant.workEnds,
+              workStarts: restaurant.work_starts,
+              workEnds: restaurant.work_ends,
               schedule: restaurant.schedule,
+              bookingRestriction: restaurant.booking_restriction,
               layout: restaurant.layout || [],
               floors: restaurant.floors || [],
               bookings: bookings.map((b: any) => ({
@@ -65,6 +67,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 cancelledBy: b.cancelled_by,
                 cancelledAt: b.cancelled_at ? new Date(b.cancelled_at) : undefined,
                 guestComment: b.guest_comment,
+                duration: b.duration,
                 dateTime: new Date(b.date_time),
                 createdAt: new Date(b.created_at)
               }))
@@ -76,9 +79,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               id: restaurant.id,
               name: restaurant.name,
               layout: restaurant.layout || [],
-              workStarts: restaurant.workStarts,
-              workEnds: restaurant.workEnds,
+              workStarts: restaurant.work_starts,
+              workEnds: restaurant.work_ends,
               schedule: restaurant.schedule,
+              bookingRestriction: restaurant.booking_restriction,
               floors: restaurant.floors || [],
               bookings: []
             };
@@ -116,6 +120,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               cancelledBy: b.cancelled_by,
               cancelledAt: b.cancelled_at ? new Date(b.cancelled_at) : undefined,
               guestComment: b.guest_comment,
+              duration: b.duration,
               dateTime: new Date(b.date_time),
               createdAt: new Date(b.created_at)
             }))
@@ -194,8 +199,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: newRestaurant.id,
         name: newRestaurant.name,
         layout: newRestaurant.layout || [],
-        workStarts: newRestaurant.workStarts,
-        workEnds: newRestaurant.workEnds,
+        workStarts: (newRestaurant as any).work_starts,
+        workEnds: (newRestaurant as any).work_ends,
         schedule: newRestaurant.schedule,
         bookings: []
       };
@@ -208,17 +213,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const updateLayout = useCallback(async (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => {
+  const updateRestaurantSettings = useCallback(async (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => {
     try {
-      await api.restaurants.updateLayout(restaurantId, newLayout, floors);
-
-      setRestaurants(prev => prev.map(r =>
-        r.id === restaurantId ? { ...r, layout: newLayout, ...(floors ? { floors } : {}) } : r
-      ));
+      const updatedRestaurant = await api.restaurants.updateSettings(restaurantId, updates);
+      setRestaurants(prev => prev.map(r => r.id === restaurantId ? {
+        ...r,
+        layout: updatedRestaurant.layout,
+        floors: updatedRestaurant.floors || [],
+        bookingRestriction: (updatedRestaurant as any).booking_restriction
+      } : r));
     } catch (error) {
-      console.error('Failed to update layout', error);
+      console.error('Failed to update restaurant settings:', error);
     }
   }, []);
+
+  const updateLayout = useCallback(async (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => {
+    return updateRestaurantSettings(restaurantId, { layout: newLayout, floors });
+  }, [updateRestaurantSettings]);
 
   const addBooking = useCallback(async (
     restaurantId: string,
@@ -264,35 +275,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ));
   }, [restaurants]);
 
-
-  const updateBookingStatus = useCallback(async (
-    restaurantId: string,
-    bookingId: string,
-    status: BookingStatus,
-    reason?: string,
-    tableId?: string,
-    tableLabel?: string
-  ) => {
-    await api.bookings.updateStatus(bookingId, status, reason, tableId, tableLabel);
-
-    setRestaurants(prev => prev.map(r => {
-      if (r.id === restaurantId) {
-        return {
-          ...r,
-          bookings: r.bookings.map(b =>
-            b.id === bookingId
-              ? {
-                  ...b,
-                  status,
-                  declineReason: status === BookingStatus.DECLINED ? reason : undefined,
-                  ...(tableId ? { tableId, tableLabel } : {})
-                }
-              : b
-          )
-        };
-      }
-      return r;
-    }));
+  const updateBookingStatus = useCallback(async (bookingId: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number) => {
+    try {
+      const updatedBooking = await api.bookings.updateStatus(bookingId, status, declineReason, tableId, tableLabel, duration);
+      setRestaurants(prev => prev.map(r => ({
+        ...r,
+        bookings: r.bookings.map(b => b.id === bookingId ? {
+          ...b,
+          status: updatedBooking.status,
+          declineReason: updatedBooking.decline_reason,
+          tableId: updatedBooking.table_id,
+          tableLabel: updatedBooking.table_label,
+          duration: updatedBooking.duration
+        } : b)
+      })));
+    } catch (error) {
+      console.error('Failed to update booking status:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -322,6 +321,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addBooking,
       updateBookingStatus,
       updateLayout,
+      updateRestaurantSettings,
       loadRestaurants,
       loadBookings
     }}>

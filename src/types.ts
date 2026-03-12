@@ -89,6 +89,7 @@ export interface Booking {
   cancelComment?: string;
   cancelledBy?: 'guest' | 'admin' | 'system';
   cancelledAt?: Date;
+  duration?: number;
   createdAt: Date;
 }
 
@@ -115,4 +116,5 @@ export interface Restaurant {
   bookings: Booking[];
   floors?: Floor[];
   schedule?: Record<number, { start: string; end: string }>;
+  bookingRestriction?: number;
 }

@@ -58,12 +58,52 @@ const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
     return <span className={`font-mono font-bold ${timeColor}`}>{minutes}:{seconds.toString().padStart(2, '0')}</span>;
 };
 
+const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
+    const { updateBookingStatus } = useData();
+    const [isEditing, setIsEditing] = useState(false);
+    const [val, setVal] = useState(booking.duration || 60);
+
+    if (!isEditing) {
+        return (
+            <button 
+                onClick={() => setIsEditing(true)} 
+                className="text-[10px] text-gray-500 hover:text-brand-blue flex items-center gap-1"
+                title="Изменить длительность"
+            >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {booking.duration || 60} мин
+            </button>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-1">
+            <input 
+                type="number" 
+                value={val} 
+                onChange={e => setVal(parseInt(e.target.value))} 
+                className="w-12 bg-brand-primary border border-gray-600 rounded text-[10px] px-1 text-white"
+                autoFocus
+            />
+            <button 
+                onClick={() => {
+                    updateBookingStatus(booking.id, booking.status, undefined, undefined, undefined, val);
+                    setIsEditing(false);
+                }}
+                className="text-brand-green text-[10px] font-bold"
+            >
+                OK
+            </button>
+        </div>
+    );
+};
+
 const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tables: TableElement[] }> = ({ booking, restaurantId, tables }) => {
     const { updateBookingStatus } = useData();
     const [reason, setReason] = useState('');
     const [isDeclining, setIsDeclining] = useState(false);
-    // For no-table bookings: admin assigns a table before confirming
     const [assignedTableId, setAssignedTableId] = useState('');
+    const [customDuration, setCustomDuration] = useState<number>(booking.duration || 60);
     const needsTableAssignment = !booking.tableId;
 
     const handleConfirm = () => {
@@ -73,9 +113,9 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
         }
         if (needsTableAssignment) {
             const assignedTable = tables.find(t => t.id === assignedTableId);
-            updateBookingStatus(restaurantId, booking.id, BookingStatus.CONFIRMED, undefined, assignedTableId, assignedTable?.label);
+            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, assignedTableId, assignedTable?.label, customDuration);
         } else {
-            updateBookingStatus(restaurantId, booking.id, BookingStatus.CONFIRMED);
+            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration);
         }
     };
 
@@ -84,7 +124,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             alert('Пожалуйста, укажите причину отклонения.');
             return;
         }
-        updateBookingStatus(restaurantId, booking.id, BookingStatus.DECLINED, reason);
+        updateBookingStatus(booking.id, BookingStatus.DECLINED, reason);
     };
 
     return (
@@ -115,6 +155,19 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                             <option key={t.id} value={t.id}>Столик {t.label} ({t.seats} мест)</option>
                         ))}
                     </select>
+                </div>
+            )}
+
+            {/* Duration assignment */}
+            {!isDeclining && (
+                <div className="mt-3">
+                    <label className="text-xs text-gray-300 block mb-1">Длительность (мин):</label>
+                    <input 
+                        type="number" 
+                        value={customDuration} 
+                        onChange={e => setCustomDuration(parseInt(e.target.value))} 
+                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue"
+                    />
                 </div>
             )}
 
@@ -439,9 +492,10 @@ const AdminView: React.FC = () => {
                                             <p className="text-xs text-gray-400">
                                                 {booking.guestName}
                                             </p>
+                                            <DurationEditor booking={booking} />
                                         </div>
                                         <button
-                                            onClick={() => updateBookingStatus(restaurant.id, booking.id, BookingStatus.COMPLETED)}
+                                            onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
                                             className="bg-brand-green text-white px-2 py-1 text-xs font-semibold rounded-md hover:bg-green-700 transition-colors"
                                         >
                                             Освободить
@@ -469,9 +523,10 @@ const AdminView: React.FC = () => {
                                                 <p className="text-xs text-gray-400">
                                                     Ст. {booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
                                                 </p>
+                                                <DurationEditor booking={booking} />
                                             </div>
                                             <button
-                                                onClick={() => updateBookingStatus(restaurant.id, booking.id, BookingStatus.DECLINED, "Отменено администратором")}
+                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором")}
                                                 className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center hover:bg-red-700 transition-colors"
                                             >
                                                 Отменить

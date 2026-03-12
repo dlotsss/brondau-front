@@ -6,14 +6,18 @@ import { useData } from '../context/DataContext';
 import { Restaurant } from '../types';
 
 const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }> = ({ restaurant, onSelect }) => {
-    const totalTables = restaurant.layout.filter(l => l.type === 'table').length;
+    const totalTables = (restaurant.layout || []).filter(l => l.type === 'table').length;
 
     // Calculate availability logic
     const now = new Date();
-    const activeBookings = restaurant.bookings.filter(b =>
-        (b.status === 'CONFIRMED' || b.status === 'OCCUPIED') &&
-        b.dateTime <= now &&
-        new Date(b.dateTime.getTime() + 90 * 60000) > now // Assuming 90m duration? Or just check if "currently occupied" logic from AdminView context?
+    const effectiveRestriction = restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60;
+
+    const activeBookings = (restaurant.bookings || []).filter(b => {
+        const bDuration = b.duration || effectiveRestriction;
+        return (b.status === 'CONFIRMED' || b.status === 'OCCUPIED') &&
+               b.dateTime <= now &&
+               new Date(new Date(b.dateTime).getTime() + bDuration * 60000) > now;
+    });
         // AdminView uses strict overlap logic often, but for "Free tables now", let's assume a standard duration or if the backend provided "occupied" status.
         // Actually, without duration in Booking, it's hard to know exactly when it frees up.
         // But for simplicity and consistency with admin view "Occupied" check:
@@ -22,7 +26,7 @@ const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }>
         // Or simpler: just count bookings that are currently marked status OCCUPIED?
         // AdminView marks them occupied manually? No, it filters by status.
         // Let's use a simple heuristic: Count 'OCCUPIED' status OR 'CONFIRMED' within last 1.5 hours.
-    );
+    ;
 
     // Actually, AdminView logic for "Occupied tables" was:
     // b.status === CONFIRMED || OCCUPIED, and b.dateTime <= now.
@@ -35,10 +39,13 @@ const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }>
     // Let's assume standard 1.5h duration for availability check.
 
     const busyTableIds = new Set();
-    restaurant.bookings.forEach(b => {
+    (restaurant.bookings || []).forEach(b => {
+        const bDuration = b.duration || effectiveRestriction;
+        const bStart = new Date(b.dateTime).getTime();
+        const bEnd = bStart + bDuration * 60000;
         if ((b.status === 'CONFIRMED' || b.status === 'OCCUPIED') &&
-            b.dateTime <= now &&
-            b.dateTime.getTime() + 90 * 60000 > now.getTime()
+            bStart <= now.getTime() &&
+            bEnd > now.getTime()
         ) {
             busyTableIds.add(b.tableId);
         }
