@@ -77,6 +77,7 @@ const GuestManager: React.FC = () => {
         switch (status) {
             case BookingStatus.CONFIRMED: return 'text-green-400';
             case BookingStatus.DECLINED: return 'text-red-400';
+            case BookingStatus.CANCELLED: return 'text-brand-red';
             case BookingStatus.PENDING: return 'text-yellow-400';
             case BookingStatus.COMPLETED: return 'text-blue-400';
             default: return 'text-gray-400';
@@ -147,7 +148,7 @@ const GuestManager: React.FC = () => {
                             </div>
 
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
                                     <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Завершено</div>
                                     <div className="text-2xl font-bold text-blue-400">{stats?.completed || 0}</div>
@@ -159,6 +160,10 @@ const GuestManager: React.FC = () => {
                                 <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
                                     <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Отм. админом</div>
                                     <div className="text-2xl font-bold text-orange-400">{stats?.cancelled_by_admin || 0}</div>
+                                </div>
+                                <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
+                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Отм. гостем</div>
+                                    <div className="text-2xl font-bold text-brand-red">{stats?.cancelled_by_guest || 0}</div>
                                 </div>
                             </div>
 
@@ -196,14 +201,14 @@ const GuestManager: React.FC = () => {
                                             <div className="space-y-1">
                                                 <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors">{formatDate(b.dateTime)}</div>
                                                 <div className="text-sm text-gray-400">{b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}</div>
-                                                {b.guestComment && (
-                                                    <div className="text-xs text-gray-500 italic mt-1 bg-black/20 p-2 rounded">
-                                                        Коммент: {b.guestComment}
+                                                {b.status === BookingStatus.CANCELLED && b.cancelReason && (
+                                                    <div className="text-[10px] text-gray-400 bg-gray-400/10 px-2 py-1 rounded mt-2 inline-block border border-gray-400/20 italic">
+                                                        Причина: {b.cancelReason}{b.cancelComment ? ` (${b.cancelComment})` : ''}
                                                     </div>
                                                 )}
-                                                {b.declineReason && (
-                                                    <div className="text-xs text-red-500/80">
-                                                        Причина: {b.declineReason}
+                                                {b.guestComment && (
+                                                    <div className="text-[10px] text-gray-400 bg-gray-400/10 px-2 py-1 rounded mt-2 inline-block border border-gray-400/20 italic ml-2">
+                                                        Коммент: {b.guestComment}
                                                     </div>
                                                 )}
                                             </div>

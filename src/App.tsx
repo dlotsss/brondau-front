@@ -10,6 +10,7 @@ import RestaurantListView from './views/RestaurantListView';
 import UserView from './views/UserView';
 import AdminView from './views/AdminView';
 import ConstructorView from './views/ConstructorView';
+import BookingCancellationView from './views/BookingCancellationView';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useApp();
@@ -63,6 +64,7 @@ const AppContent: React.FC = () => {
     return (
         <Routes>
             <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <LoginView />} />
+            <Route path="/cancel-booking/:token" element={<BookingCancellationView />} />
             <Route path="/" element={<ProtectedRoute><RestaurantListView /></ProtectedRoute>} />
             <Route path="/restaurant/:id" element={<ProtectedRoute><RestaurantWrapper /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />

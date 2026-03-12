@@ -22,6 +22,7 @@ export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
   DECLINED = 'DECLINED',
+  CANCELLED = 'CANCELLED',
   OCCUPIED = 'OCCUPIED', // For walk-ins or manual assignment
   COMPLETED = 'COMPLETED'
 }
@@ -84,8 +85,23 @@ export interface Booking {
   guestComment?: string;
   timezoneOffset?: number;
   declineReason?: string;
+  cancelReason?: string;
+  cancelComment?: string;
+  cancelledBy?: 'guest' | 'admin' | 'system';
+  cancelledAt?: Date;
   createdAt: Date;
 }
+
+export type PublicCancelBookingInfo = {
+  bookingId: string;
+  restaurantName: string;
+  guestName: string;
+  guestCount: number;
+  dateTime: string;
+  tableLabel?: string;
+  status: BookingStatus;
+  canCancel: boolean;
+};
 
 export interface Restaurant {
   id: string;

@@ -78,5 +78,12 @@ export const api = {
             method: 'PUT',
             body: JSON.stringify(data),
         }),
+    },
+    public: {
+        getCancelInfo: (token: string) => request<any>(`/public/bookings/cancel-info/${token}`),
+        cancelBooking: (token: string, payload: { reason: string; comment?: string }) => request<any>(`/public/bookings/cancel/${token}`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
     }
 };

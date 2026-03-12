@@ -483,6 +483,47 @@ const AdminView: React.FC = () => {
                             <p className="text-gray-400 text-sm">Нет записей.</p>
                         )}
                     </div>
+
+                    <div className="bg-brand-primary rounded-lg border border-brand-accent p-4 md:col-span-2">
+                        <h3 className="text-lg md:text-xl font-semibold mb-3">Отмененные / Отклоненные</h3>
+                        {restaurant.bookings.filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED).length > 0 ? (
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                {restaurant.bookings
+                                    .filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED)
+                                    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+                                    .map(booking => (
+                                        <div key={booking.id} className="bg-brand-accent/20 border border-brand-accent/30 rounded-md p-3">
+                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                                <div>
+                                                    <p className="font-semibold text-sm text-gray-300">
+                                                        {booking.guestName} ({booking.guestCount} ч.) 
+                                                        <span className={`ml-2 px-2 py-0.5 rounded text-[10px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'bg-brand-red/20 text-brand-red' : 'bg-gray-700 text-gray-400'}`}>
+                                                            {booking.status === BookingStatus.CANCELLED ? (booking.cancelledBy === 'guest' ? 'Отменено гостем' : 'Отменено') : 'Отклонено'}
+                                                        </span>
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                        {booking.tableLabel && ` • Стол ${booking.tableLabel}`}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    {booking.status === BookingStatus.CANCELLED ? (
+                                                        <p className="text-xs text-brand-red italic">Причина: {booking.cancelReason}{booking.cancelComment ? ` (${booking.cancelComment})` : ''}</p>
+                                                    ) : (
+                                                        <p className="text-xs text-gray-400 italic">Причина: {booking.declineReason || 'Не указана'}</p>
+                                                    )}
+                                                    <p className="text-[10px] text-gray-600 mt-1">
+                                                        {booking.status === BookingStatus.CANCELLED && booking.cancelledAt && `Обновлено: ${new Date(booking.cancelledAt).toLocaleString('ru-RU')}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        ) : (
+                            <p className="text-gray-400 text-sm">Пусто.</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Map Header */}
