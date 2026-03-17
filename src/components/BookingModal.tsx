@@ -112,7 +112,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         }
 
         const currentMins = now.getHours() * 60 + now.getMinutes();
-        const minBookingMins = isToday ? currentMins + 15 : 0;
+        const minBookingMins = isToday ? currentMins + 60 : 0;
 
         const relevantBookings = restaurant?.bookings.filter(b => {
             if (b.tableId !== table.id) return false;
@@ -196,7 +196,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         }
 
         const currentMins = now.getHours() * 60 + now.getMinutes();
-        const minBookingMins = isToday ? currentMins + 15 : 0;
+        const minBookingMins = isToday ? currentMins + 60 : 0;
 
         const relevantBookings = restaurant?.bookings.filter(b => {
             const bDate = new Date(b.dateTime);
