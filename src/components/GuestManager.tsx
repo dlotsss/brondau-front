@@ -104,9 +104,9 @@ const GuestManager: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative">
                 {/* Guest List */}
-                <div className="w-1/3 border-r border-brand-accent/20 overflow-y-auto bg-brand-secondary/10">
+                <div className={`w-full md:w-1/3 border-r border-brand-accent/20 overflow-y-auto bg-brand-secondary/10 ${selectedGuest ? 'hidden md:block' : 'block'}`}>
                     {loading && guests.length === 0 ? (
                         <div className="p-4 text-center text-gray-500">Загрузка...</div>
                     ) : guests.length > 0 ? (
@@ -131,17 +131,28 @@ const GuestManager: React.FC = () => {
                 </div>
 
                 {/* Guest Details */}
-                <div className="flex-1 overflow-y-auto p-6 bg-brand-secondary/5">
+                <div className={`flex-1 overflow-y-auto p-4 sm:p-6 bg-brand-secondary/5 ${selectedGuest ? 'block' : 'hidden md:block'}`}>
                     {selectedGuest ? (
-                        <div className="space-y-8 animate-fadeIn">
+                        <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+                            {/* Back button for mobile */}
+                            <button
+                                onClick={() => setSelectedGuest(null)}
+                                className="md:hidden flex items-center gap-2 text-brand-blue mb-4 hover:underline"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                                Назад к списку
+                            </button>
+
                             {/* Profile Header */}
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-3xl font-bold text-gray-400 mb-1">{selectedGuest.name}</h2>
-                                    <div className="text-xl text-brand-blue font-mono">{selectedGuest.phone}</div>
-                                    <div className="text-gray-500 mt-1">{selectedGuest.email}</div>
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                <div className="break-all">
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-400 mb-1">{selectedGuest.name}</h2>
+                                    <div className="text-lg sm:text-xl text-brand-blue font-mono">{selectedGuest.phone}</div>
+                                    <div className="text-gray-500 mt-1 text-sm sm:text-base">{selectedGuest.email}</div>
                                 </div>
-                                <div className="bg-brand-accent/50 p-4 rounded-xl border border-brand-accent/30 text-center min-w-[150px]">
+                                <div className="bg-brand-accent/50 p-3 sm:p-4 rounded-xl border border-brand-accent/30 text-center min-w-[120px] sm:min-w-[150px] w-full sm:w-auto">
                                     <div className="text-sm text-gray-500 mb-1">Всего броней</div>
                                     <div className="text-4xl font-bold text-gray-400">{stats?.total_bookings || 0}</div>
                                 </div>
@@ -197,13 +208,13 @@ const GuestManager: React.FC = () => {
                                 <h3 className="text-lg font-semibold text-gray-400">История бронирований</h3>
                                 <div className="space-y-3">
                                     {history.length > 0 ? history.map((b) => (
-                                        <div key={b.id} className="bg-brand-accent/20 p-4 rounded-xl border border-brand-accent/10 flex justify-between items-center group hover:bg-brand-accent/30 transition-all">
+                                        <div key={b.id} className="bg-brand-accent/20 p-4 rounded-xl border border-brand-accent/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 group hover:bg-brand-accent/30 transition-all">
                                             <div className="space-y-1">
-                                                <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors">{formatDate(b.dateTime)}</div>
-                                                <div className="text-sm text-gray-400">{b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}</div>
-                                                {b.status === BookingStatus.CANCELLED && b.cancelReason && (
+                                                <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors text-sm sm:text-base">{formatDate(b.dateTime)}</div>
+                                                <div className="text-xs sm:text-sm text-gray-400">{b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}</div>
+                                                {(b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED) && b.cancelReason && (
                                                     <div className="text-[10px] text-gray-400 bg-gray-400/10 px-2 py-1 rounded mt-2 inline-block border border-gray-400/20 italic">
-                                                        Причина: {b.cancelReason}{b.cancelComment ? ` (${b.cancelComment})` : ''}
+                                                        Причина: {b.cancelReason || b.declineReason}{b.cancelComment ? ` (${b.cancelComment})` : ''}
                                                     </div>
                                                 )}
                                                 {b.guestComment && (
