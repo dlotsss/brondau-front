@@ -65,27 +65,27 @@ const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
 
     if (!isEditing) {
         return (
-            <button 
-                onClick={() => setIsEditing(true)} 
+            <button
+                onClick={() => setIsEditing(true)}
                 className="text-[10px] text-gray-500 hover:text-brand-blue flex items-center gap-1"
                 title="Изменить длительность"
             >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {booking.duration || 60} мин
+                {booking.duration || 120} мин
             </button>
         );
     }
 
     return (
         <div className="flex items-center gap-1">
-            <input 
-                type="number" 
-                value={val} 
-                onChange={e => setVal(parseInt(e.target.value))} 
+            <input
+                type="number"
+                value={val}
+                onChange={e => setVal(parseInt(e.target.value))}
                 className="w-12 bg-brand-primary border border-gray-600 rounded text-[10px] px-1 text-white"
                 autoFocus
             />
-            <button 
+            <button
                 onClick={() => {
                     updateBookingStatus(booking.id, booking.status, undefined, undefined, undefined, val);
                     setIsEditing(false);
@@ -162,10 +162,10 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             {!isDeclining && (
                 <div className="mt-3">
                     <label className="text-xs text-gray-300 block mb-1">Длительность (мин):</label>
-                    <input 
-                        type="number" 
-                        value={customDuration} 
-                        onChange={e => setCustomDuration(parseInt(e.target.value))} 
+                    <input
+                        type="number"
+                        value={customDuration}
+                        onChange={e => setCustomDuration(parseInt(e.target.value))}
                         className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue"
                     />
                 </div>
@@ -240,10 +240,16 @@ const AdminView: React.FC = () => {
             .map(table => {
                 const activeBooking = restaurant.bookings
                     .filter(
-                        b =>
-                            b.tableId === table.id &&
-                            (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                            new Date(b.dateTime) <= now
+                        b => {
+                            if (b.tableId !== table.id) return false;
+                            if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
+                            const startTime = new Date(b.dateTime).getTime();
+                            if (startTime > now.getTime()) return false;
+                            const durationMinutes = b.duration || restaurant.bookingRestriction || 60;
+                            const endTime = startTime + durationMinutes * 60000;
+                            if (endTime <= now.getTime()) return false;
+                            return true;
+                        }
                     )
                     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
 
@@ -439,14 +445,14 @@ const AdminView: React.FC = () => {
         <div className="space-y-6">
             {/* View Switcher Tabs */}
             <div className="flex border-b border-brand-accent/30 gap-6 mb-2">
-                <button 
+                <button
                     onClick={() => setActiveView('MAP')}
                     className={`pb-3 text-lg font-bold transition-all relative ${activeView === 'MAP' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                     Зал и Брони
                     {activeView === 'MAP' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveView('GUESTS')}
                     className={`pb-3 text-lg font-bold transition-all relative ${activeView === 'GUESTS' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
@@ -457,312 +463,355 @@ const AdminView: React.FC = () => {
 
             {activeView === 'MAP' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
-            {/* Column 1: Requests */}
-            <div className="lg:col-span-1 order-2 lg:order-1">
-                <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы</h2>
-                <div className="space-y-4 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto pr-2">
-                    {pendingBookings.length > 0 ? (
-                        pendingBookings.map(b => (
-                            <BookingRequestCard
-                                key={b.id}
-                                booking={b}
-                                restaurantId={restaurant.id}
-                                tables={restaurant.layout.filter(el => el.type === 'table') as TableElement[]}
-                            />
-                        ))
-                    ) : (
-                        <p className="text-gray-500 text-center py-8">Нет ожидающих запросов.</p>
-                    )}
-                </div>
-            </div>
-
-            {/* Column 2 & 3: Map and Lists */}
-            <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-
-                {/* Status Sections */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3 text-gray-200">Занятые столики</h3>
-                        {occupiedTableBookings.length > 0 ? (
-                            <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {occupiedTableBookings.map(({ table, booking }) => (
-                                    <div key={table.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/60 rounded-md p-3">
-                                        <div>
-                                            <p className="font-semibold text-gray-200">Столик {table.label}</p>
-                                            <p className="text-xs text-gray-400">
-                                                {booking.guestName}
-                                            </p>
-                                            <DurationEditor booking={booking} />
-                                        </div>
-                                        <button
-                                            onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
-                                            className="bg-brand-green text-white px-2 py-1 text-xs font-semibold rounded-md hover:bg-green-700 transition-colors"
-                                        >
-                                            Освободить
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm">Пусто.</p>
-                        )}
+                    {/* Column 1: Requests */}
+                    <div className="lg:col-span-1 order-2 lg:order-1">
+                        <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы</h2>
+                        <div className="space-y-4 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto pr-2">
+                            {pendingBookings.length > 0 ? (
+                                pendingBookings.map(b => (
+                                    <BookingRequestCard
+                                        key={b.id}
+                                        booking={b}
+                                        restaurantId={restaurant.id}
+                                        tables={restaurant.layout.filter(el => el.type === 'table') as TableElement[]}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-gray-500 text-center py-8">Нет ожидающих запросов.</p>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3">Бронь (будущая)</h3>
-                        {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date()).length > 0 ? (
-                            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                                {restaurant.bookings
-                                    .filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date())
-                                    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-                                    .map(booking => (
-                                        <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/40 rounded-md p-3">
-                                            <div>
-                                                <p className="font-semibold text-sm text-gray-200">{booking.guestName} ({booking.guestCount} ч.)</p>
-                                                <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
-                                                <p className="text-xs text-gray-400">
-                                                    Ст. {booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
-                                                </p>
-                                                <DurationEditor booking={booking} />
-                                            </div>
-                                            <button
-                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором")}
-                                                className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center hover:bg-red-700 transition-colors"
-                                            >
-                                                Отменить
-                                        </button>
-                                        </div>
-                                    ))}
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm">Нет записей.</p>
-                        )}
-                    </div>
+                    {/* Column 2 & 3: Map and Lists */}
+                    <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
 
-                    <div className="bg-brand-primary rounded-lg border border-brand-accent p-4 md:col-span-2">
-                        <h3 className="text-lg md:text-xl font-semibold mb-3">Отмененные / Отклоненные</h3>
-                        {restaurant.bookings.filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED).length > 0 ? (
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                                {restaurant.bookings
-                                    .filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED)
-                                    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-                                    .map(booking => (
-                                        <div key={booking.id} className="bg-brand-accent/20 border border-brand-accent/30 rounded-md p-3">
-                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        {/* Status Sections */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
+                                <h3 className="text-lg md:text-xl font-semibold mb-3 text-gray-200">Занятые столики</h3>
+                                {occupiedTableBookings.length > 0 ? (
+                                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                                        {occupiedTableBookings.map(({ table, booking }) => (
+                                            <div key={table.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/60 rounded-md p-3">
                                                 <div>
-                                                    <p className="font-semibold text-sm text-gray-300">
-                                                        {booking.guestName} ({booking.guestCount} ч.) 
-                                                        <span className={`ml-2 px-2 py-0.5 rounded text-[10px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'bg-brand-red/20 text-brand-red' : 'bg-gray-700 text-gray-400'}`}>
-                                                            {booking.status === BookingStatus.CANCELLED ? (booking.cancelledBy === 'guest' ? 'Отменено гостем' : 'Отменено') : 'Отклонено'}
-                                                        </span>
+                                                    <p className="font-semibold text-gray-200">Столик {table.label}</p>
+                                                    <p className="text-xs text-gray-400">
+                                                        {booking.guestName}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
-                                                        {booking.tableLabel && ` • Стол ${booking.tableLabel}`}
-                                                    </p>
+                                                    <DurationEditor booking={booking} />
                                                 </div>
-                                                <div className="text-right">
-                                                    {booking.status === BookingStatus.CANCELLED ? (
-                                                        <p className="text-xs text-brand-red italic">Причина: {booking.cancelReason}{booking.cancelComment ? ` (${booking.cancelComment})` : ''}</p>
-                                                    ) : (
-                                                        <p className="text-xs text-gray-400 italic">Причина: {booking.declineReason || 'Не указана'}</p>
-                                                    )}
-                                                    <p className="text-[10px] text-gray-600 mt-1">
-                                                        {booking.status === BookingStatus.CANCELLED && booking.cancelledAt && `Обновлено: ${new Date(booking.cancelledAt).toLocaleString('ru-RU')}`}
-                                                    </p>
-                                                </div>
+                                                <button
+                                                    onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
+                                                    className="bg-brand-green text-white px-2 py-1 text-xs font-semibold rounded-md hover:bg-green-700 transition-colors"
+                                                >
+                                                    Освободить
+                                                </button>
                                             </div>
-                                        </div>
-                                    ))}
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm">Пусто.</p>
-                        )}
-                    </div>
-                </div>
-
-                {/* Map Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                    <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>План зала</h2>
-                    {restaurant.floors && restaurant.floors.length > 1 && (
-                        <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto max-w-full">
-                            {restaurant.floors.map(f => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => setActiveFloorId(f.id)}
-                                    className={`px-3 py-1 text-xs font-semibold rounded-md whitespace-nowrap transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-gray-200'}`}
-                                >
-                                    {f.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Map Container */}
-                <div
-                    ref={containerRef}
-                    className="w-full bg-[#3d2e23] bg-opacity-50 rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow min-h-[400px] h-[500px] md:h-[600px] overflow-hidden"
-                    style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
-                    onPointerDown={onPointerDown}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={onPointerUp}
-                    onPointerCancel={onPointerUp}
-                    onPointerLeave={onPointerUp}
-                >
-                    <div
-                        className="absolute top-0 left-0 origin-top-left will-change-transform"
-                        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
-                    >
-                        <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
-                            {activeFloorElements.map(el => {
-                                if (el.type !== 'table') {
-                                    let content = null;
-                                    let classes = `absolute flex items-center justify-center pointer-events-none`;
-
-                                    if (el.type === 'text') {
-                                        const textEl = el as TextElement;
-                                        classes += ` bg-transparent text-center leading-tight overflow-hidden`;
-                                        content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1 font-bold">{textEl.label}</div>;
-                                    } else if (el.type === 'arrow') {
-                                        classes += ` text-[#2c1f14] opacity-60`;
-                                        content = (
-                                            <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
-                                                <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
-                                                <path d={`M ${el.width - 25} ${el.height / 2 - 10} L ${el.width - 5} ${el.height / 2} L ${el.width - 25} ${el.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                        );
-                                    } else if (el.type === 'stairs') {
-                                        classes += ` bg-gray-300 shadow-sm opacity-80`;
-                                        content = (
-                                            <div className="w-full h-full flex flex-col justify-evenly">
-                                                {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-400"></div>)}
-                                            </div>
-                                        );
-                                    } else if (el.type === 'plant') {
-                                        classes += ` bg-transparent`;
-                                        content = (
-                                            <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
-                                                <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
-                                                <div className="absolute w-full h-full flex items-center justify-center">
-                                                    <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
-                                                    <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
-                                                    <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
-                                                    <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
-                                                </div>
-                                            </div>
-                                        );
-                                    } else {
-                                        const styles: { [key: string]: string } = {
-                                            wall: 'bg-gray-500 shadow-sm',
-                                            bar: 'bg-yellow-800 border-2 border-yellow-900 shadow-lg',
-                                            window: 'bg-sky-200/40 border-2 border-sky-300'
-                                        };
-                                        classes += ` ${styles[el.type] || 'bg-gray-400'}`;
-                                        if (el.type === 'window') {
-                                            content = <div className="w-full h-full flex items-center justify-center"><div className="w-px h-full bg-sky-300/50"></div></div>;
-                                        }
-                                    }
-
-                                    return (
-                                        <div
-                                            key={el.id}
-                                            style={{
-                                                left: `${el.x - bounds.minX}px`,
-                                                top: `${el.y - bounds.minY}px`,
-                                                width: `${(el as any).width}px`,
-                                                height: `${(el as any).height}px`,
-                                                transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
-                                            }}
-                                            className={classes}
-                                        >
-                                            {content}
-                                        </div>
-                                    );
-                                }
-
-                                const now = new Date();
-                                const currentBooking = restaurant.bookings
-                                    .filter(
-                                        b =>
-                                            b.tableId === el.id &&
-                                            (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED) &&
-                                            new Date(b.dateTime) <= now
-                                    )
-                                    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
-                                const isPending = restaurant.bookings.some(
-                                    b => b.tableId === el.id && b.status === BookingStatus.PENDING && new Date(b.dateTime) <= now
-                                );
-
-                                let statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green';
-                                if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90';
-                                if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90';
-
-                                if (!currentBooking && !isPending) {
-                                    const nextBooking = restaurant.bookings
-                                        .filter(b =>
-                                            b.tableId === el.id &&
-                                            (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                                            new Date(b.dateTime) > now
-                                        )
-                                        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
-
-                                    if (nextBooking && (new Date(nextBooking.dateTime).getTime() - now.getTime()) < 60 * 60 * 1000) {
-                                        statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90';
-                                    }
-                                }
-
-                                const shapeClasses = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
-                                const fontSize = Math.min((el as any).width, (el as any).height) * 0.4;
-
-                                return (
-                                    <div
-                                        key={el.id}
-                                        style={{
-                                            left: `${el.x - bounds.minX}px`,
-                                            top: `${el.y - bounds.minY}px`,
-                                            width: `${(el as any).width}px`,
-                                            height: `${(el as any).height}px`,
-                                            transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
-                                        }}
-                                        className={`absolute flex items-center justify-center font-bold text-gray-200 transition-all duration-300 ${shapeClasses} ${statusColor} cursor-pointer hover:scale-[1.05]`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (draggedRef.current) return;
-                                            setSelectedTable(el as TableElement);
-                                        }}
-                                    >
-                                        <span style={{ fontSize: `${fontSize}px` }}>{el.label}</span>
+                                        ))}
                                     </div>
-                                );
-                            })}
+                                ) : (
+                                    <p className="text-gray-400 text-sm">Пусто.</p>
+                                )}
+                            </div>
+
+                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
+                                <h3 className="text-lg md:text-xl font-semibold mb-3">Бронь (будущая)</h3>
+                                {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date()).length > 0 ? (
+                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                                        {restaurant.bookings
+                                            .filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date())
+                                            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+                                            .map(booking => (
+                                                <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/40 rounded-md p-3">
+                                                    <div>
+                                                        <p className="font-semibold text-sm text-gray-200">{booking.guestName} ({booking.guestCount} ч.)</p>
+                                                        <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
+                                                        <p className="text-xs text-gray-400">
+                                                            Ст. {booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                        </p>
+                                                        <DurationEditor booking={booking} />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором")}
+                                                        className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center hover:bg-red-700 transition-colors"
+                                                    >
+                                                        Отменить
+                                                    </button>
+                                                </div>
+                                            ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-400 text-sm">Нет записей.</p>
+                                )}
+                            </div>
+
+                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4 md:col-span-2">
+                                <h3 className="text-lg md:text-xl font-semibold mb-3">Отмененные / Отклоненные</h3>
+                                {restaurant.bookings.filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED).length > 0 ? (
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                        {restaurant.bookings
+                                            .filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED)
+                                            .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+                                            .map(booking => (
+                                                <div key={booking.id} className="bg-brand-accent/20 border border-brand-accent/30 rounded-md p-3">
+                                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                                        <div>
+                                                            <p className="font-semibold text-sm text-gray-300">
+                                                                {booking.guestName} ({booking.guestCount} ч.)
+                                                                <span className={`ml-2 px-2 py-0.5 rounded text-[10px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'bg-brand-red/20 text-brand-red' : 'bg-gray-700 text-gray-400'}`}>
+                                                                    {booking.status === BookingStatus.CANCELLED ? (booking.cancelledBy === 'guest' ? 'Отменено гостем' : 'Отменено') : 'Отклонено'}
+                                                                </span>
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                                {booking.tableLabel && ` • Стол ${booking.tableLabel}`}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            {booking.status === BookingStatus.CANCELLED ? (
+                                                                <p className="text-xs text-brand-red italic">Причина: {booking.cancelReason}{booking.cancelComment ? ` (${booking.cancelComment})` : ''}</p>
+                                                            ) : (
+                                                                <p className="text-xs text-gray-400 italic">Причина: {booking.declineReason || 'Не указана'}</p>
+                                                            )}
+                                                            <p className="text-[10px] text-gray-600 mt-1">
+                                                                {booking.status === BookingStatus.CANCELLED && booking.cancelledAt && `Обновлено: ${new Date(booking.cancelledAt).toLocaleString('ru-RU')}`}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-400 text-sm">Пусто.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Map Header */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                            <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>План зала</h2>
+                            {restaurant.floors && restaurant.floors.length > 1 && (
+                                <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto max-w-full">
+                                    {restaurant.floors.map(f => (
+                                        <button
+                                            key={f.id}
+                                            onClick={() => setActiveFloorId(f.id)}
+                                            className={`px-3 py-1 text-xs font-semibold rounded-md whitespace-nowrap transition-all ${activeFloorId === f.id ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-400 hover:text-gray-200'}`}
+                                        >
+                                            {f.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Map Container */}
+                        <div
+                            ref={containerRef}
+                            className="w-full bg-[#3d2e23] bg-opacity-50 rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow min-h-[400px] h-[500px] md:h-[600px] overflow-hidden"
+                            style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
+                            onPointerDown={onPointerDown}
+                            onPointerMove={onPointerMove}
+                            onPointerUp={onPointerUp}
+                            onPointerCancel={onPointerUp}
+                            onPointerLeave={onPointerUp}
+                        >
+                            <div
+                                className="absolute top-0 left-0 origin-top-left will-change-transform"
+                                style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                            >
+                                <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
+                                    {activeFloorElements.map(el => {
+                                        if (el.type !== 'table') {
+                                            let content = null;
+                                            let classes = `absolute flex items-center justify-center pointer-events-none`;
+
+                                            if (el.type === 'text') {
+                                                const textEl = el as TextElement;
+                                                classes += ` bg-transparent text-center leading-tight overflow-hidden`;
+                                                content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1 font-bold">{textEl.label}</div>;
+                                            } else if (el.type === 'arrow') {
+                                                classes += ` text-[#2c1f14] opacity-60`;
+                                                content = (
+                                                    <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
+                                                        <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
+                                                        <path d={`M ${el.width - 25} ${el.height / 2 - 10} L ${el.width - 5} ${el.height / 2} L ${el.width - 25} ${el.height / 2 + 10}`} strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                );
+                                            } else if (el.type === 'stairs') {
+                                                classes += ` bg-gray-300 shadow-sm opacity-80`;
+                                                content = (
+                                                    <div className="w-full h-full flex flex-col justify-evenly">
+                                                        {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-gray-400"></div>)}
+                                                    </div>
+                                                );
+                                            } else if (el.type === 'plant') {
+                                                classes += ` bg-transparent`;
+                                                content = (
+                                                    <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
+                                                        <div className="absolute w-2/3 h-2/3 bg-emerald-800 rounded-full"></div>
+                                                        <div className="absolute w-full h-full flex items-center justify-center">
+                                                            <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform rotate-45"></div>
+                                                            <div className="w-full h-1/3 bg-green-500 absolute top-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                                            <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform rotate-45"></div>
+                                                            <div className="w-1/3 h-full bg-green-500 absolute left-0 rounded-full opacity-75 transform -rotate-45"></div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } else {
+                                                const styles: { [key: string]: string } = {
+                                                    wall: 'bg-gray-500 shadow-sm',
+                                                    bar: 'bg-yellow-800 border-2 border-yellow-900 shadow-lg',
+                                                    window: 'bg-sky-200/40 border-2 border-sky-300'
+                                                };
+                                                classes += ` ${styles[el.type] || 'bg-gray-400'}`;
+                                                if (el.type === 'window') {
+                                                    content = <div className="w-full h-full flex items-center justify-center"><div className="w-px h-full bg-sky-300/50"></div></div>;
+                                                }
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={el.id}
+                                                    style={{
+                                                        left: `${el.x - bounds.minX}px`,
+                                                        top: `${el.y - bounds.minY}px`,
+                                                        width: `${(el as any).width}px`,
+                                                        height: `${(el as any).height}px`,
+                                                        transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
+                                                    }}
+                                                    className={classes}
+                                                >
+                                                    {content}
+                                                </div>
+                                            );
+                                        }
+
+                                        const now = new Date();
+                                        const currentBooking = restaurant.bookings
+                                            .filter(
+                                                b => {
+                                                    if (b.tableId !== el.id) return false;
+                                                    if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
+                                                    const startTime = new Date(b.dateTime).getTime();
+                                                    if (startTime > now.getTime()) return false;
+                                                    // Check if booking has expired
+                                                    const durationMinutes = b.duration || restaurant.bookingRestriction || 60;
+                                                    const endTime = startTime + durationMinutes * 60000;
+                                                    if (endTime <= now.getTime()) return false; // Expired, visually treat as free
+                                                    return true;
+                                                }
+                                            )
+                                            .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
+                                        const isPending = restaurant.bookings.some(
+                                            b => b.tableId === el.id && b.status === BookingStatus.PENDING && new Date(b.dateTime) <= now
+                                        );
+
+                                        let statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green';
+                                        const hasRestriction = restaurant.bookingRestriction !== undefined && restaurant.bookingRestriction !== -1;
+
+                                        if (hasRestriction) {
+                                            statusColor = 'bg-[rgb(59,130,246)]/80 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:bg-[rgb(59,130,246)]'; // Default free table
+
+                                            if (currentBooking) {
+                                                const durationMinutes = currentBooking.duration || restaurant.bookingRestriction;
+                                                const endTime = new Date(currentBooking.dateTime).getTime() + durationMinutes * 60000;
+                                                const timeLeftMs = endTime - now.getTime();
+
+                                                if (timeLeftMs <= 30 * 60000) {
+                                                    statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
+                                                } else if (timeLeftMs <= 60 * 60000) {
+                                                    statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow';
+                                                } else {
+                                                    statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green cursor-not-allowed opacity-90';
+                                                }
+                                            } else if (isPending) {
+                                                statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow';
+                                            } else {
+                                                // Check for upcoming bookings
+                                                const nextBooking = restaurant.bookings
+                                                    .filter(b =>
+                                                        b.tableId === el.id &&
+                                                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
+                                                        new Date(b.dateTime) > now
+                                                    )
+                                                    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
+
+                                                if (nextBooking && (new Date(nextBooking.dateTime).getTime() - now.getTime()) < 60 * 60 * 1000) {
+                                                    statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
+                                                }
+                                            }
+                                        } else {
+                                            // Old logic
+                                            if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
+                                            if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow';
+
+                                            if (!currentBooking && !isPending) {
+                                                const nextBooking = restaurant.bookings
+                                                    .filter(b =>
+                                                        b.tableId === el.id &&
+                                                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
+                                                        new Date(b.dateTime) > now
+                                                    )
+                                                    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
+
+                                                if (nextBooking && (new Date(nextBooking.dateTime).getTime() - now.getTime()) < 60 * 60 * 1000) {
+                                                    statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
+                                                }
+                                            }
+                                        }
+
+                                        const shapeClasses = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
+                                        const fontSize = Math.min((el as any).width, (el as any).height) * 0.4;
+
+                                        return (
+                                            <div
+                                                key={el.id}
+                                                style={{
+                                                    left: `${el.x - bounds.minX}px`,
+                                                    top: `${el.y - bounds.minY}px`,
+                                                    width: `${(el as any).width}px`,
+                                                    height: `${(el as any).height}px`,
+                                                    transform: `translate(-50%, -50%) rotate(${el.rotation || 0}deg)`
+                                                }}
+                                                className={`absolute flex items-center justify-center font-bold text-gray-200 transition-all duration-300 ${shapeClasses} ${statusColor} cursor-pointer hover:scale-[1.05]`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (draggedRef.current) return;
+                                                    setSelectedTable(el as TableElement);
+                                                }}
+                                            >
+                                                <span style={{ fontSize: `${fontSize}px` }}>{el.label}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Zoom Controls Overlay */}
+                            <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10" onPointerDown={e => e.stopPropagation()}>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
+                                    className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
+                                >
+                                    +
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
+                                    className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
+                                >
+                                    -
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); fitToContainer() }}
+                                    className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
+                                    title="Центрировать"
+                                >
+                                    ⛶
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Zoom Controls Overlay */}
-                    <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10" onPointerDown={e => e.stopPropagation()}>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
-                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
-                        >
-                            +
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
-                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
-                        >
-                            -
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); fitToContainer() }}
-                            className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
-                            title="Центрировать"
-                        >
-                            ⛶
-                        </button>
-                    </div>
-                </div>
-            </div>
 
                     {selectedTable && (
                         <BookingModal
