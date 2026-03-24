@@ -155,7 +155,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
     };
 
     return (
-        <div className="bg-brand-accent p-4 rounded-lg shadow-md transition-transform hover:scale-105 border border-brand-accent/50">
+        <div className="bg-brand-accent p-4 rounded-lg shadow-md border border-brand-accent/50">
             <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
                 <h4 className="font-bold text-lg text-white">
                     {booking.tableLabels?.length ? `Столы: ${booking.tableLabels.join(', ')}` : booking.tableLabel ? `Столик ${booking.tableLabel}` : <span className="text-yellow-400">Столик не назначен</span>}
