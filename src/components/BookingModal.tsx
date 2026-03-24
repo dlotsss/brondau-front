@@ -48,10 +48,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [loading, setLoading] = useState(false);
     const [guestCount, setGuestCount] = useState<number>(2);
     const [guestComment, setGuestComment] = useState('');
+    const [assignedTo, setAssignedTo] = useState('');
+    const [staffNames, setStaffNames] = useState<string[]>([]);
 
     const [bookingDate, setBookingDate] = useState(formatLocalDate(new Date()));
     const [bookingTime, setBookingTime] = useState('');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isAdmin && restaurantId) {
+            import('../services/api').then(({ api }) => {
+                api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => {});
+            });
+        }
+    }, [isAdmin, restaurantId]);
 
     const selectedDateObj = useMemo(() => {
         const [year, month, day] = bookingDate.split('-').map(Number);
@@ -322,7 +332,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 tableLabel: table?.label,
                 guestComment,
                 isAdmin,
-                duration
+                duration,
+                assignedTo: isAdmin ? assignedTo : undefined
             };
 
             await addBooking(restaurantId, payload);
@@ -445,6 +456,25 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                 rows={2}
                             />
                         </div>
+
+                        {isAdmin && (
+                            <div>
+                                <label className="text-xs text-brand-yellow block mb-2 font-bold">Ответственный (менеджер / хостес):</label>
+                                <input
+                                    type="text"
+                                    list="modal-staff-list"
+                                    value={assignedTo}
+                                    onChange={e => setAssignedTo(e.target.value)}
+                                    placeholder="Введите имя..."
+                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                />
+                                <datalist id="modal-staff-list">
+                                    {staffNames.map(name => (
+                                        <option key={name} value={name} />
+                                    ))}
+                                </datalist>
+                            </div>
+                        )}
 
                         <div>
                             <label className="text-xs text-gray-500 block mb-1">Время {isAdmin && '(Администратор: любое время)'}</label>

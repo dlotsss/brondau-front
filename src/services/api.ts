@@ -43,6 +43,7 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
+        getStaffNames: (id: string) => request<string[]>(`/restaurants/${id}/staff-names`),
     },
     auth: {
         owner: (data: any) => request<any>('/auth/owner', {
@@ -63,9 +64,9 @@ export const api = {
         }),
     },
     bookings: {
-        updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[]) => request<any>(`/bookings/${id}/status`, {
+        updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[], assignedTo?: string) => request<any>(`/bookings/${id}/status`, {
             method: 'PUT',
-            body: JSON.stringify({ status, declineReason, tableId, tableLabel, duration, tableIds, tableLabels }),
+            body: JSON.stringify({ status, declineReason, tableId, tableLabel, duration, tableIds, tableLabels, assignedTo }),
         }),
         cleanupExpired: () => request<{ updated: number, bookings: any[] }>('/bookings/cleanup-expired', {
             method: 'POST',

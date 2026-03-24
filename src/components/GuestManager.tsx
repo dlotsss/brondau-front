@@ -211,7 +211,10 @@ const GuestManager: React.FC = () => {
                                         <div key={b.id} className="bg-brand-accent/20 p-4 rounded-xl border border-brand-accent/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 group hover:bg-brand-accent/30 transition-all">
                                             <div className="space-y-1">
                                                 <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors text-sm sm:text-base">{formatDate(b.dateTime)}</div>
-                                                <div className="text-xs sm:text-sm text-gray-400">{b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}</div>
+                                                <div className="text-xs sm:text-sm text-gray-400">
+                                                    {b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}
+                                                    {b.assignedTo && <span className="ml-2 text-brand-blue">• {b.assignedTo}</span>}
+                                                </div>
                                                 {(b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED) && b.cancelReason && (
                                                     <div className="text-[10px] text-gray-400 bg-gray-400/10 px-2 py-1 rounded mt-2 inline-block border border-gray-400/20 italic">
                                                         Причина: {b.cancelReason || b.declineReason}{b.cancelComment ? ` (${b.cancelComment})` : ''}

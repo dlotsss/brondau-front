@@ -92,6 +92,7 @@ export interface Booking {
   cancelledBy?: 'guest' | 'admin' | 'system';
   cancelledAt?: Date;
   duration?: number;
+  assignedTo?: string;
   createdAt: Date;
 }
 

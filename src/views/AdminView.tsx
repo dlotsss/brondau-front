@@ -4,6 +4,7 @@ import { Booking, BookingStatus, TableElement, TextElement, DecoElement } from '
 import { useApp } from '../context/AppContext';
 import BookingModal from '../components/BookingModal';
 import GuestManager from '../components/GuestManager';
+import { api } from '../services/api';
 import { registerServiceWorker, subscribeToPush } from '../services/pushService';
 import { LayoutElement } from '../types';
 
@@ -104,7 +105,13 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
     const [isDeclining, setIsDeclining] = useState(false);
     const [assignedTableIds, setAssignedTableIds] = useState<string[]>([]);
     const [customDuration, setCustomDuration] = useState<number>(booking.duration || 60);
+    const [assignedTo, setAssignedTo] = useState<string>(booking.assignedTo || '');
+    const [staffNames, setStaffNames] = useState<string[]>([]);
     const needsTableAssignment = !booking.tableId && (!booking.tableIds || booking.tableIds.length === 0);
+
+    useEffect(() => {
+        api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => {});
+    }, [restaurantId]);
 
     const toggleTable = (id: string) => {
         setAssignedTableIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
@@ -129,9 +136,9 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
 
         if (needsTableAssignment) {
             const labels = assignedTableIds.map(id => tables.find(t => t.id === id)?.label || '');
-            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, assignedTableIds, labels);
+            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, assignedTableIds, labels, assignedTo || undefined);
         } else {
-            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration);
+            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, undefined, undefined, assignedTo || undefined);
         }
     };
 
@@ -195,6 +202,26 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                         onChange={e => setCustomDuration(parseInt(e.target.value))}
                         className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue"
                     />
+                </div>
+            )}
+
+            {/* Responsible staff assignment */}
+            {!isDeclining && (
+                <div className="mt-3">
+                    <label className="text-xs text-gray-200 font-medium block mb-1">Ответственный за бронь:</label>
+                    <input
+                        type="text"
+                        list={`staff-list-${booking.id}`}
+                        value={assignedTo}
+                        onChange={e => setAssignedTo(e.target.value)}
+                        placeholder="Имя менеджера / хостес"
+                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue placeholder-gray-500"
+                    />
+                    <datalist id={`staff-list-${booking.id}`}>
+                        {staffNames.map(name => (
+                            <option key={name} value={name} />
+                        ))}
+                    </datalist>
                 </div>
             )}
 
@@ -524,6 +551,7 @@ const AdminView: React.FC = () => {
                                                     <p className="font-semibold text-gray-200">Столик {table.label}</p>
                                                     <p className="text-xs text-gray-400">
                                                         {booking.guestName}
+                                                        {booking.assignedTo && <span className="ml-2 text-brand-blue">• {booking.assignedTo}</span>}
                                                     </p>
                                                     <DurationEditor booking={booking} />
                                                 </div>
@@ -555,6 +583,7 @@ const AdminView: React.FC = () => {
                                                         <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
                                                         <p className="text-xs text-gray-400">
                                                             Ст. {booking.tableLabels?.length ? booking.tableLabels.join(', ') : booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                            {booking.assignedTo && <span className="ml-1 text-brand-blue">• {booking.assignedTo}</span>}
                                                         </p>
                                                         <DurationEditor booking={booking} />
                                                     </div>
@@ -592,6 +621,7 @@ const AdminView: React.FC = () => {
                                                             <p className="text-xs text-gray-500">
                                                                 {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
                                                                 {booking.tableLabels?.length ? ` • Столы: ${booking.tableLabels.join(', ')}` : (booking.tableLabel && ` • Стол ${booking.tableLabel}`)}
+                                                                {booking.assignedTo && <span className="ml-1 text-brand-blue">• {booking.assignedTo}</span>}
                                                             </p>
                                                         </div>
                                                         <div className="text-right">
