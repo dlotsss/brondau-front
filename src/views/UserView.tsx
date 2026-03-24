@@ -92,14 +92,14 @@ const Deco: React.FC<{
         classes += ' bg-transparent text-center leading-tight overflow-hidden';
         content = (
             <div
-                style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }}
+                style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#ffffff' }}
                 className="w-full h-full flex items-center justify-center p-1 font-bold"
             >
                 {textEl.label}
             </div>
         );
     } else if (element.type === 'arrow') {
-        classes += ' text-[#2c1f14]';
+        classes += ' text-white/60';
         content = (
             <svg viewBox={`0 0 ${(element as any).width} ${(element as any).height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full opacity-60">
                 <path d={`M 5 ${(element as any).height / 2} H ${(element as any).width - 15}`} strokeLinecap="round" />
@@ -178,7 +178,7 @@ const UserView: React.FC = () => {
 
         tables.forEach(table => {
             const activePending = restaurant.bookings.find(b => {
-                if (b.tableId !== table.id) return false;
+                if (b.tableId !== table.id && (!b.tableIds || !b.tableIds.includes(table.id))) return false;
                 if (b.status !== BookingStatus.PENDING) return false;
                 const bDuration = b.duration || effectiveRestriction;
                 const bookingStart = new Date(b.dateTime).getTime();
@@ -187,7 +187,7 @@ const UserView: React.FC = () => {
             });
 
             const activeConfirmed = restaurant.bookings.find(b => {
-                if (b.tableId !== table.id) return false;
+                if (b.tableId !== table.id && (!b.tableIds || !b.tableIds.includes(table.id))) return false;
                 if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
                 const bDuration = b.duration || effectiveRestriction;
                 const bookingStart = new Date(b.dateTime).getTime();

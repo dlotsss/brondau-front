@@ -16,7 +16,7 @@ interface DataContextType {
       timezoneOffset?: number;
     }
   ) => Promise<void>;
-  updateBookingStatus: (bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string, duration?: number) => Promise<void>;
+  updateBookingStatus: (bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[]) => Promise<void>;
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
   updateRestaurantSettings: (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => Promise<void>;
   loadRestaurants: () => Promise<void>;
@@ -56,6 +56,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 restaurantId: b.restaurant_id,
                 tableId: b.table_id,
                 tableLabel: b.table_label,
+                tableIds: b.tableIds,
+                tableLabels: b.tableLabels,
                 guestName: b.guest_name,
                 guestPhone: b.guest_phone,
                 guestEmail: b.guest_email,
@@ -109,6 +111,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               restaurantId: b.restaurant_id,
               tableId: b.table_id,
               tableLabel: b.table_label,
+              tableIds: b.tableIds,
+              tableLabels: b.tableLabels,
               guestName: b.guest_name,
               guestPhone: b.guest_phone,
               guestEmail: b.guest_email,
@@ -275,9 +279,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ));
   }, [restaurants]);
 
-  const updateBookingStatus = useCallback(async (bookingId: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number) => {
+  const updateBookingStatus = useCallback(async (bookingId: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[]) => {
     try {
-      const updatedBooking = await api.bookings.updateStatus(bookingId, status, declineReason, tableId, tableLabel, duration);
+      const updatedBooking = await api.bookings.updateStatus(bookingId, status, declineReason, tableId, tableLabel, duration, tableIds, tableLabels);
       setRestaurants(prev => prev.map(r => ({
         ...r,
         bookings: r.bookings.map(b => b.id === bookingId ? {
@@ -286,7 +290,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           declineReason: updatedBooking.decline_reason,
           tableId: updatedBooking.table_id,
           tableLabel: updatedBooking.table_label,
-          duration: updatedBooking.duration
+          duration: updatedBooking.duration,
+          tableIds: updatedBooking.tableIds,
+          tableLabels: updatedBooking.tableLabels
         } : b)
       })));
     } catch (error) {

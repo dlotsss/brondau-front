@@ -47,7 +47,8 @@ const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }>
             bStart <= now.getTime() &&
             bEnd > now.getTime()
         ) {
-            busyTableIds.add(b.tableId);
+            if (b.tableId) busyTableIds.add(b.tableId);
+            if (b.tableIds) b.tableIds.forEach((id: string) => busyTableIds.add(id));
         }
     });
 
@@ -148,7 +149,7 @@ const RestaurantListView: React.FC = () => {
     return (
         <div className="min-h-screen bg-brand-secondary p-8 animate-fade-in">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-4xl font-bold mb-2" style={{ color: '#2c1f14' }}>Выберите ресторан</h1>
+                <h1 className="text-4xl font-bold mb-2 text-white">Выберите ресторан</h1>
                 <p className="text-gray-400 mb-8">
                     {currentUser?.role === 'GUEST' ? "Выберите ресторан для просмотра плана зала и бронирования." : "Выберите ресторан для управления."}
                 </p>

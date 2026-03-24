@@ -342,7 +342,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300 p-2 sm:p-4">
             <div className="bg-brand-secondary rounded-lg shadow-2xl p-6 w-full max-w-lg m-auto transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4 sticky top-0 bg-brand-secondary pb-2 border-b border-brand-accent/30 z-10">
-                    <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">
                         {isAdmin
                             ? table ? <>Посадить гостей: <span className="text-brand-blue">{table.label}</span></> : 'Посадить гостей'
                             : table ? <>Бронь столика <span className="text-brand-blue">{table.label}</span></> : 'Забронировать столик'

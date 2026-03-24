@@ -102,18 +102,34 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
     const { updateBookingStatus } = useData();
     const [reason, setReason] = useState('');
     const [isDeclining, setIsDeclining] = useState(false);
-    const [assignedTableId, setAssignedTableId] = useState('');
+    const [assignedTableIds, setAssignedTableIds] = useState<string[]>([]);
     const [customDuration, setCustomDuration] = useState<number>(booking.duration || 60);
-    const needsTableAssignment = !booking.tableId;
+    const needsTableAssignment = !booking.tableId && (!booking.tableIds || booking.tableIds.length === 0);
+
+    const toggleTable = (id: string) => {
+        setAssignedTableIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
+    };
 
     const handleConfirm = () => {
-        if (needsTableAssignment && !assignedTableId) {
-            alert('Пожалуйста, выберите столик для гостя.');
+        if (needsTableAssignment && assignedTableIds.length === 0) {
+            alert('Пожалуйста, выберите столик(и) для гостя.');
             return;
         }
+
+        const totalSeats = assignedTableIds.reduce((sum, id) => {
+            const t = tables.find(t => t.id === id);
+            return sum + (t?.seats || 2);
+        }, 0);
+
+        if (needsTableAssignment && totalSeats < booking.guestCount) {
+            if (!window.confirm(`Вместимости выбранных столов (${totalSeats}) меньше, чем гостей (${booking.guestCount}). Продолжить?`)) {
+                return;
+            }
+        }
+
         if (needsTableAssignment) {
-            const assignedTable = tables.find(t => t.id === assignedTableId);
-            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, assignedTableId, assignedTable?.label, customDuration);
+            const labels = assignedTableIds.map(id => tables.find(t => t.id === id)?.label || '');
+            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, assignedTableIds, labels);
         } else {
             updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration);
         }
@@ -128,40 +144,51 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
     };
 
     return (
-        <div className="bg-brand-accent p-4 rounded-lg shadow-md transition-transform hover:scale-105">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-                <h4 className="font-bold text-lg">
-                    {booking.tableLabel ? `Столик ${booking.tableLabel}` : <span className="text-brand-yellow">Столик не назначен</span>}
+        <div className="bg-brand-accent p-4 rounded-lg shadow-md transition-transform hover:scale-105 border border-brand-accent/50">
+            <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
+                <h4 className="font-bold text-lg text-white">
+                    {booking.tableLabels?.length ? `Столы: ${booking.tableLabels.join(', ')}` : booking.tableLabel ? `Столик ${booking.tableLabel}` : <span className="text-yellow-400">Столик не назначен</span>}
                 </h4>
-                <div className="text-sm">
+                <div className="text-sm font-semibold text-gray-200">
                     Осталось: <CountdownTimer createdAt={booking.createdAt} />
                 </div>
             </div>
-            <p className="text-sm" style={{ color: '#d1c1b1' }}>{booking.guestName} ({booking.guestCount} гостей)</p>
-            <p className="text-sm font-medium" style={{ color: '#b5a48f' }}>{booking.guestPhone}</p>
-            <p className="text-sm text-gray-500">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
+            <p className="text-sm font-medium text-gray-200">{booking.guestName} ({booking.guestCount} гостей)</p>
+            <p className="text-sm font-bold text-brand-blue drop-shadow-sm">{booking.guestPhone}</p>
+            <p className="text-xs font-medium text-brand-yellow mb-2">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
+            
+            {booking.guestComment && (
+                <div className="mt-2 mb-2 p-2 bg-black/20 rounded border border-gray-600/50">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Комментарий гостя:</p>
+                    <p className="text-sm text-white italic">"{booking.guestComment}"</p>
+                </div>
+            )}
 
-            {/* Table assignment for no-map bookings */}
+            {/* Table assignment for no-map bookings (multiple selection) */}
             {needsTableAssignment && !isDeclining && (
                 <div className="mt-3">
-                    <label className="text-xs text-gray-300 block mb-1">Назначить столик:</label>
-                    <select
-                        value={assignedTableId}
-                        onChange={e => setAssignedTableId(e.target.value)}
-                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue"
-                    >
-                        <option value="">— Выберите столик —</option>
-                        {tables.map(t => (
-                            <option key={t.id} value={t.id}>Столик {t.label} ({t.seats} мест)</option>
-                        ))}
-                    </select>
+                    <label className="text-xs text-brand-yellow block mb-2 font-bold">Назначить столы (можно выбрать несколько):</label>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
+                        {tables.map(t => {
+                            const isSelected = assignedTableIds.includes(t.id);
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => toggleTable(t.id)}
+                                    className={`px-2 py-1 text-xs rounded-md font-semibold border transition-colors ${isSelected ? 'bg-brand-blue border-brand-blue text-white' : 'bg-brand-primary border-gray-600 text-gray-300 hover:border-gray-400'}`}
+                                >
+                                    Ст. {t.label} ({t.seats} м.)
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
             {/* Duration assignment */}
             {!isDeclining && (
                 <div className="mt-3">
-                    <label className="text-xs text-gray-300 block mb-1">Длительность (мин):</label>
+                    <label className="text-xs text-gray-200 font-medium block mb-1">Длительность (мин):</label>
                     <input
                         type="number"
                         value={customDuration}
@@ -241,7 +268,7 @@ const AdminView: React.FC = () => {
                 const activeBooking = restaurant.bookings
                     .filter(
                         b => {
-                            if (b.tableId !== table.id) return false;
+                            if (b.tableId !== table.id && (!b.tableIds || !b.tableIds.includes(table.id))) return false;
                             if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
                             const startTime = new Date(b.dateTime).getTime();
                             if (startTime > now.getTime()) return false;
@@ -465,7 +492,7 @@ const AdminView: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
                     {/* Column 1: Requests */}
                     <div className="lg:col-span-1 order-2 lg:order-1">
-                        <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#2c1f14' }}>Новые запросы</h2>
+                        <h2 className="text-xl md:text-2xl font-bold mb-4 text-white">Новые запросы</h2>
                         <div className="space-y-4 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto pr-2">
                             {pendingBookings.length > 0 ? (
                                 pendingBookings.map(b => (
@@ -527,7 +554,7 @@ const AdminView: React.FC = () => {
                                                         <p className="font-semibold text-sm text-gray-200">{booking.guestName} ({booking.guestCount} ч.)</p>
                                                         <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
                                                         <p className="text-xs text-gray-400">
-                                                            Ст. {booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                            Ст. {booking.tableLabels?.length ? booking.tableLabels.join(', ') : booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
                                                         </p>
                                                         <DurationEditor booking={booking} />
                                                     </div>
@@ -564,7 +591,7 @@ const AdminView: React.FC = () => {
                                                             </p>
                                                             <p className="text-xs text-gray-500">
                                                                 {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
-                                                                {booking.tableLabel && ` • Стол ${booking.tableLabel}`}
+                                                                {booking.tableLabels?.length ? ` • Столы: ${booking.tableLabels.join(', ')}` : (booking.tableLabel && ` • Стол ${booking.tableLabel}`)}
                                                             </p>
                                                         </div>
                                                         <div className="text-right">
@@ -589,7 +616,7 @@ const AdminView: React.FC = () => {
 
                         {/* Map Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                            <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#2c1f14' }}>План зала</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white">План зала</h2>
                             {restaurant.floors && restaurant.floors.length > 1 && (
                                 <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto max-w-full">
                                     {restaurant.floors.map(f => (
@@ -629,9 +656,9 @@ const AdminView: React.FC = () => {
                                             if (el.type === 'text') {
                                                 const textEl = el as TextElement;
                                                 classes += ` bg-transparent text-center leading-tight overflow-hidden`;
-                                                content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#2c1f14' }} className="w-full h-full flex items-center justify-center p-1 font-bold">{textEl.label}</div>;
+                                                content = <div style={{ fontSize: `${textEl.fontSize || 16}px`, color: '#ffffff' }} className="w-full h-full flex items-center justify-center p-1 font-bold">{textEl.label}</div>;
                                             } else if (el.type === 'arrow') {
-                                                classes += ` text-[#2c1f14] opacity-60`;
+                                                classes += ` text-white opacity-60`;
                                                 content = (
                                                     <svg viewBox={`0 0 ${el.width} ${el.height}`} fill="none" stroke="currentColor" strokeWidth="2.5" className="w-full h-full">
                                                         <path d={`M 5 ${el.height / 2} H ${el.width - 15}`} strokeLinecap="round" />
@@ -691,7 +718,7 @@ const AdminView: React.FC = () => {
                                         const currentBooking = restaurant.bookings
                                             .filter(
                                                 b => {
-                                                    if (b.tableId !== el.id) return false;
+                                                    if (b.tableId !== el.id && (!b.tableIds || !b.tableIds.includes(el.id))) return false;
                                                     if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
                                                     const startTime = new Date(b.dateTime).getTime();
                                                     if (startTime > now.getTime()) return false;
@@ -704,7 +731,7 @@ const AdminView: React.FC = () => {
                                             )
                                             .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
                                         const isPending = restaurant.bookings.some(
-                                            b => b.tableId === el.id && b.status === BookingStatus.PENDING && new Date(b.dateTime) <= now
+                                            b => (b.tableId === el.id || b.tableIds?.includes(el.id)) && b.status === BookingStatus.PENDING && new Date(b.dateTime) <= now
                                         );
 
                                         let statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green';
@@ -731,7 +758,7 @@ const AdminView: React.FC = () => {
                                                 // Check for upcoming bookings
                                                 const nextBooking = restaurant.bookings
                                                     .filter(b =>
-                                                        b.tableId === el.id &&
+                                                        (b.tableId === el.id || b.tableIds?.includes(el.id)) &&
                                                         (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
                                                         new Date(b.dateTime) > now
                                                     )
@@ -749,7 +776,7 @@ const AdminView: React.FC = () => {
                                             if (!currentBooking && !isPending) {
                                                 const nextBooking = restaurant.bookings
                                                     .filter(b =>
-                                                        b.tableId === el.id &&
+                                                        (b.tableId === el.id || b.tableIds?.includes(el.id)) &&
                                                         (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
                                                         new Date(b.dateTime) > now
                                                     )

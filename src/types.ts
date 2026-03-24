@@ -76,6 +76,8 @@ export interface Booking {
   restaurantId: string;
   tableId?: string | null;
   tableLabel?: string | null;
+  tableIds?: string[];
+  tableLabels?: string[];
   dateTime: Date;
   status: BookingStatus;
   guestName: string;

@@ -63,9 +63,9 @@ export const api = {
         }),
     },
     bookings: {
-        updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number) => request<any>(`/bookings/${id}/status`, {
+        updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[]) => request<any>(`/bookings/${id}/status`, {
             method: 'PUT',
-            body: JSON.stringify({ status, declineReason, tableId, tableLabel, duration }),
+            body: JSON.stringify({ status, declineReason, tableId, tableLabel, duration, tableIds, tableLabels }),
         }),
         cleanupExpired: () => request<{ updated: number, bookings: any[] }>('/bookings/cleanup-expired', {
             method: 'POST',
