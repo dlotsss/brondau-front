@@ -460,19 +460,29 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         {isAdmin && (
                             <div>
                                 <label className="text-xs text-brand-yellow block mb-2 font-bold">Ответственный (менеджер / хостес):</label>
-                                <input
-                                    type="text"
-                                    list="modal-staff-list"
-                                    value={assignedTo}
-                                    onChange={e => setAssignedTo(e.target.value)}
-                                    placeholder="Введите имя..."
-                                    className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                                />
-                                <datalist id="modal-staff-list">
-                                    {staffNames.map(name => (
-                                        <option key={name} value={name} />
-                                    ))}
-                                </datalist>
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        value={assignedTo}
+                                        onChange={e => setAssignedTo(e.target.value)}
+                                        placeholder="Введите имя..."
+                                        className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                    />
+                                    {staffNames.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                            {staffNames.filter(n => !assignedTo || n.toLowerCase().includes(assignedTo.toLowerCase())).map(name => (
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    onClick={() => setAssignedTo(name)}
+                                                    className="text-[10px] bg-brand-primary px-2 py-1 rounded border border-gray-600 hover:border-brand-blue text-gray-300 transition-colors"
+                                                >
+                                                    {name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

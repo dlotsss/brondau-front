@@ -110,14 +110,14 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
     const needsTableAssignment = !booking.tableId && (!booking.tableIds || booking.tableIds.length === 0);
 
     useEffect(() => {
-        api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => {});
+        api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => { });
     }, [restaurantId]);
 
     const toggleTable = (id: string) => {
         setAssignedTableIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (needsTableAssignment && assignedTableIds.length === 0) {
             alert('Пожалуйста, выберите столик(и) для гостя.');
             return;
@@ -134,11 +134,15 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             }
         }
 
-        if (needsTableAssignment) {
-            const labels = assignedTableIds.map(id => tables.find(t => t.id === id)?.label || '');
-            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, assignedTableIds, labels, assignedTo || undefined);
-        } else {
-            updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, undefined, undefined, assignedTo || undefined);
+        try {
+            if (needsTableAssignment) {
+                const labels = assignedTableIds.map(id => tables.find(t => t.id === id)?.label || '');
+                await updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, assignedTableIds, labels, assignedTo || undefined);
+            } else {
+                await updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, undefined, undefined, assignedTo || undefined);
+            }
+        } catch (err: any) {
+            alert(err.message || 'Ошибка обновления статуса');
         }
     };
 
@@ -163,7 +167,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             <p className="text-sm font-medium text-gray-200">{booking.guestName} ({booking.guestCount} гостей)</p>
             <p className="text-sm font-bold text-brand-blue drop-shadow-sm">{booking.guestPhone}</p>
             <p className="text-xs font-medium text-brand-yellow mb-2">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
-            
+
             {booking.guestComment && (
                 <div className="mt-2 mb-2 p-2 bg-black/20 rounded border border-gray-600/50">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Комментарий гостя:</p>
@@ -207,21 +211,30 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
 
             {/* Responsible staff assignment */}
             {!isDeclining && (
-                <div className="mt-3">
+                <div className="mt-3 relative">
                     <label className="text-xs text-gray-200 font-medium block mb-1">Ответственный за бронь:</label>
-                    <input
-                        type="text"
-                        list={`staff-list-${booking.id}`}
-                        value={assignedTo}
-                        onChange={e => setAssignedTo(e.target.value)}
-                        placeholder="Имя менеджера / хостес"
-                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue placeholder-gray-500"
-                    />
-                    <datalist id={`staff-list-${booking.id}`}>
-                        {staffNames.map(name => (
-                            <option key={name} value={name} />
-                        ))}
-                    </datalist>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={assignedTo}
+                            onChange={e => setAssignedTo(e.target.value)}
+                            placeholder="Имя менеджера / хостес"
+                            className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue placeholder-gray-500"
+                        />
+                        {staffNames.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {staffNames.filter(n => !assignedTo || n.toLowerCase().includes(assignedTo.toLowerCase())).map(name => (
+                                    <button
+                                        key={name}
+                                        onClick={() => setAssignedTo(name)}
+                                        className="text-[12px] bg-brand-primary px-2 py-0.5 rounded border border-gray-700 hover:border-brand-blue text-gray-300 transition-colors"
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -519,7 +532,7 @@ const AdminView: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
                     {/* Column 1: Requests */}
                     <div className="lg:col-span-1 order-2 lg:order-1">
-                        <h2 className="text-xl md:text-2xl font-bold mb-4 text-white">Новые запросы</h2>
+                        <h2 className="text-xl md:text-2xl font-bold mb-4 text-brand-primary">Новые запросы</h2>
                         <div className="space-y-4 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto pr-2">
                             {pendingBookings.length > 0 ? (
                                 pendingBookings.map(b => (
@@ -646,7 +659,7 @@ const AdminView: React.FC = () => {
 
                         {/* Map Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                            <h2 className="text-xl md:text-2xl font-bold text-white">План зала</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-brand-primary">План зала</h2>
                             {restaurant.floors && restaurant.floors.length > 1 && (
                                 <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto max-w-full">
                                     {restaurant.floors.map(f => (

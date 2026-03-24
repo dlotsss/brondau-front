@@ -303,6 +303,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       })));
     } catch (error) {
       console.error('Failed to update booking status:', error);
+      throw error;
     }
   }, []);
 
