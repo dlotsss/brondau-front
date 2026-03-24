@@ -301,26 +301,14 @@ const AdminView: React.FC = () => {
 
     const occupiedTableBookings = useMemo(() => {
         if (!restaurant) return [];
-        const now = new Date();
 
         return (restaurant.layout.filter(el => el.type === 'table') as TableElement[])
             .map(table => {
-                const activeBooking = restaurant.bookings
-                    .filter(
-                        b => {
-                            if (b.tableId !== table.id && (!b.tableIds || !b.tableIds.includes(table.id))) return false;
-                            if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
-                            const startTime = new Date(b.dateTime).getTime();
-                            if (startTime > now.getTime()) return false;
-                            const durationMinutes = b.duration || restaurant.bookingRestriction || 60;
-                            const endTime = startTime + durationMinutes * 60000;
-                            if (endTime <= now.getTime()) return false;
-                            return true;
-                        }
-                    )
-                    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
-
-                return activeBooking ? { table, booking: activeBooking } : null;
+                const booking = restaurant.bookings.find(b => 
+                    (b.tableId === table.id || b.tableIds?.includes(table.id)) && 
+                    b.status === BookingStatus.OCCUPIED
+                );
+                return booking ? { table, booking } : null;
             })
             .filter((item): item is { table: TableElement; booking: Booking } => item !== null);
     }, [restaurant]);
@@ -553,106 +541,123 @@ const AdminView: React.FC = () => {
                     <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
 
                         {/* Status Sections */}
+                        {/* Status Sections */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                                <h3 className="text-lg md:text-xl font-semibold mb-3 text-gray-200">Занятые столики</h3>
-                                {occupiedTableBookings.length > 0 ? (
-                                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                                        {occupiedTableBookings.map(({ table, booking }) => (
-                                            <div key={table.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/60 rounded-md p-3">
-                                                <div>
-                                                    <p className="font-semibold text-gray-200">Столик {table.label}</p>
-                                                    <p className="text-xs text-gray-400">
-                                                        {booking.guestName}
-                                                        {booking.assignedTo && <span className="ml-2 text-brand-blue">• {booking.assignedTo}</span>}
-                                                    </p>
-                                                    <DurationEditor booking={booking} />
-                                                </div>
-                                                <button
-                                                    onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
-                                                    className="bg-brand-green text-white px-2 py-1 text-xs font-semibold rounded-md hover:bg-green-700 transition-colors"
-                                                >
-                                                    Освободить
-                                                </button>
-                                            </div>
-                                        ))}
+                            {/* 1. Expected Guests - Large Section */}
+                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4 md:col-span-2">
+                                <h3 className="text-lg md:text-xl font-semibold mb-3 text-brand-primary">Ожидаемые гости</h3>
+                                {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED).length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2">
+                                        {restaurant.bookings
+                                            .filter(b => b.status === BookingStatus.CONFIRMED)
+                                            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+                                            .map(booking => {
+                                                const isPast = new Date(booking.dateTime) < new Date();
+                                                return (
+                                                    <div key={booking.id} className={`flex flex-col justify-between gap-2 ${isPast ? 'bg-brand-red/10 border border-brand-red/30' : 'bg-brand-accent/40 border border-brand-accent/30'} rounded-md p-3 transition-all hover:border-brand-blue/50`}>
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <p className="font-bold text-sm text-gray-200 truncate">{booking.guestName}</p>
+                                                                <span className="text-[10px] bg-brand-blue/20 text-brand-blue px-1.5 py-0.5 rounded font-bold">
+                                                                    {booking.guestCount} чел
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-brand-blue font-medium mb-1">{booking.guestPhone}</p>
+                                                            <p className="text-[11px] text-gray-400">
+                                                                <span className="text-gray-200">Столик:</span> {booking.tableLabels?.length ? booking.tableLabels.join(', ') : booking.tableLabel}
+                                                            </p>
+                                                            <p className="text-[11px] text-gray-400">
+                                                                <span className="text-gray-200">Время:</span> {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+                                                            </p>
+                                                            {isPast && <div className="mt-1 text-[10px] bg-brand-red text-white px-1 rounded inline-block font-bold animate-pulse">ОПОЗДАНИЕ</div>}
+                                                            <DurationEditor booking={booking} />
+                                                        </div>
+                                                        <div className="flex gap-2 mt-2">
+                                                            <button
+                                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
+                                                                className="flex-1 bg-brand-green text-white py-1.5 text-xs font-bold rounded hover:bg-green-700 transition-all shadow-sm"
+                                                            >
+                                                                Пришли
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором")}
+                                                                className="bg-brand-red/10 text-brand-red border border-brand-red/20 px-2 py-1.5 text-[10px] font-semibold rounded hover:bg-brand-red hover:text-white transition-all"
+                                                            >
+                                                                Отмена
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-400 text-sm">Пусто.</p>
+                                    <p className="text-gray-500 text-xs italic py-4 text-center">Нет ожидаемых броней</p>
                                 )}
                             </div>
 
+                            {/* 2. Occupied Tables - Left Side */}
                             <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                                <h3 className="text-lg md:text-xl font-semibold mb-3">Бронь (будущая)</h3>
-                                {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date()).length > 0 ? (
-                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                                        {restaurant.bookings
-                                            .filter(b => b.status === BookingStatus.CONFIRMED && new Date(b.dateTime) > new Date())
-                                            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-                                            .map(booking => (
-                                                <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-brand-accent/40 rounded-md p-3">
-                                                    <div>
-                                                        <p className="font-semibold text-sm text-gray-200">{booking.guestName} ({booking.guestCount} ч.)</p>
-                                                        <p className="text-xs text-brand-blue font-medium">{booking.guestPhone}</p>
-                                                        <p className="text-xs text-gray-400">
-                                                            Ст. {booking.tableLabels?.length ? booking.tableLabels.join(', ') : booking.tableLabel} • {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
-                                                            {booking.assignedTo && <span className="ml-1 text-brand-blue">• {booking.assignedTo}</span>}
-                                                        </p>
-                                                        <DurationEditor booking={booking} />
+                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">Занятые столики</h3>
+                                {occupiedTableBookings.length > 0 ? (
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                        {occupiedTableBookings.map(({ table, booking }) => {
+                                            const startTime = new Date(booking.dateTime).getTime();
+                                            const duration = booking.duration || 60;
+                                            const endTime = startTime + duration * 60000;
+                                            const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 60000));
+                                            
+                                            return (
+                                                <div key={table.id} className="flex items-center justify-between gap-2 bg-brand-green/10 border border-brand-green/30 rounded-md p-2">
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-brand-green text-xs truncate">Ст. {table.label} — {booking.guestName}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <div className="text-[10px] font-bold text-brand-red border border-brand-red/30 px-1.5 py-0.5 rounded bg-brand-red/5">
+                                                                {timeLeft} мин
+                                                            </div>
+                                                            <DurationEditor booking={booking} />
+                                                        </div>
                                                     </div>
                                                     <button
-                                                        onClick={() => updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором")}
-                                                        className="bg-brand-red text-white px-2 py-1 text-xs font-semibold rounded self-start sm:self-center hover:bg-red-700 transition-colors"
+                                                        onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
+                                                        className="bg-brand-green text-white px-2 py-1 text-[10px] font-bold rounded hover:bg-green-700 transition-colors shrink-0"
                                                     >
-                                                        Отменить
+                                                        Освободить
                                                     </button>
                                                 </div>
-                                            ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-400 text-sm">Нет записей.</p>
+                                    <p className="text-gray-500 text-[10px] italic py-2">Нет занятых столов</p>
                                 )}
                             </div>
 
-                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4 md:col-span-2">
-                                <h3 className="text-lg md:text-xl font-semibold mb-3">Отмененные / Отклоненные</h3>
+                            {/* 3. Cancelled - Right Side (Small) */}
+                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
+                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">История (Отмены)</h3>
                                 {restaurant.bookings.filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED).length > 0 ? (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                         {restaurant.bookings
                                             .filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED)
                                             .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
                                             .map(booking => (
-                                                <div key={booking.id} className="bg-brand-accent/20 border border-brand-accent/30 rounded-md p-3">
-                                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                                        <div>
-                                                            <p className="font-semibold text-sm text-gray-300">
-                                                                {booking.guestName} ({booking.guestCount} ч.)
-                                                                <span className={`ml-2 px-2 py-0.5 rounded text-[10px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'bg-brand-red/20 text-brand-red' : 'bg-gray-700 text-gray-400'}`}>
-                                                                    {booking.status === BookingStatus.CANCELLED ? (booking.cancelledBy === 'guest' ? 'Отменено гостем' : 'Отменено') : 'Отклонено'}
-                                                                </span>
-                                                            </p>
-                                                            <p className="text-xs text-gray-500">
-                                                                {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
-                                                                {booking.tableLabels?.length ? ` • Столы: ${booking.tableLabels.join(', ')}` : (booking.tableLabel && ` • Стол ${booking.tableLabel}`)}
-                                                                {booking.assignedTo && <span className="ml-1 text-brand-blue">• {booking.assignedTo}</span>}
-                                                            </p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            {booking.status === BookingStatus.CANCELLED ? (
-                                                                <p className="text-xs text-brand-red italic">Причина: {booking.cancelReason}{booking.cancelComment ? ` (${booking.cancelComment})` : ''}</p>
-                                                            ) : (
-                                                                <p className="text-xs text-gray-400 italic">Причина: {booking.declineReason || 'Не указана'}</p>
-                                                            )}
-                                                            <p className="text-[10px] text-gray-600 mt-1">
-                                                                {booking.status === BookingStatus.CANCELLED && booking.cancelledAt && `Обновлено: ${new Date(booking.cancelledAt).toLocaleString('ru-RU')}`}
-                                                            </p>
-                                                        </div>
+                                                <div key={booking.id} className="bg-brand-accent/20 border border-brand-accent/10 rounded-md p-2 flex justify-between items-center opacity-70">
+                                                    <div className="min-w-0">
+                                                        <p className="font-semibold text-[10px] text-gray-400 truncate">
+                                                            {booking.guestName}
+                                                        </p>
+                                                        <p className="text-[9px] text-gray-500">
+                                                            {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                                            <span className={`ml-2 px-1 rounded text-[8px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'text-brand-red' : 'text-gray-400'}`}>
+                                                                {booking.status === BookingStatus.CANCELLED ? 'ОТМЕНЕНО' : 'ОТКЛОНЕНО'}
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             ))}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-400 text-sm">Пусто.</p>
+                                    <p className="text-gray-500 text-[10px] italic py-2">История пуста</p>
                                 )}
                             </div>
                         </div>
@@ -758,77 +763,29 @@ const AdminView: React.FC = () => {
                                         }
 
                                         const now = new Date();
-                                        const currentBooking = restaurant.bookings
-                                            .filter(
-                                                b => {
-                                                    if (b.tableId !== el.id && (!b.tableIds || !b.tableIds.includes(el.id))) return false;
-                                                    if (b.status !== BookingStatus.CONFIRMED && b.status !== BookingStatus.OCCUPIED) return false;
-                                                    const startTime = new Date(b.dateTime).getTime();
-                                                    if (startTime > now.getTime()) return false;
-                                                    // Check if booking has expired
-                                                    const durationMinutes = b.duration || restaurant.bookingRestriction || 60;
-                                                    const endTime = startTime + durationMinutes * 60000;
-                                                    if (endTime <= now.getTime()) return false; // Expired, visually treat as free
-                                                    return true;
-                                                }
-                                            )
-                                            .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())[0];
-                                        const isPending = restaurant.bookings.some(
-                                            b => (b.tableId === el.id || b.tableIds?.includes(el.id)) && b.status === BookingStatus.PENDING && new Date(b.dateTime) <= now
-                                        );
+                                        const relevantBookings = restaurant.bookings.filter(b => 
+                                            (b.tableId === el.id || b.tableIds?.includes(el.id)) &&
+                                            [BookingStatus.CONFIRMED, BookingStatus.OCCUPIED].includes(b.status)
+                                        ).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
-                                        let statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green';
-                                        const hasRestriction = restaurant.bookingRestriction !== undefined && restaurant.bookingRestriction !== -1;
+                                        const occupied = relevantBookings.find(b => b.status === BookingStatus.OCCUPIED);
+                                        const confirmed = relevantBookings.find(b => b.status === BookingStatus.CONFIRMED);
 
-                                        if (hasRestriction) {
-                                            statusColor = 'bg-[rgb(59,130,246)]/80 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:bg-[rgb(59,130,246)]'; // Default free table
+                                        let statusColor = 'bg-[rgb(59,130,246)]/80 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:bg-[rgb(59,130,246)]'; // BLUE: Default
 
-                                            if (currentBooking) {
-                                                const durationMinutes = currentBooking.duration || restaurant.bookingRestriction;
-                                                const endTime = new Date(currentBooking.dateTime).getTime() + durationMinutes * 60000;
-                                                const timeLeftMs = endTime - now.getTime();
-
-                                                if (timeLeftMs <= 30 * 60000) {
-                                                    statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
-                                                } else if (timeLeftMs <= 60 * 60000) {
-                                                    statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow';
-                                                } else {
-                                                    statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green cursor-not-allowed opacity-90';
-                                                }
-                                            } else if (isPending) {
-                                                statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow';
-                                            } else {
-                                                // Check for upcoming bookings
-                                                const nextBooking = restaurant.bookings
-                                                    .filter(b =>
-                                                        (b.tableId === el.id || b.tableIds?.includes(el.id)) &&
-                                                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                                                        new Date(b.dateTime) > now
-                                                    )
-                                                    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
-
-                                                if (nextBooking && (new Date(nextBooking.dateTime).getTime() - now.getTime()) < 60 * 60 * 1000) {
-                                                    statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
-                                                }
+                                        if (occupied) {
+                                            statusColor = 'bg-brand-green/80 shadow-[0_0_15px_rgba(74,222,128,0.3)] hover:bg-brand-green'; // GREEN: Occupied
+                                        } else if (confirmed) {
+                                            const startTime = new Date(confirmed.dateTime).getTime();
+                                            const timeDiff = startTime - now.getTime();
+                                            
+                                            if (timeDiff < 0) {
+                                                statusColor = 'bg-brand-red/80 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red'; // RED: Confirmed & Past
+                                            } else if (timeDiff <= 60 * 60000) {
+                                                statusColor = 'bg-brand-yellow/80 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow'; // YELLOW: Confirmed & <= 1h
                                             }
-                                        } else {
-                                            // Old logic
-                                            if (currentBooking) statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
-                                            if (isPending) statusColor = 'bg-brand-yellow/80 cursor-wait opacity-90 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:bg-brand-yellow';
-
-                                            if (!currentBooking && !isPending) {
-                                                const nextBooking = restaurant.bookings
-                                                    .filter(b =>
-                                                        (b.tableId === el.id || b.tableIds?.includes(el.id)) &&
-                                                        (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.OCCUPIED || b.status === BookingStatus.PENDING) &&
-                                                        new Date(b.dateTime) > now
-                                                    )
-                                                    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
-
-                                                if (nextBooking && (new Date(nextBooking.dateTime).getTime() - now.getTime()) < 60 * 60 * 1000) {
-                                                    statusColor = 'bg-brand-red/80 cursor-not-allowed opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red';
-                                                }
-                                            }
+                                        } else if (restaurant.bookings.some(b => (b.tableId === el.id || b.tableIds?.includes(el.id)) && b.status === BookingStatus.PENDING)) {
+                                            statusColor = 'bg-brand-yellow/40 cursor-wait shadow-inner opacity-80'; // Subtle yellow for pending
                                         }
 
                                         const shapeClasses = el.shape === 'circle' ? 'rounded-full' : 'rounded-md';
