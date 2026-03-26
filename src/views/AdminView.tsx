@@ -7,6 +7,7 @@ import GuestManager from '../components/GuestManager';
 import { api } from '../services/api';
 import { registerServiceWorker, subscribeToPush } from '../services/pushService';
 import { LayoutElement } from '../types';
+import FutureBookingsManager from '../components/FutureBookingsManager';
 
 const LOGICAL_WIDTH = 1500;
 const LOGICAL_HEIGHT = 1000;
@@ -267,7 +268,7 @@ const AdminView: React.FC = () => {
     const { getRestaurant, updateBookingStatus } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
-    const [activeView, setActiveView] = useState<'MAP' | 'GUESTS'>('MAP');
+    const [activeView, setActiveView] = useState<'MAP' | 'GUESTS' | 'FUTURE'>('MAP');
     const [isInitialized, setIsInitialized] = useState(false);
 
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
@@ -499,17 +500,24 @@ const AdminView: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* View Switcher Tabs */}
-            <div className="flex border-b border-brand-accent/30 gap-6 mb-2">
+            <div className="flex border-b border-brand-accent/30 gap-6 mb-2 overflow-x-auto no-scrollbar">
                 <button
                     onClick={() => setActiveView('MAP')}
-                    className={`pb-3 text-lg font-bold transition-all relative ${activeView === 'MAP' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'MAP' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                     Зал и Брони
                     {activeView === 'MAP' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
                 <button
+                    onClick={() => setActiveView('FUTURE')}
+                    className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'FUTURE' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    Будущие брони
+                    {activeView === 'FUTURE' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
+                </button>
+                <button
                     onClick={() => setActiveView('GUESTS')}
-                    className={`pb-3 text-lg font-bold transition-all relative ${activeView === 'GUESTS' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'GUESTS' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                     База клиентов
                     {activeView === 'GUESTS' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
@@ -541,59 +549,7 @@ const AdminView: React.FC = () => {
                     <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
 
                         {/* Status Sections */}
-                        {/* Status Sections */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 1. Expected Guests - Large Section */}
-                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4 md:col-span-2">
-                                <h3 className="text-lg md:text-xl font-semibold mb-3 text-brand-primary">Ожидаемые гости</h3>
-                                {restaurant.bookings.filter(b => b.status === BookingStatus.CONFIRMED).length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2">
-                                        {restaurant.bookings
-                                            .filter(b => b.status === BookingStatus.CONFIRMED)
-                                            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-                                            .map(booking => {
-                                                const isPast = new Date(booking.dateTime) < new Date();
-                                                return (
-                                                    <div key={booking.id} className={`flex flex-col justify-between gap-2 ${isPast ? 'bg-brand-red/10 border border-brand-red/30' : 'bg-brand-accent/40 border border-brand-accent/30'} rounded-md p-3 transition-all hover:border-brand-blue/50`}>
-                                                        <div>
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <p className="font-bold text-sm text-gray-200 truncate">{booking.guestName}</p>
-                                                                <span className="text-[10px] bg-brand-blue/20 text-brand-blue px-1.5 py-0.5 rounded font-bold">
-                                                                    {booking.guestCount} чел
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-xs text-brand-blue font-medium mb-1">{booking.guestPhone}</p>
-                                                            <p className="text-[11px] text-gray-400">
-                                                                <span className="text-gray-200">Столик:</span> {booking.tableLabels?.length ? booking.tableLabels.join(', ') : booking.tableLabel}
-                                                            </p>
-                                                            <p className="text-[11px] text-gray-400">
-                                                                <span className="text-gray-200">Время:</span> {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
-                                                            </p>
-                                                            {isPast && <div className="mt-1 text-[10px] bg-brand-red text-white px-1 rounded inline-block font-bold animate-pulse">ОПОЗДАНИЕ</div>}
-                                                            <DurationEditor booking={booking} />
-                                                        </div>
-                                                        <div className="flex gap-2 mt-2">
-                                                            <button
-                                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
-                                                                className="flex-1 bg-brand-green text-white py-1.5 text-xs font-bold rounded hover:bg-green-700 transition-all shadow-sm"
-                                                            >
-                                                                Пришли
-                                                            </button>
-                                                            <button
-                                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором")}
-                                                                className="bg-brand-red/10 text-brand-red border border-brand-red/20 px-2 py-1.5 text-[10px] font-semibold rounded hover:bg-brand-red hover:text-white transition-all"
-                                                            >
-                                                                Отмена
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-xs italic py-4 text-center">Нет ожидаемых броней</p>
-                                )}
-                            </div>
 
                             {/* 2. Occupied Tables - Left Side */}
                             <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
@@ -849,10 +805,12 @@ const AdminView: React.FC = () => {
                         />
                     )}
                 </div>
-            ) : (
+            ) : activeView === 'GUESTS' ? (
                 <div className="animate-fadeIn h-[70vh]">
                     <GuestManager />
                 </div>
+            ) : (
+                <FutureBookingsManager restaurantId={restaurant.id} />
             )}
         </div>
     );
