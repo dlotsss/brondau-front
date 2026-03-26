@@ -32,6 +32,7 @@ const GuestManager: React.FC = () => {
     }, [searchPhone, handleSearch]);
 
     const selectGuest = async (guest: Guest) => {
+        if (!guest || !guest.phone) return;
         setSelectedGuest(guest);
         setInternalComment(guest.internalComment || '');
         setLoading(true);
