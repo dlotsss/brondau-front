@@ -9,17 +9,17 @@ interface FutureBookingsManagerProps {
 const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restaurantId }) => {
     const { getRestaurant, updateBookingStatus } = useData();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    
+
     const restaurant = getRestaurant(restaurantId);
-    
+
     const filteredBookings = useMemo(() => {
         if (!restaurant) return [];
-        
+
         return restaurant.bookings
             .filter(b => {
                 if (b.status !== BookingStatus.CONFIRMED) return false;
                 if (!selectedDate) return true;
-                
+
                 const bookingDate = new Date(b.dateTime).toISOString().split('T')[0];
                 return bookingDate === selectedDate;
             })
@@ -65,7 +65,7 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <h4 className="font-bold text-lg text-white group-hover:text-brand-blue transition-colors">
+                                            <h4 className="font-bold text-lg text-brand-primary group-hover:text-brand-blue transition-colors">
                                                 {booking.guestName}
                                             </h4>
                                             <p className="text-brand-blue font-mono font-medium">{booking.guestPhone}</p>
@@ -77,14 +77,14 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
 
                                     <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5">
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-gray-400">Столик:</span>
-                                            <span className="text-white font-bold">
+                                            <span className="text-gray-900">Столик:</span>
+                                            <span className="text-brand-primary font-bold">
                                                 {booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || 'Не назначен')}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-gray-400">Время:</span>
-                                            <span className="text-white font-bold">{formatDate(booking.dateTime)}</span>
+                                            <span className="text-gray-900">Время:</span>
+                                            <span className="text-brand-primary font-bold">{formatDate(booking.dateTime)}</span>
                                         </div>
                                     </div>
 
