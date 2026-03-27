@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BookingStatus, TableElement } from '../types';
+import { BookingStatus, TableElement, Booking } from '../types';
 import { useData } from '../context/DataContext';
 
 const parseTime = (timeStr: string): number => {
@@ -13,6 +13,7 @@ interface BookingModalProps {
     onClose: () => void;
     isAdmin?: boolean;
     withMap?: boolean; // If false - no table selection was made, table is null
+    bookingToEdit?: Booking;
 }
 
 const formatLocalDate = (date: Date) => {
@@ -37,28 +38,28 @@ const formatPhoneNumber = (value: string): string => {
     return `+${normalizedDigits[0]} (${normalizedDigits.slice(1, 4)}) ${normalizedDigits.slice(4, 7)}-${normalizedDigits.slice(7, 9)}-${normalizedDigits.slice(9, 11)}`;
 };
 
-const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false, withMap = true }) => {
-    const { addBooking, getRestaurant } = useData();
+const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false, withMap = true, bookingToEdit }) => {
+    const { addBooking, getRestaurant, updateBookingDetails } = useData();
     const restaurant = getRestaurant(restaurantId);
 
-    const [guestName, setGuestName] = useState('');
-    const [guestPhone, setGuestPhone] = useState('');
-    const [guestEmail, setGuestEmail] = useState('');
-    const [duration, setDuration] = useState<number>(restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60);
+    const [guestName, setGuestName] = useState(bookingToEdit?.guestName || '');
+    const [guestPhone, setGuestPhone] = useState(bookingToEdit?.guestPhone || '');
+    const [guestEmail, setGuestEmail] = useState(bookingToEdit?.guestEmail || '');
+    const [duration, setDuration] = useState<number>(bookingToEdit?.duration || (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60));
     const [loading, setLoading] = useState(false);
-    const [guestCount, setGuestCount] = useState<number>(2);
-    const [guestComment, setGuestComment] = useState('');
-    const [assignedTo, setAssignedTo] = useState('');
+    const [guestCount, setGuestCount] = useState<number>(bookingToEdit?.guestCount || 2);
+    const [guestComment, setGuestComment] = useState(bookingToEdit?.guestComment || '');
+    const [assignedTo, setAssignedTo] = useState(bookingToEdit?.assignedTo || '');
     const [staffNames, setStaffNames] = useState<string[]>([]);
 
-    const [bookingDate, setBookingDate] = useState(formatLocalDate(new Date()));
-    const [bookingTime, setBookingTime] = useState('');
+    const [bookingDate, setBookingDate] = useState(bookingToEdit ? formatLocalDate(new Date(bookingToEdit.dateTime)) : formatLocalDate(new Date()));
+    const [bookingTime, setBookingTime] = useState(bookingToEdit ? new Date(bookingToEdit.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '');
     const [error, setError] = useState('');
 
     useEffect(() => {
         if (isAdmin && restaurantId) {
             import('../services/api').then(({ api }) => {
-                api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => {});
+                api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => { });
             });
         }
     }, [isAdmin, restaurantId]);
@@ -336,9 +337,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 assignedTo: isAdmin ? assignedTo : undefined
             };
 
-            await addBooking(restaurantId, payload);
-
-            alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
+            if (bookingToEdit) {
+                await updateBookingDetails(bookingToEdit.id, payload);
+                alert('Изменения сохранены!');
+            } else {
+                await addBooking(restaurantId, payload);
+                alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
+            }
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Не удалось создать бронирование.');
@@ -353,11 +358,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300 p-2 sm:p-4">
             <div className="bg-brand-secondary rounded-lg shadow-2xl p-6 w-full max-w-lg m-auto transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4 sticky top-0 bg-brand-secondary pb-2 border-b border-brand-accent/30 z-10">
-                    <h2 className="text-xl md:text-2xl font-bold text-white">
-                        {isAdmin
-                            ? table ? <>Посадить гостей: <span className="text-brand-blue">{table.label}</span></> : 'Посадить гостей'
-                            : table ? <>Бронь столика <span className="text-brand-blue">{table.label}</span></> : 'Забронировать столик'
-                        }
+                    <h2 className="text-xl md:text-2xl font-bold text-brand-primary">
+                        {bookingToEdit ? 'Редактирование брони' : (
+                            isAdmin
+                                ? table ? <>Посадить гостей: <span className="text-brand-blue">{table.label}</span></> : 'Посадить гостей'
+                                : table ? <>Бронь столика <span className="text-brand-blue">{table.label}</span></> : 'Забронировать столик'
+                        )}
                     </h2>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white transition-colors">&times;</button>
                 </div>
@@ -459,7 +465,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                         {isAdmin && (
                             <div>
-                                <label className="text-xs text-brand-yellow block mb-2 font-bold">Ответственный (менеджер / хостес):</label>
+                                <label className="text-xs text-brand-blue block mb-2 font-bold">Ответственный (менеджер / хостес):</label>
                                 <div className="space-y-2">
                                     <input
                                         type="text"
@@ -521,7 +527,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             disabled={!isAdmin && activeSlots.length === 0}
                             className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:brightness-90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all"
                         >
-                            {isAdmin ? 'Занять столик' : 'Забронировать'}
+                            {bookingToEdit ? 'Сохранить изменения' : (isAdmin ? 'Занять столик' : 'Забронировать')}
                         </button>
                     </div>
                 </form>

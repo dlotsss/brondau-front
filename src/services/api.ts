@@ -64,6 +64,10 @@ export const api = {
         }),
     },
     bookings: {
+        updateDetails: (id: string, payload: any) => request<any>(`/bookings/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        }),
         updateStatus: (id: string, status: BookingStatus, declineReason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[], assignedTo?: string) => request<any>(`/bookings/${id}/status`, {
             method: 'PUT',
             body: JSON.stringify({ status, declineReason, tableId, tableLabel, duration, tableIds, tableLabels, assignedTo }),

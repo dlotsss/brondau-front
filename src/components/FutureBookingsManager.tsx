@@ -4,9 +4,10 @@ import { Booking, BookingStatus } from '../types';
 
 interface FutureBookingsManagerProps {
     restaurantId: string;
+    onEditBooking?: (booking: Booking) => void;
 }
 
-const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restaurantId }) => {
+const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restaurantId, onEditBooking }) => {
     const { getRestaurant, updateBookingStatus } = useData();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -65,9 +66,23 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <h4 className="font-bold text-lg text-brand-primary group-hover:text-brand-blue transition-colors">
-                                                {booking.guestName}
-                                            </h4>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-lg text-brand-blue group-hover:text-brand-blue transition-colors">
+                                                    {booking.guestName}
+                                                </h4>
+                                                {onEditBooking && (
+                                                    <button
+                                                        onClick={() => onEditBooking(booking)}
+                                                        className="text-gray-400 hover:text-brand-blue transition-colors p-1"
+                                                        title="Редактировать бронь"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </div>
                                             <p className="text-brand-blue font-mono font-medium">{booking.guestPhone}</p>
                                         </div>
                                         <div className="bg-brand-blue/10 text-brand-blue px-3 py-1 rounded-full text-xs font-bold border border-brand-blue/20">
@@ -77,14 +92,14 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
 
                                     <div className="space-y-1 bg-black/20 p-3 rounded-lg border border-white/5">
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-gray-900">Столик:</span>
-                                            <span className="text-brand-primary font-bold">
+                                            <span className="text-white">Столик:</span>
+                                            <span className="text-brand-blue font-bold">
                                                 {booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || 'Не назначен')}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-gray-900">Время:</span>
-                                            <span className="text-brand-primary font-bold">{formatDate(booking.dateTime)}</span>
+                                            <span className="text-white">Время:</span>
+                                            <span className="text-brand-blue font-bold">{formatDate(booking.dateTime)}</span>
                                         </div>
                                     </div>
 

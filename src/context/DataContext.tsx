@@ -18,6 +18,7 @@ interface DataContextType {
     }
   ) => Promise<void>;
   updateBookingStatus: (bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[], assignedTo?: string) => Promise<void>;
+  updateBookingDetails: (bookingId: string, payload: any) => Promise<void>;
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
   updateRestaurantSettings: (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => Promise<void>;
   loadRestaurants: () => Promise<void>;
@@ -307,6 +308,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const updateBookingDetails = useCallback(async (bookingId: string, payload: any) => {
+    try {
+      const updatedBooking = await api.bookings.updateDetails(bookingId, payload);
+      setRestaurants(prev => prev.map(r => ({
+        ...r,
+        bookings: r.bookings.map(b => b.id === bookingId ? {
+          ...b,
+          tableId: updatedBooking.table_id,
+          tableLabel: updatedBooking.table_label,
+          guestName: updatedBooking.guest_name,
+          guestPhone: updatedBooking.guest_phone,
+          guestEmail: updatedBooking.guest_email,
+          guestCount: updatedBooking.guest_count,
+          guestComment: updatedBooking.guest_comment,
+          assignedTo: updatedBooking.assigned_to,
+          duration: updatedBooking.duration,
+          dateTime: new Date(updatedBooking.date_time)
+        } : b)
+      })));
+    } catch (error) {
+      console.error('Failed to update booking details:', error);
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     loadRestaurants();
   }, [loadRestaurants]);
@@ -333,6 +359,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addRestaurant,
       addBooking,
       updateBookingStatus,
+      updateBookingDetails,
       updateLayout,
       updateRestaurantSettings,
       loadRestaurants,

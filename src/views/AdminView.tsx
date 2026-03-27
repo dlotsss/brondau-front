@@ -267,6 +267,8 @@ const AdminView: React.FC = () => {
     const { selectedRestaurantId } = useApp();
     const { getRestaurant, updateBookingStatus } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
+    const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [activeView, setActiveView] = useState<'MAP' | 'GUESTS' | 'FUTURE'>('MAP');
     const [isInitialized, setIsInitialized] = useState(false);
@@ -795,22 +797,30 @@ const AdminView: React.FC = () => {
                             </div>
                         </div>
                     </div>
-
-                    {selectedTable && (
-                        <BookingModal
-                            table={selectedTable}
-                            restaurantId={restaurant.id}
-                            onClose={() => setSelectedTable(null)}
-                            isAdmin={true}
-                        />
-                    )}
                 </div>
             ) : activeView === 'GUESTS' ? (
                 <div className="animate-fadeIn h-[70vh]">
                     <GuestManager />
                 </div>
             ) : (
-                <FutureBookingsManager restaurantId={restaurant.id} />
+                <FutureBookingsManager 
+                    restaurantId={restaurant.id} 
+                    onEditBooking={(b) => setEditingBooking(b)} 
+                />
+            )}
+
+            {(selectedTable || editingBooking) && (
+                <BookingModal
+                    table={editingBooking ? ((restaurant.layout || []).find(el => el.type === 'table' && el.id === editingBooking.tableId) as TableElement || null) : selectedTable}
+                    restaurantId={restaurant.id}
+                    onClose={() => {
+                        setSelectedTable(null);
+                        setEditingBooking(null);
+                    }}
+                    isAdmin={true}
+                    withMap={restaurant.with_map}
+                    bookingToEdit={editingBooking || undefined}
+                />
             )}
         </div>
     );
