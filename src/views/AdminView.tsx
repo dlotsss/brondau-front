@@ -302,6 +302,17 @@ const AdminView: React.FC = () => {
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     }, [restaurant]);
 
+    const todayFutureBookings = useMemo(() => {
+        if (!restaurant) return [];
+        const todayStr = new Date().toISOString().split('T')[0];
+        return restaurant.bookings
+            .filter(b => {
+                if (b.status !== BookingStatus.CONFIRMED) return false;
+                return new Date(b.dateTime).toISOString().split('T')[0] === todayStr;
+            })
+            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    }, [restaurant]);
+
     const occupiedTableBookings = useMemo(() => {
         if (!restaurant) return [];
 
@@ -551,10 +562,83 @@ const AdminView: React.FC = () => {
                     <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
 
                         {/* Status Sections */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-4">
+                            {/* 1. Today's Future Bookings - Full Width Highlighted */}
+                            <div className="bg-[#1a1c23] rounded-xl border-l-4 border-brand-blue p-4 shadow-lg mb-4">
+                                <div className="flex items-center justify-between mb-3 border-b border-brand-accent/30 pb-2">
+                                    <h3 className="text-sm font-bold text-white tracking-wider flex items-center gap-2">
+                                        Ожидаемые гости (Сегодня)
+                                        <span className="bg-brand-blue/20 text-brand-blue px-2 py-0.5 rounded-full text-xs">{todayFutureBookings.length}</span>
+                                    </h3>
+                                </div>
+                                {todayFutureBookings.length > 0 ? (
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                        {todayFutureBookings.map(booking => {
+                                            const timeStr = new Date(booking.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                                            const isPast = new Date(booking.dateTime) < new Date();
+                                            return (
+                                                <div key={booking.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all hover:bg-white/5 ${isPast ? 'bg-brand-red/10 border-brand-red/30' : 'bg-brand-primary border-brand-accent'} group`}>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-brand-blue font-bold font-mono text-lg">{timeStr}</span>
+                                                            <span className="font-bold text-gray-200 group-hover:text-white transition-colors">{booking.guestName}</span>
+                                                            <span className="text-xs text-gray-400 font-mono hidden sm:inline">{booking.guestPhone}</span>
+                                                            <button 
+                                                                onClick={() => setEditingBooking(booking)}
+                                                                className="text-gray-500 hover:text-brand-blue transition-colors p-1 opacity-50 hover:opacity-100"
+                                                                title="Редактировать бронь"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
+                                                            <span className="flex items-center gap-1">
+                                                                <svg className="w-3 h-3 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                                                {booking.guestCount}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-white bg-white/5 px-2 py-0.5 rounded">
+                                                                Ст. {booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || 'Не назначен')}
+                                                            </span>
+                                                            {isPast && (
+                                                                <span className="text-brand-red font-bold uppercase tracking-wider animate-pulse">Опоздание</span>
+                                                            )}
+                                                            {booking.guestComment && <span className="italic truncate max-w-[150px] text-gray-500">"{booking.guestComment}"</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 ml-2">
+                                                        <button 
+                                                            onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
+                                                            className="bg-brand-green/20 text-brand-green hover:bg-brand-green hover:text-white px-3 py-1.5 rounded text-xs font-bold transition-all border border-brand-green/30"
+                                                        >
+                                                            Пришли
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (window.confirm('Отменить бронь?')) updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором");
+                                                            }}
+                                                            className="text-brand-red hover:bg-brand-red/20 px-2 py-1.5 rounded text-xs transition-colors border border-transparent hover:border-brand-red/30"
+                                                        >
+                                                            Отмена
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-gray-500 text-sm italic">
+                                        На сегодня ожидаемых гостей нет
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* 2. Occupied Tables - Left Side */}
-                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
+                            {/* Row for Occupied and Cancelled */}
+                            <div className="flex flex-col md:flex-row gap-4">
+                                {/* 2. Occupied Tables - Left Side */}
+                                <div className="flex-[3] bg-brand-primary rounded-lg border border-brand-accent p-4">
                                 <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">Занятые столики</h3>
                                 {occupiedTableBookings.length > 0 ? (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -619,6 +703,7 @@ const AdminView: React.FC = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
 
                         {/* Map Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
