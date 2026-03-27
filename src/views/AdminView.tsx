@@ -577,8 +577,8 @@ const AdminView: React.FC = () => {
                                             const timeStr = new Date(booking.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                                             const isPast = new Date(booking.dateTime) < new Date();
                                             return (
-                                                <div key={booking.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all hover:bg-white/5 ${isPast ? 'bg-brand-red/10 border-brand-red/30' : 'bg-brand-primary border-brand-accent'} group`}>
-                                                    <div className="flex-1">
+                                                <div key={booking.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-all hover:bg-white/5 ${isPast ? 'bg-brand-red/10 border-brand-red/30' : 'bg-brand-primary border-brand-accent'} group`}>
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-brand-blue font-bold font-mono text-lg">{timeStr}</span>
                                                             <span className="font-bold text-gray-200 group-hover:text-white transition-colors">{booking.guestName}</span>
@@ -608,7 +608,7 @@ const AdminView: React.FC = () => {
                                                             {booking.guestComment && <span className="italic truncate max-w-[150px] text-gray-500">"{booking.guestComment}"</span>}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2 ml-2">
+                                                    <div className="flex items-center justify-end gap-2 shrink-0">
                                                         <button 
                                                             onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
                                                             className="bg-brand-green/20 text-brand-green hover:bg-brand-green hover:text-white px-3 py-1.5 rounded text-xs font-bold transition-all border border-brand-green/30"
