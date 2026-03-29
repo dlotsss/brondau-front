@@ -120,4 +120,5 @@ export interface Restaurant {
   floors?: Floor[];
   schedule?: Record<number, { start: string; end: string }>;
   bookingRestriction?: number;
+  age_restriction?: string;
 }

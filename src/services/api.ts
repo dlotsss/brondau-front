@@ -34,7 +34,7 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ name }),
         }),
-        updateSettings: (restaurantId: string, data: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => request<Restaurant>(`/restaurants/${restaurantId}/layout`, {
+        updateSettings: (restaurantId: string, data: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number, ageRestriction?: string }) => request<Restaurant>(`/restaurants/${restaurantId}/layout`, {
             method: 'PUT',
             body: JSON.stringify(data),
         }),

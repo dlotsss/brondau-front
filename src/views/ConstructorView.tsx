@@ -30,6 +30,7 @@ const ConstructorView: React.FC = () => {
     const [floors, setFloors] = useState<Floor[]>([]);
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [bookingRestriction, setBookingRestriction] = useState<number>(-1);
+    const [ageRestriction, setAgeRestriction] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
 
     const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
@@ -50,6 +51,7 @@ const ConstructorView: React.FC = () => {
             setFloors(resFloors);
             setActiveFloorId(resFloors[0]?.id || '');
             setBookingRestriction(restaurant.bookingRestriction ?? -1);
+            setAgeRestriction(restaurant.age_restriction || '');
             setIsInitialized(true);
         }
     }, [restaurant, isInitialized]);
@@ -330,10 +332,11 @@ const ConstructorView: React.FC = () => {
 
     const handleSaveLayout = () => {
         if (!selectedRestaurantId) return;
-        updateRestaurantSettings(selectedRestaurantId, { 
-            layout: elements, 
+        updateRestaurantSettings(selectedRestaurantId, {
+            layout: elements,
             floors: floors,
-            bookingRestriction: bookingRestriction
+            bookingRestriction: bookingRestriction,
+            ageRestriction: ageRestriction
         });
         alert('Сохранено!');
     };
@@ -404,16 +407,29 @@ const ConstructorView: React.FC = () => {
                     <div className="space-y-2">
                         <label className="text-gray-400 text-xs block">Ограничение по умолчанию (мин)</label>
                         <div className="flex gap-2 items-center">
-                            <input 
-                                type="number" 
-                                value={bookingRestriction} 
-                                onChange={e => setBookingRestriction(parseInt(e.target.value))} 
+                            <input
+                                type="number"
+                                value={bookingRestriction}
+                                onChange={e => setBookingRestriction(parseInt(e.target.value))}
                                 className="w-full bg-brand-secondary p-1.5 rounded border border-gray-600 text-white text-sm"
                                 placeholder="-1 (нет)"
                             />
                             <span className="text-gray-500 text-[10px] whitespace-nowrap">{bookingRestriction === -1 ? 'Без огр.' : `${bookingRestriction} мин`}</span>
                         </div>
                         <p className="text-[10px] text-gray-500">Установите -1 для отключения ограничений.</p>
+                    </div>
+                </div>
+
+                <div className="bg-brand-primary p-3 rounded-lg shadow border border-brand-accent">
+                    <h3 className="font-bold text-white mb-2 text-sm">Сообщение после брони</h3>
+                    <div className="space-y-2">
+                        <textarea
+                            value={ageRestriction}
+                            onChange={e => setAgeRestriction(e.target.value)}
+                            placeholder="Например: Вход 21+ \n Не забудьте паспорт"
+                            className="w-full bg-brand-secondary p-2 rounded border border-brand-accent text-white text-xs h-20 bg-[#1a1c23]"
+                        />
+                        <p className="text-[10px] text-gray-500">Отобразится гостю. Используйте перенос строки для абзацев, и &lt;b&gt;текст&lt;/b&gt; для выделения жирным.</p>
                     </div>
                 </div>
 

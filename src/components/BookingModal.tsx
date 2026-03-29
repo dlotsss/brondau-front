@@ -2,6 +2,27 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { BookingStatus, TableElement, Booking } from '../types';
 import { useData } from '../context/DataContext';
 
+const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
+    const actualLines = text.split(/\r?\n|\\n/);
+    return (
+        <div className="space-y-2">
+            {actualLines.map((line, i) => {
+                const parts = line.split(/(<b>.*?<\/b>)/g);
+                return (
+                    <p key={i}>
+                        {parts.map((part, j) => {
+                            if (part.startsWith('<b>') && part.endsWith('</b>')) {
+                                return <strong key={j} className="text-white font-bold">{part.slice(3, -4)}</strong>;
+                            }
+                            return <span key={j}>{part}</span>;
+                        })}
+                    </p>
+                );
+            })}
+        </div>
+    );
+};
+
 const parseTime = (timeStr: string): number => {
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
@@ -51,6 +72,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [guestComment, setGuestComment] = useState(bookingToEdit?.guestComment || '');
     const [assignedTo, setAssignedTo] = useState(bookingToEdit?.assignedTo || '');
     const [staffNames, setStaffNames] = useState<string[]>([]);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     const [bookingDate, setBookingDate] = useState(bookingToEdit ? formatLocalDate(new Date(bookingToEdit.dateTime)) : formatLocalDate(new Date()));
     const [bookingTime, setBookingTime] = useState(bookingToEdit ? new Date(bookingToEdit.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '');
@@ -340,11 +362,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             if (bookingToEdit) {
                 await updateBookingDetails(bookingToEdit.id, payload);
                 alert('Изменения сохранены!');
+                onClose();
             } else {
                 await addBooking(restaurantId, payload);
-                alert(isAdmin ? 'Столик успешно занят!' : 'Ваш запрос на бронирование отправлен!');
+                if (isAdmin) {
+                    alert('Столик успешно занят!');
+                    onClose();
+                } else {
+                    setIsSuccess(true);
+                }
             }
-            onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Не удалось создать бронирование.');
         } finally {
@@ -353,6 +380,30 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     };
 
     const activeSlots = withMap ? availableSlots : noMapSlots;
+
+    if (isSuccess) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300 p-2 sm:p-4">
+                <div className="bg-brand-secondary rounded-xl shadow-2xl p-8 w-full max-w-md m-auto transform transition-all duration-300 text-center border border-brand-accent/50">
+                    <div className="w-16 h-16 bg-brand-green/20 rounded-full flex items-center justify-center mx-auto mb-5 shadow-[0_0_15px_rgba(74,222,128,0.2)]">
+                        <svg className="w-8 h-8 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-brand-primary mb-2">Бронирование оформлено!</h2>
+                    <p className="text-gray-400 mb-6">Ваш запрос на бронирование успешно отправлен.</p>
+
+                    {restaurant?.age_restriction && restaurant.age_restriction.trim() !== '' && (
+                        <div className="bg-[#1a1c23] border-l-4 border-brand-blue rounded-r-lg p-4 text-left text-sm text-gray-300 mb-8 shadow-inner">
+                            <FormattedMessage text={restaurant.age_restriction} />
+                        </div>
+                    )}
+
+                    <button onClick={onClose} className="w-full bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold py-3 rounded-lg shadow-lg transition-all">
+                        Понятно, спасибо
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300 p-2 sm:p-4">

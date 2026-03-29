@@ -20,7 +20,7 @@ interface DataContextType {
   updateBookingStatus: (bookingId: string, status: BookingStatus, reason?: string, tableId?: string, tableLabel?: string, duration?: number, tableIds?: string[], tableLabels?: string[], assignedTo?: string) => Promise<void>;
   updateBookingDetails: (bookingId: string, payload: any) => Promise<void>;
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
-  updateRestaurantSettings: (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => Promise<void>;
+  updateRestaurantSettings: (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number, ageRestriction?: string }) => Promise<void>;
   loadRestaurants: () => Promise<void>;
   loadBookings: (restaurantId: string) => Promise<void>;
 }
@@ -51,6 +51,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               workEnds: restaurant.work_ends,
               schedule: restaurant.schedule,
               bookingRestriction: restaurant.booking_restriction,
+              age_restriction: restaurant.age_restriction,
               layout: restaurant.layout || [],
               floors: restaurant.floors || [],
               bookings: bookings.map((b: any) => ({
@@ -87,6 +88,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               workEnds: restaurant.work_ends,
               schedule: restaurant.schedule,
               bookingRestriction: restaurant.booking_restriction,
+              age_restriction: restaurant.age_restriction,
               floors: restaurant.floors || [],
               bookings: []
             };
@@ -209,6 +211,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         workStarts: (newRestaurant as any).work_starts,
         workEnds: (newRestaurant as any).work_ends,
         schedule: newRestaurant.schedule,
+        age_restriction: (newRestaurant as any).age_restriction,
         bookings: []
       };
 
@@ -220,14 +223,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const updateRestaurantSettings = useCallback(async (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number }) => {
+  const updateRestaurantSettings = useCallback(async (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number, ageRestriction?: string }) => {
     try {
       const updatedRestaurant = await api.restaurants.updateSettings(restaurantId, updates);
       setRestaurants(prev => prev.map(r => r.id === restaurantId ? {
         ...r,
         layout: updatedRestaurant.layout,
         floors: updatedRestaurant.floors || [],
-        bookingRestriction: (updatedRestaurant as any).booking_restriction
+        bookingRestriction: (updatedRestaurant as any).booking_restriction,
+        age_restriction: (updatedRestaurant as any).age_restriction
       } : r));
     } catch (error) {
       console.error('Failed to update restaurant settings:', error);
