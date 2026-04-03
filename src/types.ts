@@ -121,4 +121,5 @@ export interface Restaurant {
   schedule?: Record<number, { start: string; end: string }>;
   bookingRestriction?: number;
   age_restriction?: string;
+  deposit?: string;
 }

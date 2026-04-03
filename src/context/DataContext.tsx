@@ -52,6 +52,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               schedule: restaurant.schedule,
               bookingRestriction: restaurant.booking_restriction,
               age_restriction: restaurant.age_restriction,
+              deposit: restaurant.deposit,
               layout: restaurant.layout || [],
               floors: restaurant.floors || [],
               bookings: bookings.map((b: any) => ({
@@ -89,6 +90,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               schedule: restaurant.schedule,
               bookingRestriction: restaurant.booking_restriction,
               age_restriction: restaurant.age_restriction,
+              deposit: restaurant.deposit,
               floors: restaurant.floors || [],
               bookings: []
             };

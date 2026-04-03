@@ -4,6 +4,27 @@ import { LayoutElement, TableElement, BookingStatus, DecoElement, TextElement } 
 import BookingModal from '../components/BookingModal';
 import { useApp } from '../context/AppContext';
 
+const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
+    const actualLines = text.split(/\r?\n|\\n/);
+    return (
+        <div className="space-y-2">
+            {actualLines.map((line, i) => {
+                const parts = line.split(/(<b>.*?<\/b>)/g);
+                return (
+                    <p key={i}>
+                        {parts.map((part, j) => {
+                            if (part.startsWith('<b>') && part.endsWith('</b>')) {
+                                return <strong key={j} className="font-bold">{part.slice(3, -4)}</strong>;
+                            }
+                            return <span key={j}>{part}</span>;
+                        })}
+                    </p>
+                );
+            })}
+        </div>
+    );
+};
+
 // Функция для вычисления границ занятой территории
 const calculateBounds = (elements: LayoutElement[]) => {
     if (elements.length === 0) {
@@ -388,8 +409,9 @@ const UserView: React.FC = () => {
     // ===== NO-MAP MODE =====
     if (!withMap) {
         return (
-            <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full md:h-auto md:min-h-full flex flex-col">
-                <div className="flex flex-col gap-2 mb-6">
+            <div className="h-full flex flex-col gap-4 pb-4">
+                <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-col flex-grow md:flex-grow-0 md:h-auto">
+                    <div className="flex flex-col gap-2 mb-6">
                     <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
                     <p className="text-gray-400 text-sm">Заполните форму, и мы подберём для вас лучший столик.</p>
                 </div>
@@ -421,15 +443,26 @@ const UserView: React.FC = () => {
                         withMap={false}
                     />
                 )}
+                </div>
+                
+                {restaurant.deposit && restaurant.deposit.trim() !== '' && (
+                    <div className="bg-red-100 border-l-4 border-red-500 rounded-r-lg p-4 shadow-md w-full shrink-0">
+                        <div className="flex gap-3 items-start">
+                            <span className="text-xl shrink-0 leading-none mt-0.5">⚠️</span>
+                            <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={restaurant.deposit} /></div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
 
     // ===== WITH MAP MODE =====
     return (
-        <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl h-full md:h-auto md:min-h-full flex flex-col">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 flex-none">
+        <div className="h-full flex flex-col gap-4 pb-4">
+            <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-grow overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 flex-none">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
                     <p className="text-gray-400 text-sm">Нажмите на доступный (зеленый) столик для брони.</p>
@@ -534,6 +567,16 @@ const UserView: React.FC = () => {
                     <span className="text-gray-200">Занят</span>
                 </div>
             </div>
+            </div>
+
+            {restaurant.deposit && restaurant.deposit.trim() !== '' && (
+                <div className="bg-red-100 border-l-4 border-red-500 rounded-r-lg p-4 shadow-md w-full shrink-0">
+                    <div className="flex gap-3 items-start">
+                        <span className="text-xl shrink-0 leading-none mt-0.5">⚠️</span>
+                        <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={restaurant.deposit} /></div>
+                    </div>
+                </div>
+            )}
 
             {selectedTable && selectedRestaurantId && (
                 <BookingModal
