@@ -78,6 +78,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [bookingTime, setBookingTime] = useState(bookingToEdit ? new Date(bookingToEdit.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '');
     const [error, setError] = useState('');
 
+    const [currentTableId, setCurrentTableId] = useState<string>(table?.id || bookingToEdit?.tableId || '');
+    const currentTableLabel = useMemo(() => {
+        const t = restaurant?.layout?.find(el => el.id === currentTableId);
+        return t ? (t as TableElement).label : '';
+    }, [restaurant, currentTableId]);
+
     useEffect(() => {
         if (isAdmin && restaurantId) {
             import('../services/api').then(({ api }) => {
@@ -351,8 +357,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 guestCount,
                 dateTime,
                 timezoneOffset: new Date().getTimezoneOffset(),
-                tableId: table?.id,
-                tableLabel: table?.label,
+                tableId: currentTableId || undefined,
+                tableLabel: currentTableLabel || undefined,
                 guestComment,
                 isAdmin,
                 duration,
@@ -420,10 +426,26 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {table && (
-                        <p className="text-gray-500 text-sm">
-                            Вместимость: до <span className="font-semibold">{table.seats}</span> гостей.
-                        </p>
+                    {isAdmin && bookingToEdit ? (
+                        <div className="bg-brand-accent/40 border border-brand-accent px-3 py-2 rounded-md">
+                            <label className="text-xs text-brand-blue block mb-1 font-bold">Пересадить за столик:</label>
+                            <select
+                                value={currentTableId}
+                                onChange={e => setCurrentTableId(e.target.value)}
+                                className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                            >
+                                {restaurant?.layout?.filter(el => el.type === 'table').map((t: any) => (
+                                    <option key={t.id} value={t.id}>Столик {t.label} (Вместимость: {t.seats})</option>
+                                ))}
+                                <option value="">Без столика (назначается позже)</option>
+                            </select>
+                        </div>
+                    ) : (
+                        table && (
+                            <p className="text-gray-500 text-sm">
+                                Вместимость: до <span className="font-semibold">{table.seats}</span> гостей.
+                            </p>
+                        )
                     )}
 
                     {!withMap && !isAdmin && (
