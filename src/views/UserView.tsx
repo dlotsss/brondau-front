@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import { LayoutElement, TableElement, BookingStatus, DecoElement, TextElement } from '../types';
 import BookingModal from '../components/BookingModal';
 import { useApp } from '../context/AppContext';
+import { useTranslation } from '../context/I18nContext';
 
 const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
     const actualLines = text.split(/\r?\n|\\n/);
@@ -174,6 +175,8 @@ const UserView: React.FC = () => {
     const { getRestaurant } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [showNoMapModal, setShowNoMapModal] = useState(false);
+    
+    const { t } = useTranslation();
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -403,7 +406,7 @@ const UserView: React.FC = () => {
     // === КОНЕЦ ЛОГИКИ PAN & ZOOM ===
 
     if (!restaurant) {
-        return <div className="text-center text-gray-400">Загрузка...</div>;
+        return <div className="text-center text-gray-400">{t('common.loading')}</div>;
     }
 
     // ===== NO-MAP MODE =====
@@ -413,7 +416,7 @@ const UserView: React.FC = () => {
                 <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-col flex-grow md:flex-grow-0 md:h-auto">
                     <div className="flex flex-col gap-2 mb-6">
                     <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
-                    <p className="text-gray-400 text-sm">Заполните форму, и мы подберём для вас лучший столик.</p>
+                    <p className="text-gray-400 text-sm">{t('userView.fillForm')}</p>
                 </div>
 
                 <div className="flex-grow flex flex-col items-center justify-center gap-8">
@@ -421,9 +424,9 @@ const UserView: React.FC = () => {
                         <div className="w-20 h-20 bg-brand-accent/30 rounded-full flex items-center justify-center mx-auto">
                             <span className="text-4xl">🍽️</span>
                         </div>
-                        <h3 className="text-xl font-semibold text-white">Онлайн-бронирование</h3>
+                        <h3 className="text-xl font-semibold text-white">{t('userView.onlineBooking')}</h3>
                         <p className="text-gray-400 text-sm leading-relaxed">
-                            Оставьте заявку — наш администратор подтвердит бронь и подберёт для вас столик.
+                            {t('userView.leaveRequest')}
                         </p>
                     </div>
 
@@ -431,7 +434,7 @@ const UserView: React.FC = () => {
                         onClick={() => setShowNoMapModal(true)}
                         className="bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-xl transition-all duration-200"
                     >
-                        Забронировать столик
+                        {t('userView.bookTableButton')}
                     </button>
                 </div>
 
@@ -465,7 +468,7 @@ const UserView: React.FC = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 flex-none">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
-                    <p className="text-gray-400 text-sm">Нажмите на доступный (зеленый) столик для брони.</p>
+                    <p className="text-gray-400 text-sm">{t('userView.clickGreenTable')}</p>
                 </div>
 
                 {restaurant.floors && restaurant.floors.length > 1 && (
@@ -545,7 +548,7 @@ const UserView: React.FC = () => {
                     <button
                         onClick={(e) => { e.stopPropagation(); fitToContainer() }}
                         className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
-                        title="Центрировать"
+                        title={t('userView.centerMap')}
                     >
                         ⛶
                     </button>
@@ -556,15 +559,15 @@ const UserView: React.FC = () => {
             <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm flex-none font-medium">
                 <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-brand-green mr-2 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-                    <span className="text-gray-200">Доступен</span>
+                    <span className="text-gray-200">{t('userView.legendAvailable')}</span>
                 </div>
                 <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-brand-yellow mr-2 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></div>
-                    <span className="text-gray-200">Ожидает</span>
+                    <span className="text-gray-200">{t('userView.legendPending')}</span>
                 </div>
                 <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-brand-red mr-2 shadow-[0_0_8px_rgba(248,113,113,0.8)]"></div>
-                    <span className="text-gray-200">Занят</span>
+                    <span className="text-gray-200">{t('userView.legendOccupied')}</span>
                 </div>
             </div>
             </div>

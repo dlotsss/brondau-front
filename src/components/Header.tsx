@@ -3,10 +3,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { useTranslation } from '../context/I18nContext';
 
 const Header: React.FC = () => {
     const { currentUser, selectedRestaurantId, logout, deselectRestaurant } = useApp();
     const { getRestaurant } = useData();
+    const { t, language, setLanguage } = useTranslation();
     const navigate = useNavigate();
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
 
@@ -33,7 +35,7 @@ const Header: React.FC = () => {
                     <div className="hidden md:flex items-center ml-6">
                         <span className="w-px h-6 bg-brand-accent"></span>
                         <span className="ml-6 text-gray-300">
-                            Текущий ресторан: <strong className="text-white">{restaurant.name}</strong>
+                            {t('app.currentRestaurant')} <strong className="text-white">{restaurant.name}</strong>
                         </span>
                     </div>
                 )}
@@ -42,23 +44,35 @@ const Header: React.FC = () => {
                 <span className="text-gray-300 text-sm hidden sm:block">
                     {currentUser?.email}
                 </span>
+
+                {/* Language Switcher */}
                 <button
-                    onClick={handleChangeRestaurant}
-                    className="flex items-center px-3 py-2 text-sm font-semibold bg-brand-accent text-white rounded-md hover:bg-brand-blue transition-colors duration-200"
-                    title="Change Restaurant"
+                    onClick={() => setLanguage(language === 'ru' ? 'kz' : 'ru')}
+                    className="flex items-center px-2 py-2 text-sm font-bold bg-brand-accent text-white rounded-md hover:bg-brand-blue transition-colors duration-200 uppercase"
+                    title="Изменить язык"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0v-4m0 4h5m0 0v-4m0 4H8m2-8l4-4 4 4m0 0l-4 4-4-4z" /></svg>
-                    <span className="ml-2 hidden sm:inline">Сменить ресторан</span>
+                    {language}
                 </button>
+
+                {restaurant && (
+                    <button
+                        onClick={handleChangeRestaurant}
+                        className="flex items-center px-3 py-2 text-sm font-semibold bg-brand-accent text-white rounded-md hover:bg-brand-blue transition-colors duration-200"
+                        title="Сменить ресторан"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0v-4m0 4h5m0 0v-4m0 4H8m2-8l4-4 4 4m0 0l-4 4-4-4z" /></svg>
+                        <span className="ml-2 hidden sm:inline">{t('app.changeRestaurant')}</span>
+                    </button>
+                )}
                 <button
                     onClick={handleLogout}
                     className="flex items-center px-3 py-2 text-sm font-semibold bg-brand-accent text-white rounded-md hover:bg-brand-red transition-colors duration-200"
-                    title="Logout"
+                    title="Выйти"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span className="ml-2 hidden sm:inline">Выйти</span>
+                    <span className="ml-2 hidden sm:inline">{t('app.logout')}</span>
                 </button>
             </div>
         </header>

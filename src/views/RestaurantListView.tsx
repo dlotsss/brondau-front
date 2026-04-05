@@ -4,8 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { Restaurant } from '../types';
+import { useTranslation } from '../context/I18nContext';
+import Header from '../components/Header';
 
 const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }> = ({ restaurant, onSelect }) => {
+    const { t } = useTranslation();
     const totalTables = (restaurant.layout || []).filter(l => l.type === 'table').length;
 
     // Calculate availability logic
@@ -15,17 +18,17 @@ const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }>
     const activeBookings = (restaurant.bookings || []).filter(b => {
         const bDuration = b.duration || effectiveRestriction;
         return (b.status === 'CONFIRMED' || b.status === 'OCCUPIED') &&
-               b.dateTime <= now &&
-               new Date(new Date(b.dateTime).getTime() + bDuration * 60000) > now;
+            b.dateTime <= now &&
+            new Date(new Date(b.dateTime).getTime() + bDuration * 60000) > now;
     });
-        // AdminView uses strict overlap logic often, but for "Free tables now", let's assume a standard duration or if the backend provided "occupied" status.
-        // Actually, without duration in Booking, it's hard to know exactly when it frees up.
-        // But for simplicity and consistency with admin view "Occupied" check:
-        // AdminView checks: b.dateTime <= now (and implicitly not finished/marked completed).
-        // Let's assume bookings within last 2 hours are "active" if not completed?
-        // Or simpler: just count bookings that are currently marked status OCCUPIED?
-        // AdminView marks them occupied manually? No, it filters by status.
-        // Let's use a simple heuristic: Count 'OCCUPIED' status OR 'CONFIRMED' within last 1.5 hours.
+    // AdminView uses strict overlap logic often, but for "Free tables now", let's assume a standard duration or if the backend provided "occupied" status.
+    // Actually, without duration in Booking, it's hard to know exactly when it frees up.
+    // But for simplicity and consistency with admin view "Occupied" check:
+    // AdminView checks: b.dateTime <= now (and implicitly not finished/marked completed).
+    // Let's assume bookings within last 2 hours are "active" if not completed?
+    // Or simpler: just count bookings that are currently marked status OCCUPIED?
+    // AdminView marks them occupied manually? No, it filters by status.
+    // Let's use a simple heuristic: Count 'OCCUPIED' status OR 'CONFIRMED' within last 1.5 hours.
     ;
 
     // Actually, AdminView logic for "Occupied tables" was:
@@ -76,16 +79,17 @@ const RestaurantCard: React.FC<{ restaurant: Restaurant; onSelect: () => void }>
                 <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${isFull ? 'bg-red-500' : 'bg-green-500'} animate-pulse`} />
                     <span className={`text-sm font-medium ${isFull ? 'text-red-400' : 'text-green-400'}`}>
-                        {isFull ? 'Все столики заняты' : `Свободных столиков: ${freeTables}`}
+                        {isFull ? t('restaurantList.allTablesOccupied') : t('restaurantList.freeTables', { count: freeTables })}
                     </span>
                 </div>
-                <button className="text-brand-blue text-sm font-semibold group-hover:underline">Подробнее &rarr;</button>
+                <button className="text-brand-blue text-sm font-semibold group-hover:underline" dangerouslySetInnerHTML={{ __html: t('restaurantList.details') }}></button>
             </div>
         </div>
     );
 };
 
 const AddRestaurantCard: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd }) => {
+    const { t } = useTranslation();
     const [isAdding, setIsAdding] = useState(false);
     const [name, setName] = useState('');
 
@@ -104,13 +108,13 @@ const AddRestaurantCard: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd 
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Название нового ресторана"
+                    placeholder={t('restaurantList.newRestaurantPlaceholder')}
                     className="w-full bg-brand-secondary p-2 rounded-md mb-3"
                     autoFocus
                 />
                 <div className="flex space-x-2">
-                    <button onClick={handleAdd} className="w-full bg-brand-blue p-2 rounded-md text-sm font-semibold">Сохранить</button>
-                    <button onClick={() => setIsAdding(false)} className="w-full bg-brand-accent p-2 rounded-md text-sm">Отмена</button>
+                    <button onClick={handleAdd} className="w-full bg-brand-blue p-2 rounded-md text-sm font-semibold">{t('common.save')}</button>
+                    <button onClick={() => setIsAdding(false)} className="w-full bg-brand-accent p-2 rounded-md text-sm">{t('common.cancel')}</button>
                 </div>
             </div>
         );
@@ -123,7 +127,7 @@ const AddRestaurantCard: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd 
         >
             <div className="text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                <h3 className="font-bold">Добавить новый ресторан</h3>
+                <h3 className="font-bold">{t('restaurantList.addNewRestaurant')}</h3>
             </div>
         </div>
     );
@@ -131,6 +135,7 @@ const AddRestaurantCard: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd 
 
 
 const RestaurantListView: React.FC = () => {
+    const { t } = useTranslation();
     const { currentUser, addRestaurantToCurrentUser } = useApp();
     const { restaurants, addRestaurant } = useData();
     const navigate = useNavigate();
@@ -147,18 +152,21 @@ const RestaurantListView: React.FC = () => {
         : restaurants.filter(r => currentUser?.restaurantIds.includes(r.id));
 
     return (
-        <div className="min-h-screen bg-brand-secondary p-8 animate-fade-in">
-            <div className="max-w-4xl mx-auto">
-                <h1 className="text-4xl font-bold mb-2 text-white">Выберите ресторан</h1>
-                <p className="text-gray-400 mb-8">
-                    {currentUser?.role === 'GUEST' ? "Выберите ресторан для просмотра плана зала и бронирования." : "Выберите ресторан для управления."}
-                </p>
+        <div className="min-h-screen bg-brand-secondary">
+            <Header />
+            <div className="p-4 md:p-8 animate-fade-in">
+                <div className="max-w-4xl mx-auto">
+                    <h1 className="text-4xl font-bold mb-2 text-brand-blue">{t('restaurantList.selectRestaurantTitle')}</h1>
+                    <p className="text-gray-400 mb-8">
+                        {currentUser?.role === 'GUEST' ? t('restaurantList.selectRestaurantGuestDesc') : t('restaurantList.selectRestaurantAdminDesc')}
+                    </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {managedRestaurants.map(r => (
-                        <RestaurantCard key={r.id} restaurant={r} onSelect={() => navigate(`/restaurant/${r.id}`)} />
-                    ))}
-                    {currentUser?.role === 'OWNER' && <AddRestaurantCard onAdd={handleAddRestaurant} />}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {managedRestaurants.map(r => (
+                            <RestaurantCard key={r.id} restaurant={r} onSelect={() => navigate(`/restaurant/${r.id}`)} />
+                        ))}
+                        {currentUser?.role === 'OWNER' && <AddRestaurantCard onAdd={handleAddRestaurant} />}
+                    </div>
                 </div>
             </div>
             <style>{`

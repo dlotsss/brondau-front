@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BookingStatus, TableElement, Booking } from '../types';
 import { useData } from '../context/DataContext';
+import { useTranslation } from '../context/I18nContext';
 
 const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
     const actualLines = text.split(/\r?\n|\\n/);
@@ -61,6 +62,7 @@ const formatPhoneNumber = (value: string): string => {
 
 const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false, withMap = true, bookingToEdit }) => {
     const { addBooking, getRestaurant, updateBookingDetails } = useData();
+    const { t } = useTranslation();
     const restaurant = getRestaurant(restaurantId);
 
     const [guestName, setGuestName] = useState(bookingToEdit?.guestName || '');
@@ -372,14 +374,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             } else {
                 await addBooking(restaurantId, payload);
                 if (isAdmin) {
-                    alert('Столик успешно занят!');
+                    alert(t('bookingModal.tableReserved'));
                     onClose();
                 } else {
                     setIsSuccess(true);
                 }
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Не удалось создать бронирование.');
+        } catch (err: any) {
+            setError(err instanceof Error ? err.message : t('bookingModal.createError'));
         } finally {
             setLoading(false);
         }
@@ -394,8 +396,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     <div className="w-16 h-16 bg-brand-green/20 rounded-full flex items-center justify-center mx-auto mb-5 shadow-[0_0_15px_rgba(74,222,128,0.2)]">
                         <svg className="w-8 h-8 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-brand-primary mb-2">Бронирование оформлено!</h2>
-                    <p className="text-gray-400 mb-6">Ваш запрос на бронирование успешно отправлен.</p>
+                    <h2 className="text-2xl font-bold text-brand-primary mb-2">{t('bookingModal.successTitle')}</h2>
+                    <p className="text-gray-400 mb-6">{t('bookingModal.successMessage')}</p>
 
                     {restaurant?.age_restriction && restaurant.age_restriction.trim() !== '' && (
                         <div className="bg-[#1a1c23] border-l-4 border-brand-blue rounded-r-lg p-4 text-left text-sm text-gray-300 mb-8 shadow-inner">
@@ -404,7 +406,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     )}
 
                     <button onClick={onClose} className="w-full bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold py-3 rounded-lg shadow-lg transition-all">
-                        Понятно, спасибо
+                        {t('bookingModal.successOkButton')}
                     </button>
                 </div>
             </div>
@@ -416,10 +418,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             <div className="bg-brand-secondary rounded-lg shadow-2xl p-6 w-full max-w-lg m-auto transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4 sticky top-0 bg-brand-secondary pb-2 border-b border-brand-accent/30 z-10">
                     <h2 className="text-xl md:text-2xl font-bold text-brand-primary">
-                        {bookingToEdit ? 'Редактирование брони' : (
+                        {bookingToEdit ? t('bookingModal.editTitle') : (
                             isAdmin
-                                ? table ? <>Посадить гостей: <span className="text-brand-blue">{table.label}</span></> : 'Посадить гостей'
-                                : table ? <>Бронь столика <span className="text-brand-blue">{table.label}</span></> : 'Забронировать столик'
+                                ? table ? <>{t('bookingModal.seatGuestsTable')} <span className="text-brand-blue">{table.label}</span></> : t('bookingModal.seatGuests')
+                                : table ? <>{t('bookingModal.bookTableWith')} <span className="text-brand-blue">{table.label}</span></> : t('bookingModal.bookTable')
                         )}
                     </h2>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white transition-colors">&times;</button>
@@ -428,29 +430,29 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {isAdmin && bookingToEdit ? (
                         <div className="bg-brand-accent/40 border border-brand-accent px-3 py-2 rounded-md">
-                            <label className="text-xs text-brand-blue block mb-1 font-bold">Пересадить за столик:</label>
+                            <label className="text-xs text-brand-blue block mb-1 font-bold">{t('bookingModal.reassignTable')}</label>
                             <select
                                 value={currentTableId}
                                 onChange={e => setCurrentTableId(e.target.value)}
                                 className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             >
                                 {restaurant?.layout?.filter(el => el.type === 'table').map((t: any) => (
-                                    <option key={t.id} value={t.id}>Столик {t.label} (Вместимость: {t.seats})</option>
+                                    <option key={t.id} value={t.id}>{t('bookingModal.tableCapacity', {label: String(t.label), seats: String(t.seats)})}</option>
                                 ))}
-                                <option value="">Без столика (назначается позже)</option>
+                                <option value="">{t('bookingModal.noTable')}</option>
                             </select>
                         </div>
                     ) : (
                         table && (
                             <p className="text-gray-500 text-sm">
-                                Вместимость: до <span className="font-semibold">{table.seats}</span> гостей.
+                                {t('bookingModal.capacityGuests', {seats: String(table.seats)})}
                             </p>
                         )
                     )}
 
                     {!withMap && !isAdmin && (
                         <div className="bg-brand-accent/40 border border-brand-accent px-3 py-2 rounded-md text-sm text-gray-400">
-                            📋 Столик будет назначен администратором после подтверждения заявки.
+                            {t('bookingModal.tableWillBeAssigned')}
                         </div>
                     )}
 
@@ -461,7 +463,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     {/* Show existing bookings only for map-based guest booking */}
                     {!isAdmin && withMap && table && (
                         <div className="bg-brand-accent/70 p-3 rounded-md border border-gray-700">
-                            <h3 className="text-sm font-semibold text-gray-200 mb-2">Существующие брони:</h3>
+                            <h3 className="text-sm font-semibold text-gray-200 mb-2">{t('bookingModal.existingBookings')}</h3>
                             {visualBookings.length > 0 ? (
                                 <ul className="space-y-1 text-xs text-gray-500">
                                     {visualBookings.map(b => (
@@ -472,7 +474,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-sm text-gray-200 text-center py-2">На этот столик пока нет броней</p>
+                                <p className="text-sm text-gray-200 text-center py-2">{t('bookingModal.noBookings')}</p>
                             )}
                         </div>
                     )}
@@ -480,7 +482,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     <div className="space-y-3">
                         <input
                             type="text"
-                            placeholder="Имя гостя"
+                            placeholder={t('bookingModal.guestName')}
                             value={guestName}
                             onChange={e => setGuestName(e.target.value)}
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
@@ -505,7 +507,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Гостей</label>
+                                <label className="text-xs text-gray-500 block mb-1">{t('bookingModal.guestsCount')}</label>
                                 <input
                                     type="number"
                                     value={guestCount}
@@ -516,7 +518,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Дата</label>
+                                <label className="text-xs text-gray-500 block mb-1">{t('bookingModal.date')}</label>
                                 <input
                                     type="date"
                                     value={bookingDate}
@@ -528,7 +530,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                         <div>
                             <textarea
-                                placeholder="Комментарий к бронированию"
+                                placeholder={t('bookingModal.comment')}
                                 value={guestComment}
                                 onChange={e => setGuestComment(e.target.value)}
                                 className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all resize-none"
@@ -538,13 +540,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                         {isAdmin && (
                             <div>
-                                <label className="text-xs text-brand-blue block mb-2 font-bold">Ответственный (менеджер / хостес):</label>
+                                <label className="text-xs text-brand-blue block mb-2 font-bold">{t('bookingModal.assignedTo')}</label>
                                 <div className="space-y-2">
                                     <input
                                         type="text"
                                         value={assignedTo}
                                         onChange={e => setAssignedTo(e.target.value)}
-                                        placeholder="Введите имя..."
+                                        placeholder={t('bookingModal.enterName')}
                                         className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                                     />
                                     {staffNames.length > 0 && (
@@ -566,7 +568,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         )}
 
                         <div>
-                            <label className="text-xs text-gray-500 block mb-1">Время {isAdmin && '(Администратор: любое время)'}</label>
+                            <label className="text-xs text-gray-500 block mb-1">{t('bookingModal.time')} {isAdmin && t('bookingModal.adminAnyTime')}</label>
                             {isAdmin ? (
                                 <input
                                     type="time"
@@ -586,7 +588,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                             <option key={time} value={time}>{time}</option>
                                         ))
                                     ) : (
-                                        <option value="">Нет доступных слотов</option>
+                                        <option value="">{t('bookingModal.noAvailableSlots')}</option>
                                     )}
                                 </select>
                             )}
@@ -594,13 +596,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     </div>
 
                     <div className="pt-4 flex gap-3">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">Отмена</button>
+                        <button type="button" onClick={onClose} className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">{t('common.cancel')}</button>
                         <button
                             type="submit"
                             disabled={!isAdmin && activeSlots.length === 0}
                             className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:brightness-90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all"
                         >
-                            {bookingToEdit ? 'Сохранить изменения' : (isAdmin ? 'Занять столик' : 'Забронировать')}
+                            {bookingToEdit ? t('bookingModal.saveChanges') : (isAdmin ? t('bookingModal.takeTable') : t('bookingModal.bookTable'))}
                         </button>
                     </div>
                 </form>

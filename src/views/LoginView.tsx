@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { useTranslation } from '../context/I18nContext';
 import { UserRole } from '../types';
 
 const LoginView: React.FC = () => {
   const { login } = useApp();
   const { getAdminRestaurants, getOwnerRestaurants } = useData();
+  const { t, language, setLanguage } = useTranslation();
   const navigate = useNavigate();
 
   const [loginType, setLoginType] = useState<UserRole>('GUEST');
@@ -34,7 +36,7 @@ const LoginView: React.FC = () => {
         setShowRestaurantSelect(true);
         setSelectedRestaurant(restaurants[0].id);
       } else {
-        setError('Для этого email не найдено доступных ресторанов');
+        setError(t('login.noAdminRestaurants'));
       }
     } else if (loginType === 'OWNER') {
       const restaurants = await getOwnerRestaurants(email);
@@ -43,7 +45,7 @@ const LoginView: React.FC = () => {
         setShowRestaurantSelect(true);
         setSelectedRestaurant(restaurants[0].id);
       } else {
-        setError('Для этого email не найдено прав доступа владельца');
+        setError(t('login.noOwnerAccess'));
       }
     }
   };
@@ -53,7 +55,7 @@ const LoginView: React.FC = () => {
     setError('');
 
     if ((loginType === 'ADMIN' || loginType === 'OWNER') && !selectedRestaurant) {
-      setError('Пожалуйста, выберите ресторан');
+      setError(t('login.selectRestaurantError'));
       return;
     }
 
@@ -69,7 +71,7 @@ const LoginView: React.FC = () => {
         navigate('/');
       }
     } else {
-      setError('Invalid credentials. Please try again.');
+      setError(t('login.invalidCredentials'));
     }
   };
 
@@ -81,16 +83,29 @@ const LoginView: React.FC = () => {
   };
 
   const roleLabels: Record<UserRole, string> = {
-    GUEST: 'Гость',
-    ADMIN: 'Админ',
-    OWNER: 'Владелец'
+    GUEST: t('login.roleGuest'),
+    ADMIN: t('login.roleAdmin'),
+    OWNER: t('login.roleOwner')
   };
 
   return (
-    <div className="min-h-screen bg-brand-secondary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-brand-secondary flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={() => setLanguage(language === 'ru' ? 'kz' : 'ru')}
+          className="flex items-center px-3 py-2 text-sm font-bold bg-brand-accent text-white rounded-md hover:bg-brand-blue transition-colors duration-200 uppercase shadow-md border border-brand-primary"
+          title="Change Language"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+          </svg>
+          {language}
+        </button>
+      </div>
+
       <div className="bg-brand-accent p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-3xl font-bold text-white text-center mb-2">Добро пожаловать</h1>
-        <p className="text-center mb-6" style={{ color: '#f5efe6' }}>Пожалуйста, выберите вашу роль</p>
+        <h1 className="text-3xl font-bold text-white text-center mb-2">{t('login.welcome')}</h1>
+        <p className="text-center mb-6" style={{ color: '#f5efe6' }}>{t('login.chooseRole')}</p>
 
         <div className="flex gap-2 mb-6 rounded-md bg-brand-primary p-1">
           {(['GUEST', 'ADMIN', 'OWNER'] as UserRole[]).map(role => (
@@ -113,14 +128,14 @@ const LoginView: React.FC = () => {
             onClick={handleGuestLogin}
             className="w-full bg-brand-blue text-white font-semibold py-3 rounded-md transition" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d5b483'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
           >
-            Войти как гость
+            {t('login.loginAsGuest')}
           </button>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             {error && <div className="bg-brand-red/20 text-brand-red p-3 rounded-md text-sm">{error}</div>}
 
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#f5efe6' }}>Электронная почта</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#f5efe6' }}>{t('login.email')}</label>
               <input
                 type="email"
                 value={email}
@@ -133,7 +148,7 @@ const LoginView: React.FC = () => {
 
             {(loginType === 'ADMIN' || loginType === 'OWNER') && showRestaurantSelect && adminRestaurants.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: '#f5efe6' }}>Выберите ресторан</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#f5efe6' }}>{t('login.selectRestaurant')}</label>
                 <select
                   value={selectedRestaurant}
                   onChange={(e) => setSelectedRestaurant(e.target.value)}
@@ -150,7 +165,7 @@ const LoginView: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#f5efe6' }}>Пароль</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#f5efe6' }}>{t('login.password')}</label>
               <input
                 type="password"
                 value={password}
@@ -164,7 +179,7 @@ const LoginView: React.FC = () => {
               type="submit"
               className="w-full bg-brand-blue text-white font-semibold py-3 rounded-md transition" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d5b483'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
             >
-              Войти как {loginType === 'ADMIN' ? 'администратор' : loginType === 'OWNER' ? 'владелец' : 'гость'}
+              {loginType === 'ADMIN' ? t('login.loginAsAdmin') : loginType === 'OWNER' ? t('login.loginAsOwner') : t('login.loginAsGuest')}
             </button>
           </form>
         )}

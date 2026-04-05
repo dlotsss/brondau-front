@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Guest, BookingStatus } from '../types';
 import { api } from '../services/api';
+import { useTranslation } from '../context/I18nContext';
 
 const GuestManager: React.FC = () => {
+    const { t } = useTranslation();
     const [searchPhone, setSearchPhone] = useState('');
     const [guests, setGuests] = useState<Guest[]>([]);
     const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
@@ -58,10 +60,10 @@ const GuestManager: React.FC = () => {
             });
             setSelectedGuest(updated);
             setGuests(prev => prev.map(g => g.phone === updated.phone ? updated : g));
-            alert('Комментарий сохранен');
+            alert(t('guestManager.commentSaved'));
         } catch (error) {
             console.error('Update guest error:', error);
-            alert('Ошибка при сохранении');
+            alert(t('guestManager.saveError'));
         } finally {
             setSaving(false);
         }
@@ -92,7 +94,7 @@ const GuestManager: React.FC = () => {
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="Поиск по номеру телефона..."
+                        placeholder={t('guestManager.searchPlaceholder')}
                         value={searchPhone}
                         onChange={(e) => setSearchPhone(e.target.value)}
                         className="w-full bg-brand-accent p-3 pl-10 rounded-lg border border-gray-600 text-white placeholder-gray-500 focus:border-brand-blue outline-none transition-all"
@@ -109,7 +111,7 @@ const GuestManager: React.FC = () => {
                 {/* Guest List */}
                 <div className={`w-full md:w-1/3 border-r border-brand-accent/20 overflow-y-auto bg-brand-secondary/10 ${selectedGuest ? 'hidden md:block' : 'block'}`}>
                     {loading && guests.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">Загрузка...</div>
+                        <div className="p-4 text-center text-gray-500">{t('common.loading')}</div>
                     ) : guests.length > 0 ? (
                         <ul className="divide-y divide-brand-accent/10">
                             {guests.map((guest) => (
@@ -127,7 +129,7 @@ const GuestManager: React.FC = () => {
                             ))}
                         </ul>
                     ) : (
-                        <div className="p-4 text-center text-gray-500">Клиенты не найдены</div>
+                        <div className="p-4 text-center text-gray-500">{t('guestManager.noGuests')}</div>
                     )}
                 </div>
 
@@ -143,7 +145,7 @@ const GuestManager: React.FC = () => {
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                                 </svg>
-                                Назад к списку
+                                {t('guestManager.backToList')}
                             </button>
 
                             {/* Profile Header */}
@@ -154,7 +156,7 @@ const GuestManager: React.FC = () => {
                                     <div className="text-gray-500 mt-1 text-sm sm:text-base">{selectedGuest.email}</div>
                                 </div>
                                 <div className="bg-brand-accent/50 p-3 sm:p-4 rounded-xl border border-brand-accent/30 text-center min-w-[120px] sm:min-w-[150px] w-full sm:w-auto">
-                                    <div className="text-sm text-gray-500 mb-1">Всего броней</div>
+                                    <div className="text-sm text-gray-500 mb-1">{t('guestManager.totalBookings')}</div>
                                     <div className="text-4xl font-bold text-gray-400">{stats?.total_bookings || 0}</div>
                                 </div>
                             </div>
@@ -162,19 +164,19 @@ const GuestManager: React.FC = () => {
                             {/* Stats Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
-                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Завершено</div>
+                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{t('guestManager.completed')}</div>
                                     <div className="text-2xl font-bold text-blue-400">{stats?.completed || 0}</div>
                                 </div>
                                 <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
-                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Отклонено</div>
+                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{t('guestManager.declined')}</div>
                                     <div className="text-2xl font-bold text-red-400">{stats?.declined || 0}</div>
                                 </div>
                                 <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
-                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Отм. админом</div>
+                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{t('guestManager.cancelledByAdmin')}</div>
                                     <div className="text-2xl font-bold text-orange-400">{stats?.cancelled_by_admin || 0}</div>
                                 </div>
                                 <div className="bg-brand-accent/20 p-4 rounded-lg border border-brand-accent/10">
-                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Отм. гостем</div>
+                                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{t('guestManager.cancelledByGuest')}</div>
                                     <div className="text-2xl font-bold text-brand-red">{stats?.cancelled_by_guest || 0}</div>
                                 </div>
                             </div>
@@ -185,11 +187,11 @@ const GuestManager: React.FC = () => {
                                     <svg className="w-5 h-5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Заметки администратора
+                                    {t('guestManager.adminNotes')}
                                 </h3>
                                 <div className="relative">
                                     <textarea
-                                        placeholder="Добавьте внутренний комментарий о клиенте..."
+                                        placeholder={t('guestManager.addCommentPlaceholder')}
                                         value={internalComment}
                                         onChange={(e) => setInternalComment(e.target.value)}
                                         className="w-full bg-brand-accent/30 p-4 rounded-xl border border-brand-accent/50 text-gray-400 placeholder-gray-500 focus:border-brand-blue outline-none transition-all resize-none min-h-[100px]"
@@ -199,31 +201,31 @@ const GuestManager: React.FC = () => {
                                         disabled={saving || internalComment === (selectedGuest.internalComment || '')}
                                         className="absolute bottom-3 right-3 bg-brand-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
-                                        {saving ? 'Сохранение...' : 'Сохранить'}
+                                        {saving ? t('common.saving') : t('common.save')}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Booking History */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-400">История бронирований</h3>
+                                <h3 className="text-lg font-semibold text-gray-400">{t('guestManager.bookingHistory')}</h3>
                                 <div className="space-y-3">
                                     {history.length > 0 ? history.map((b) => (
                                         <div key={b.id} className="bg-brand-accent/20 p-4 rounded-xl border border-brand-accent/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 group hover:bg-brand-accent/30 transition-all">
                                             <div className="space-y-1">
                                                 <div className="font-bold text-gray-400 group-hover:text-brand-blue transition-colors text-sm sm:text-base">{formatDate(b.dateTime)}</div>
                                                 <div className="text-xs sm:text-sm text-gray-400">
-                                                    {b.restaurantName} • Стол: {b.tableLabel || 'Не назначен'}
+                                                    {b.restaurantName} • {t('guestManager.tableLabelAdmin')} {b.tableLabel || t('admin.tableNotAssigned')}
                                                     {b.assignedTo && <span className="ml-2 text-brand-blue">• {b.assignedTo}</span>}
                                                 </div>
                                                 {(b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED) && b.cancelReason && (
                                                     <div className="text-[10px] text-gray-400 bg-gray-400/10 px-2 py-1 rounded mt-2 inline-block border border-gray-400/20 italic">
-                                                        Причина: {b.cancelReason || b.declineReason}{b.cancelComment ? ` (${b.cancelComment})` : ''}
+                                                        {t('guestManager.reasonLabel')} {b.cancelReason || b.declineReason}{b.cancelComment ? ` (${b.cancelComment})` : ''}
                                                     </div>
                                                 )}
                                                 {b.guestComment && (
                                                     <div className="text-[10px] text-gray-400 bg-gray-400/10 px-2 py-1 rounded mt-2 inline-block border border-gray-400/20 italic ml-2">
-                                                        Коммент: {b.guestComment}
+                                                        {t('guestManager.commentLabel')} {b.guestComment}
                                                     </div>
                                                 )}
                                             </div>
@@ -233,7 +235,7 @@ const GuestManager: React.FC = () => {
                                         </div>
                                     )) : (
                                         <div className="text-center py-8 text-gray-500 italic bg-brand-accent/5 rounded-xl border border-dashed border-brand-accent/20">
-                                            История бронирований пуста
+                                            {t('guestManager.historyEmpty')}
                                         </div>
                                     )}
                                 </div>
@@ -244,7 +246,7 @@ const GuestManager: React.FC = () => {
                             <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <p className="text-xl">Выберите клиента из списка для просмотра деталей</p>
+                            <p className="text-xl">{t('guestManager.selectGuest')}</p>
                         </div>
                     )}
                 </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useData } from '../context/DataContext';
 import { Booking, BookingStatus, TableElement, TextElement, DecoElement } from '../types';
 import { useApp } from '../context/AppContext';
+import { useTranslation } from '../context/I18nContext';
 import BookingModal from '../components/BookingModal';
 import GuestManager from '../components/GuestManager';
 import { api } from '../services/api';
@@ -62,6 +63,7 @@ const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
 
 const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
     const { updateBookingStatus } = useData();
+    const { t } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
     const [val, setVal] = useState(booking.duration || 60);
 
@@ -70,10 +72,10 @@ const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
             <button
                 onClick={() => setIsEditing(true)}
                 className="text-[10px] text-gray-500 hover:text-brand-blue flex items-center gap-1"
-                title="Изменить длительность"
+                title={t('admin.changeDuration')}
             >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {booking.duration || 120} мин
+                {booking.duration || 120} {t('admin.min')}
             </button>
         );
     }
@@ -94,7 +96,7 @@ const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
                 }}
                 className="text-brand-green text-[10px] font-bold"
             >
-                OK
+                {t('admin.ok')}
             </button>
         </div>
     );
@@ -102,6 +104,7 @@ const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
 
 const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tables: TableElement[] }> = ({ booking, restaurantId, tables }) => {
     const { updateBookingStatus } = useData();
+    const { t } = useTranslation();
     const [reason, setReason] = useState('');
     const [isDeclining, setIsDeclining] = useState(false);
     const [assignedTableIds, setAssignedTableIds] = useState<string[]>([]);
@@ -120,36 +123,36 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
 
     const handleConfirm = async () => {
         if (needsTableAssignment && assignedTableIds.length === 0) {
-            alert('Пожалуйста, выберите столик(и) для гостя.');
+            alert(t('admin.pleaseSelectTables'));
             return;
         }
 
         const totalSeats = assignedTableIds.reduce((sum, id) => {
-            const t = tables.find(t => t.id === id);
-            return sum + (t?.seats || 2);
+            const tbl = tables.find(t => t.id === id);
+            return sum + (tbl?.seats || 2);
         }, 0);
 
         if (needsTableAssignment && totalSeats < booking.guestCount) {
-            if (!window.confirm(`Вместимости выбранных столов (${totalSeats}) меньше, чем гостей (${booking.guestCount}). Продолжить?`)) {
+            if (!window.confirm(t('admin.capacityWarning', { totalSeats: String(totalSeats), guestCount: String(booking.guestCount) }))) {
                 return;
             }
         }
 
         try {
             if (needsTableAssignment) {
-                const labels = assignedTableIds.map(id => tables.find(t => t.id === id)?.label || '');
+                const labels = assignedTableIds.map(id => tables.find(tbl => tbl.id === id)?.label || '');
                 await updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, assignedTableIds, labels, assignedTo || undefined);
             } else {
                 await updateBookingStatus(booking.id, BookingStatus.CONFIRMED, undefined, undefined, undefined, customDuration, undefined, undefined, assignedTo || undefined);
             }
         } catch (err: any) {
-            alert(err.message || 'Ошибка обновления статуса');
+            alert(err.message || t('admin.statusUpdateError'));
         }
     };
 
     const handleDecline = () => {
         if (!reason.trim()) {
-            alert('Пожалуйста, укажите причину отклонения.');
+            alert(t('admin.provideDeclineReason'));
             return;
         }
         updateBookingStatus(booking.id, BookingStatus.DECLINED, reason);
@@ -159,19 +162,19 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
         <div className="bg-brand-accent p-4 rounded-lg shadow-md border border-brand-accent/50">
             <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
                 <h4 className="font-bold text-lg text-white">
-                    {booking.tableLabels?.length ? `Столы: ${booking.tableLabels.join(', ')}` : booking.tableLabel ? `Столик ${booking.tableLabel}` : <span className="text-yellow-400">Столик не назначен</span>}
+                    {booking.tableLabels?.length ? t('admin.assignedTables', {labels: booking.tableLabels.join(', ')}) : booking.tableLabel ? t('admin.assignedTable', {label: booking.tableLabel}) : <span className="text-yellow-400">{t('admin.noTableAssigned')}</span>}
                 </h4>
                 <div className="text-sm font-semibold text-gray-200">
-                    Осталось: <CountdownTimer createdAt={booking.createdAt} />
+                    {t('admin.timeLeft')} <CountdownTimer createdAt={booking.createdAt} />
                 </div>
             </div>
-            <p className="text-sm font-medium text-gray-200">{booking.guestName} ({booking.guestCount} гостей)</p>
+            <p className="text-sm font-medium text-gray-200">{booking.guestName} ({booking.guestCount} {t('admin.guestsText')})</p>
             <p className="text-sm font-bold text-brand-blue drop-shadow-sm">{booking.guestPhone}</p>
             <p className="text-xs font-medium text-brand-yellow mb-2">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
 
             {booking.guestComment && (
                 <div className="mt-2 mb-2 p-2 bg-black/20 rounded border border-gray-600/50">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Комментарий гостя:</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('admin.guestCommentLabel')}</p>
                     <p className="text-sm text-white italic">"{booking.guestComment}"</p>
                 </div>
             )}
@@ -179,17 +182,17 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             {/* Table assignment for no-map bookings (multiple selection) */}
             {needsTableAssignment && !isDeclining && (
                 <div className="mt-3">
-                    <label className="text-xs text-brand-yellow block mb-2 font-bold">Назначить столы (можно выбрать несколько):</label>
+                    <label className="text-xs text-brand-yellow block mb-2 font-bold">{t('admin.assignTablesLabel')}</label>
                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-                        {tables.map(t => {
-                            const isSelected = assignedTableIds.includes(t.id);
+                        {tables.map(tbl => {
+                            const isSelected = assignedTableIds.includes(tbl.id);
                             return (
                                 <button
-                                    key={t.id}
-                                    onClick={() => toggleTable(t.id)}
+                                    key={tbl.id}
+                                    onClick={() => toggleTable(tbl.id)}
                                     className={`px-2 py-1 text-xs rounded-md font-semibold border transition-colors ${isSelected ? 'bg-brand-blue border-brand-blue text-white' : 'bg-brand-primary border-gray-600 text-gray-300 hover:border-gray-400'}`}
                                 >
-                                    Ст. {t.label} ({t.seats} м.)
+                                    {t('admin.tableLabelAdmin', {label: String(tbl.label), seats: String(tbl.seats)})}
                                 </button>
                             );
                         })}
@@ -200,7 +203,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             {/* Duration assignment */}
             {!isDeclining && (
                 <div className="mt-3">
-                    <label className="text-xs text-gray-200 font-medium block mb-1">Длительность (мин):</label>
+                    <label className="text-xs text-gray-200 font-medium block mb-1">{t('admin.durationLabel')}</label>
                     <input
                         type="number"
                         value={customDuration}
@@ -213,13 +216,13 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             {/* Responsible staff assignment */}
             {!isDeclining && (
                 <div className="mt-3 relative">
-                    <label className="text-xs text-gray-200 font-medium block mb-1">Ответственный за бронь:</label>
+                    <label className="text-xs text-gray-200 font-medium block mb-1">{t('admin.responsibleLabel')}</label>
                     <div className="relative">
                         <input
                             type="text"
                             value={assignedTo}
                             onChange={e => setAssignedTo(e.target.value)}
-                            placeholder="Имя менеджера / хостес"
+                            placeholder={t('admin.managerNamePlaceholder')}
                             className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue placeholder-gray-500"
                         />
                         {staffNames.length > 0 && (
@@ -245,18 +248,18 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                         type="text"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="Причина отказа"
+                        placeholder={t('admin.declineReasonPlaceholder')}
                         className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm focus:outline-none focus:border-brand-blue"
                     />
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                        <button onClick={handleDecline} className="flex-1 bg-brand-red text-white px-3 py-2 text-sm rounded-md hover:bg-red-700">Подтвердить</button>
-                        <button onClick={() => setIsDeclining(false)} className="bg-gray-500 text-white px-3 py-2 text-sm rounded-md hover:bg-gray-600">Отмена</button>
+                        <button onClick={handleDecline} className="flex-1 bg-brand-red text-white px-3 py-2 text-sm rounded-md hover:bg-red-700">{t('admin.confirm')}</button>
+                        <button onClick={() => setIsDeclining(false)} className="bg-gray-500 text-white px-3 py-2 text-sm rounded-md hover:bg-gray-600">{t('common.cancel')}</button>
                     </div>
                 </div>
             ) : (
                 <div className="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <button onClick={handleConfirm} className="flex-1 bg-brand-green text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-green-700 transition-colors">Подтвердить</button>
-                    <button onClick={() => setIsDeclining(true)} className="flex-1 bg-brand-red text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-red-700 transition-colors">Отклонить</button>
+                    <button onClick={handleConfirm} className="flex-1 bg-brand-green text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-green-700 transition-colors">{t('admin.confirm')}</button>
+                    <button onClick={() => setIsDeclining(true)} className="flex-1 bg-brand-red text-white px-3 py-2 text-sm font-semibold rounded-md hover:bg-red-700 transition-colors">{t('admin.decline')}</button>
                 </div>
             )}
         </div>
@@ -266,6 +269,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
 const AdminView: React.FC = () => {
     const { selectedRestaurantId } = useApp();
     const { getRestaurant, updateBookingStatus } = useData();
+    const { t } = useTranslation();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
@@ -507,7 +511,7 @@ const AdminView: React.FC = () => {
 
 
     if (!restaurant) {
-        return <div className="text-center text-gray-400">Загрузка данных ресторана...</div>;
+        return <div className="text-center text-gray-400">{t('admin.loadingRestaurant')}</div>;
     }
 
     return (
@@ -518,21 +522,21 @@ const AdminView: React.FC = () => {
                     onClick={() => setActiveView('MAP')}
                     className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'MAP' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    Зал и Брони
+                    {t('admin.mapAndBookingsTab')}
                     {activeView === 'MAP' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
                 <button
                     onClick={() => setActiveView('FUTURE')}
                     className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'FUTURE' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    Будущие брони
+                    {t('admin.futureBookingsTab')}
                     {activeView === 'FUTURE' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
                 <button
                     onClick={() => setActiveView('GUESTS')}
                     className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'GUESTS' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    База клиентов
+                    {t('admin.guestsTab')}
                     {activeView === 'GUESTS' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
             </div>
@@ -541,7 +545,7 @@ const AdminView: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
                     {/* Column 1: Requests */}
                     <div className="lg:col-span-1 order-2 lg:order-1">
-                        <h2 className="text-xl md:text-2xl font-bold mb-4 text-brand-primary">Новые запросы</h2>
+                        <h2 className="text-xl md:text-2xl font-bold mb-4 text-brand-primary">{t('admin.newRequests')}</h2>
                         <div className="space-y-4 max-h-[50vh] lg:max-h-[70vh] overflow-y-auto pr-2">
                             {pendingBookings.length > 0 ? (
                                 pendingBookings.map(b => (
@@ -553,7 +557,7 @@ const AdminView: React.FC = () => {
                                     />
                                 ))
                             ) : (
-                                <p className="text-gray-500 text-center py-8">Нет ожидающих запросов.</p>
+                                <p className="text-gray-500 text-center py-8">{t('admin.noPendingRequests')}</p>
                             )}
                         </div>
                     </div>
@@ -567,7 +571,7 @@ const AdminView: React.FC = () => {
                             <div className="bg-[#1a1c23] rounded-xl border-l-4 border-brand-blue p-4 shadow-lg mb-4">
                                 <div className="flex items-center justify-between mb-3 border-b border-brand-accent/30 pb-2">
                                     <h3 className="text-sm font-bold text-white tracking-wider flex items-center gap-2">
-                                        Ожидаемые гости (Сегодня)
+                                        {t('admin.expectedGuests')}
                                         <span className="bg-brand-blue/20 text-brand-blue px-2 py-0.5 rounded-full text-xs">{todayFutureBookings.length}</span>
                                     </h3>
                                 </div>
@@ -586,7 +590,7 @@ const AdminView: React.FC = () => {
                                                             <button 
                                                                 onClick={() => setEditingBooking(booking)}
                                                                 className="text-gray-500 hover:text-brand-blue transition-colors p-1 opacity-50 hover:opacity-100"
-                                                                title="Редактировать бронь"
+                                                                title={t('admin.editBookingTitle')}
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -600,10 +604,10 @@ const AdminView: React.FC = () => {
                                                                 {booking.guestCount}
                                                             </span>
                                                             <span className="flex items-center gap-1 text-white bg-white/5 px-2 py-0.5 rounded">
-                                                                Ст. {booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || 'Не назначен')}
+                                                                {t('admin.tableShort', {labels: booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || t('admin.tableNotAssigned'))})}
                                                             </span>
                                                             {isPast && (
-                                                                <span className="text-brand-red font-bold uppercase tracking-wider animate-pulse">Опоздание</span>
+                                                                <span className="text-brand-red font-bold uppercase tracking-wider animate-pulse">{t('admin.late')}</span>
                                                             )}
                                                             {booking.guestComment && <span className="italic truncate max-w-[150px] text-gray-500">"{booking.guestComment}"</span>}
                                                         </div>
@@ -613,15 +617,15 @@ const AdminView: React.FC = () => {
                                                             onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
                                                             className="bg-brand-green/20 text-brand-green hover:bg-brand-green hover:text-white px-3 py-1.5 rounded text-xs font-bold transition-all border border-brand-green/30"
                                                         >
-                                                            Пришли
+                                                            {t('admin.arrived')}
                                                         </button>
                                                         <button 
                                                             onClick={() => {
-                                                                if (window.confirm('Отменить бронь?')) updateBookingStatus(booking.id, BookingStatus.DECLINED, "Отменено администратором");
+                                                                if (window.confirm(t('admin.cancelBookingConfirm'))) updateBookingStatus(booking.id, BookingStatus.DECLINED, t('admin.cancelledByAdmin'));
                                                             }}
                                                             className="text-brand-red hover:bg-brand-red/20 px-2 py-1.5 rounded text-xs transition-colors border border-transparent hover:border-brand-red/30"
                                                         >
-                                                            Отмена
+                                                            {t('common.cancel')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -630,7 +634,7 @@ const AdminView: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="text-center py-6 text-gray-500 text-sm italic">
-                                        На сегодня ожидаемых гостей нет
+                                        {t('admin.noExpectedGuestsToday')}
                                     </div>
                                 )}
                             </div>
@@ -639,7 +643,7 @@ const AdminView: React.FC = () => {
                             <div className="flex flex-col md:flex-row gap-4">
                                 {/* 2. Occupied Tables - Left Side */}
                                 <div className="flex-[3] bg-brand-primary rounded-lg border border-brand-accent p-4">
-                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">Занятые столики</h3>
+                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">{t('admin.occupiedTablesTitle')}</h3>
                                 {occupiedTableBookings.length > 0 ? (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                                         {occupiedTableBookings.map(({ table, booking }) => {
@@ -651,10 +655,10 @@ const AdminView: React.FC = () => {
                                             return (
                                                 <div key={table.id} className="flex items-center justify-between gap-2 bg-brand-green/10 border border-brand-green/30 rounded-md p-2">
                                                     <div className="min-w-0">
-                                                        <p className="font-bold text-brand-green text-xs truncate">Ст. {table.label} — {booking.guestName}</p>
+                                                        <p className="font-bold text-brand-green text-xs truncate">{t('admin.tableShort', {labels: table.label})} — {booking.guestName}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <div className="text-[10px] font-bold text-brand-red border border-brand-red/30 px-1.5 py-0.5 rounded bg-brand-red/5">
-                                                                {timeLeft} мин
+                                                                {timeLeft} {t('admin.min')}
                                                             </div>
                                                             <DurationEditor booking={booking} />
                                                         </div>
@@ -663,20 +667,20 @@ const AdminView: React.FC = () => {
                                                         onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
                                                         className="bg-brand-green text-white px-2 py-1 text-[10px] font-bold rounded hover:bg-green-700 transition-colors shrink-0"
                                                     >
-                                                        Освободить
+                                                        {t('admin.freeTable')}
                                                     </button>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500 text-[10px] italic py-2">Нет занятых столов</p>
+                                    <p className="text-gray-500 text-[10px] italic py-2">{t('admin.noOccupiedTables')}</p>
                                 )}
                             </div>
 
                             {/* 3. Cancelled - Right Side (Small) */}
                             <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">История (Отмены)</h3>
+                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">{t('admin.historyCancellations')}</h3>
                                 {restaurant.bookings.filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED).length > 0 ? (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                         {restaurant.bookings
@@ -691,7 +695,7 @@ const AdminView: React.FC = () => {
                                                         <p className="text-[9px] text-gray-500">
                                                             {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                                                             <span className={`ml-2 px-1 rounded text-[8px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'text-brand-red' : 'text-gray-400'}`}>
-                                                                {booking.status === BookingStatus.CANCELLED ? 'ОТМЕНЕНО' : 'ОТКЛОНЕНО'}
+                                                                {booking.status === BookingStatus.CANCELLED ? t('admin.statusCancelled') : t('admin.statusDeclined')}
                                                             </span>
                                                         </p>
                                                     </div>
@@ -699,7 +703,7 @@ const AdminView: React.FC = () => {
                                             ))}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500 text-[10px] italic py-2">История пуста</p>
+                                    <p className="text-gray-500 text-[10px] italic py-2">{t('admin.historyEmpty')}</p>
                                 )}
                             </div>
                         </div>
@@ -707,7 +711,7 @@ const AdminView: React.FC = () => {
 
                         {/* Map Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                            <h2 className="text-xl md:text-2xl font-bold text-brand-primary">План зала</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-brand-primary">{t('admin.hallPlan')}</h2>
                             {restaurant.floors && restaurant.floors.length > 1 && (
                                 <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto max-w-full">
                                     {restaurant.floors.map(f => (

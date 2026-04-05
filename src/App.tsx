@@ -4,6 +4,8 @@ import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom
 import { DataProvider } from './context/DataContext';
 import { AppProvider, useApp } from './context/AppContext';
 
+import { I18nProvider } from './context/I18nContext';
+
 import Header from './components/Header';
 import LoginView from './views/LoginView';
 import RestaurantListView from './views/RestaurantListView';
@@ -74,13 +76,15 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
     return (
-        <DataProvider>
-            <AppProvider>
-                <HashRouter>
-                    <AppContent />
-                </HashRouter>
-            </AppProvider>
-        </DataProvider>
+        <I18nProvider>
+            <DataProvider>
+                <AppProvider>
+                    <HashRouter>
+                        <AppContent />
+                    </HashRouter>
+                </AppProvider>
+            </DataProvider>
+        </I18nProvider>
     );
 };
 

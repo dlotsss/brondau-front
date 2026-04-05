@@ -2,6 +2,7 @@ import React, { useState, useRef, MouseEvent as ReactMouseEvent, useCallback, us
 import { useData } from '../context/DataContext';
 import { LayoutElement, TableElement, DecoElement, TextElement, Floor } from '../types';
 import { useApp } from '../context/AppContext';
+import { useTranslation } from '../context/I18nContext';
 
 // Константы логического размера холста (виртуальные единицы)
 const LOGICAL_WIDTH = 1500;
@@ -22,6 +23,7 @@ type DragState = {
 };
 
 const ConstructorView: React.FC = () => {
+    const { t } = useTranslation();
     const { selectedRestaurantId } = useApp();
     const { getRestaurant, updateRestaurantSettings } = useData();
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
@@ -47,7 +49,7 @@ const ConstructorView: React.FC = () => {
     useEffect(() => {
         if (restaurant && !isInitialized) {
             setElements(restaurant.layout || []);
-            const resFloors = restaurant.floors || [{ id: 'floor-1', name: 'Основной зал' }];
+            const resFloors = restaurant.floors || [{ id: 'floor-1', name: t('constructor.mainHall') }];
             setFloors(resFloors);
             setActiveFloorId(resFloors[0]?.id || '');
             setBookingRestriction(restaurant.bookingRestriction ?? -1);
@@ -311,7 +313,7 @@ const ConstructorView: React.FC = () => {
             const count = elements.filter(e => e.type === 'table').length;
             newElement = { ...base, type: 'table', width: 80, height: 80, seats: 4, shape: type === 'table-square' ? 'square' : 'circle', label: (count + 1).toString() } as TableElement;
         } else if (type === 'text') {
-            newElement = { ...base, type: 'text', width: 150, height: 50, label: 'Текст', fontSize: 24 } as TextElement;
+            newElement = { ...base, type: 'text', width: 150, height: 50, label: t('constructor.textElement'), fontSize: 24 } as TextElement;
         } else if (type === 'stairs') {
             newElement = { ...base, type: 'stairs', width: 100, height: 100 } as DecoElement;
         } else if (type === 'plant') {
@@ -338,11 +340,11 @@ const ConstructorView: React.FC = () => {
             bookingRestriction: bookingRestriction,
             ageRestriction: ageRestriction
         });
-        alert('Сохранено!');
+        alert(t('constructor.saved'));
     };
 
     const addFloor = () => {
-        const name = prompt('Название зала:', `Зал ${floors.length + 1}`);
+        const name = prompt(t('constructor.floorNamePrompt'), t('constructor.defaultFloorName', { count: floors.length + 1 }));
         if (name) {
             const newFloor = { id: `floor-${Date.now()}`, name };
             setFloors(prev => [...prev, newFloor]);
@@ -352,10 +354,10 @@ const ConstructorView: React.FC = () => {
 
     const deleteFloor = (floorId: string) => {
         if (floors.length <= 1) {
-            alert('Нельзя удалить единственный зал.');
+            alert(t('constructor.cannotDeleteLastFloor'));
             return;
         }
-        if (confirm('Вы уверены, что хотите удалить этот зал и все его элементы?')) {
+        if (window.confirm(t('constructor.deleteFloorConfirm'))) {
             setFloors(prev => {
                 const updated = prev.filter(f => f.id !== floorId);
                 if (activeFloorId === floorId) {
@@ -367,7 +369,7 @@ const ConstructorView: React.FC = () => {
         }
     };
 
-    if (!restaurant) return <div className="text-center text-gray-400 p-8">Загрузка...</div>;
+    if (!restaurant) return <div className="text-center text-gray-400 p-8">{t('common.loading')}</div>;
     const currentFloorElements = elements.filter(el => el.floorId === activeFloorId);
 
     const ToolBtn = ({ label, onClick }: { label: string, onClick: () => void }) => (
@@ -384,89 +386,89 @@ const ConstructorView: React.FC = () => {
             {/* --- ЛЕВАЯ ПАНЕЛЬ (Инструменты) --- */}
             <div className="lg:w-64 flex flex-col gap-4 shrink-0">
                 <div className="bg-brand-primary p-3 rounded-lg shadow border border-brand-accent">
-                    <h3 className="font-bold text-white mb-2">Инструменты</h3>
+                    <h3 className="font-bold text-white mb-2">{t('constructor.toolsTitle')}</h3>
                     <div className="flex lg:grid lg:grid-cols-2 gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
-                        <ToolBtn label="Квадрат" onClick={() => addElement('table-square')} />
-                        <ToolBtn label="Круг" onClick={() => addElement('table-circle')} />
-                        <ToolBtn label="Стена" onClick={() => addElement('wall')} />
-                        <ToolBtn label="Окно" onClick={() => addElement('window')} />
-                        <ToolBtn label="Бар" onClick={() => addElement('bar')} />
-                        <ToolBtn label="Цветок" onClick={() => addElement('plant')} />
-                        <ToolBtn label="Текст" onClick={() => addElement('text')} />
-                        <ToolBtn label="Стрелка" onClick={() => addElement('arrow')} />
-                        <ToolBtn label="Лестн." onClick={() => addElement('stairs')} />
+                        <ToolBtn label={t('constructor.toolSquare')} onClick={() => addElement('table-square')} />
+                        <ToolBtn label={t('constructor.toolCircle')} onClick={() => addElement('table-circle')} />
+                        <ToolBtn label={t('constructor.toolWall')} onClick={() => addElement('wall')} />
+                        <ToolBtn label={t('constructor.toolWindow')} onClick={() => addElement('window')} />
+                        <ToolBtn label={t('constructor.toolBar')} onClick={() => addElement('bar')} />
+                        <ToolBtn label={t('constructor.toolPlant')} onClick={() => addElement('plant')} />
+                        <ToolBtn label={t('constructor.toolText')} onClick={() => addElement('text')} />
+                        <ToolBtn label={t('constructor.toolArrow')} onClick={() => addElement('arrow')} />
+                        <ToolBtn label={t('constructor.toolStairs')} onClick={() => addElement('stairs')} />
                     </div>
                     <button onClick={handleSaveLayout} className="w-full mt-4 bg-brand-blue text-white font-bold py-2 rounded hover:bg-blue-600 transition">
-                        Сохранить
+                        {t('common.save')}
                     </button>
                 </div>
 
                 {/* Настройки ресторана (Только для Owner) */}
                 <div className="bg-brand-primary p-3 rounded-lg shadow border border-brand-accent">
-                    <h3 className="font-bold text-white mb-2 text-sm">Настройки времени</h3>
+                    <h3 className="font-bold text-white mb-2 text-sm">{t('constructor.timeSettingsTitle')}</h3>
                     <div className="space-y-2">
-                        <label className="text-gray-400 text-xs block">Ограничение по умолчанию (мин)</label>
+                        <label className="text-gray-400 text-xs block">{t('constructor.defaultRestriction')}</label>
                         <div className="flex gap-2 items-center">
                             <input
                                 type="number"
                                 value={bookingRestriction}
                                 onChange={e => setBookingRestriction(parseInt(e.target.value))}
                                 className="w-full bg-brand-secondary p-1.5 rounded border border-gray-600 text-white text-sm"
-                                placeholder="-1 (нет)"
+                                placeholder={t('constructor.noRestrictionPlaceholder')}
                             />
-                            <span className="text-gray-500 text-[10px] whitespace-nowrap">{bookingRestriction === -1 ? 'Без огр.' : `${bookingRestriction} мин`}</span>
+                            <span className="text-gray-500 text-[10px] whitespace-nowrap">{bookingRestriction === -1 ? t('constructor.noRestriction') : `${bookingRestriction} ${t('constructor.min')}`}</span>
                         </div>
-                        <p className="text-[10px] text-gray-500">Установите -1 для отключения ограничений.</p>
+                        <p className="text-[10px] text-gray-500">{t('constructor.restrictionDesc')}</p>
                     </div>
                 </div>
 
                 <div className="bg-brand-primary p-3 rounded-lg shadow border border-brand-accent">
-                    <h3 className="font-bold text-white mb-2 text-sm">Сообщение после брони</h3>
+                    <h3 className="font-bold text-white mb-2 text-sm">{t('constructor.postBookingMessageTitle')}</h3>
                     <div className="space-y-2">
                         <textarea
                             value={ageRestriction}
                             onChange={e => setAgeRestriction(e.target.value)}
-                            placeholder="Например: Вход 21+ \n Не забудьте паспорт"
+                            placeholder={t('constructor.postBookingMessagePlaceholder')}
                             className="w-full bg-brand-secondary p-2 rounded border border-brand-accent text-white text-xs h-20 bg-[#1a1c23]"
                         />
-                        <p className="text-[10px] text-gray-500">Отобразится гостю. Используйте перенос строки для абзацев, и &lt;b&gt;текст&lt;/b&gt; для выделения жирным.</p>
+                        <p className="text-[10px] text-gray-500" dangerouslySetInnerHTML={{ __html: t('constructor.postBookingMessageDesc') }}></p>
                     </div>
                 </div>
 
                 {/* Свойства (Только Desktop) */}
                 <div className="hidden lg:block bg-brand-primary p-3 rounded-lg shadow border border-brand-accent flex-grow">
-                    <h3 className="font-bold text-white mb-2">Свойства</h3>
+                    <h3 className="font-bold text-white mb-2">{t('constructor.propertiesTitle')}</h3>
                     {selectedElement ? (
                         <div className="space-y-3 text-sm">
                             {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
                                 <div>
-                                    <label className="text-gray-400 block">Название / Текст</label>
+                                    <label className="text-gray-400 block">{t('constructor.propTextLabel')}</label>
                                     <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                                 </div>
                             )}
                             {selectedElement.type === 'table' && (
                                 <div>
-                                    <label className="text-gray-400 block">Мест</label>
+                                    <label className="text-gray-400 block">{t('constructor.propSeats')}</label>
                                     <input type="number" value={(selectedElement as TableElement).seats} onChange={e => updateElement(selectedElement.id, { seats: parseInt(e.target.value) } as any)} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                                 </div>
                             )}
                             <div>
-                                <label className="text-gray-400 block">Ширина</label>
+                                <label className="text-gray-400 block">{t('constructor.propWidth')}</label>
                                 <input type="number" value={selectedElement.width} onChange={e => updateElement(selectedElement.id, { width: parseInt(e.target.value) })} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                             </div>
                             <div>
-                                <label className="text-gray-400 block">Высота</label>
+                                <label className="text-gray-400 block">{t('constructor.propHeight')}</label>
                                 <input type="number" value={selectedElement.height} onChange={e => updateElement(selectedElement.id, { height: parseInt(e.target.value) })} className="w-full bg-brand-secondary p-1 rounded border border-gray-600 text-gray-600" />
                             </div>
-                            <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">Удалить</button>
+                            <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">{t('common.delete')}</button>
                         </div>
                     ) : selectedElements.length > 1 ? (
                         <div className="space-y-3 text-sm">
-                            <p className="text-gray-400">Выделено элементов: {selectedElements.length}</p>
-                            <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">Удалить выбранные</button>
+                            <p className="text-gray-400">{t('constructor.selectedCount', { count: selectedElements.length })}</p>
+                            <button onClick={deleteSelectedElement} className="w-full bg-brand-red/20 text-brand-red border border-brand-red/50 py-2 rounded mt-4 uppercase text-xs font-bold">{t('constructor.deleteSelected')}</button>
                         </div>
                     ) : (
-                        <p className="text-gray-500 text-xs">Выберите элемент для редактирования</p>
+                        <p className="text-gray-500 text-xs">{t('constructor.selectElementHint')}</p>
                     )}
                 </div>
             </div>
@@ -484,7 +486,7 @@ const ConstructorView: React.FC = () => {
                                 <button
                                     onClick={(e) => { e.stopPropagation(); deleteFloor(f.id); }}
                                     className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/20 text-white/50 hover:text-white transition-colors"
-                                    title="Удалить зал"
+                                    title={t('constructor.deleteFloorTitle')}
                                 >
                                     &times;
                                 </button>
@@ -608,7 +610,7 @@ const ConstructorView: React.FC = () => {
                                             <div
                                                 onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); handleStart(e.clientX, e.clientY, el.id, 'rotate'); }}
                                                 className="absolute -top-10 left-1/2 -translate-x-1/2 w-4 h-4 bg-brand-accent border-2 border-white rounded-full cursor-alias z-30"
-                                                title="Повернуть"
+                                                title={t('constructor.rotateTitle')}
                                             >
                                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-brand-accent" />
                                             </div>
@@ -646,15 +648,15 @@ const ConstructorView: React.FC = () => {
             {selectedElements.length > 0 && isMobile && (
                 <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-brand-primary border-t-2 border-brand-blue p-4 pb-8 shadow-2xl z-50 animate-slide-up rounded-t-xl max-h-[50vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-white font-bold">{selectedElements.length > 1 ? `Выделено: ${selectedElements.length}` : 'Настройки'}</h3>
-                        <button onClick={deleteSelectedElement} className="bg-red-900/40 text-red-300 text-xs font-bold border border-red-500/50 px-3 py-1.5 rounded">Удалить</button>
+                        <h3 className="text-white font-bold">{selectedElements.length > 1 ? t('constructor.selectedCount', { count: selectedElements.length }) : t('constructor.settingsTitle')}</h3>
+                        <button onClick={deleteSelectedElement} className="bg-red-900/40 text-red-300 text-xs font-bold border border-red-500/50 px-3 py-1.5 rounded">{t('common.delete')}</button>
                     </div>
 
                     {selectedElement ? (
                         <div className="space-y-4">
                             {(selectedElement.type === 'table' || selectedElement.type === 'text') && (
                                 <div>
-                                    <label className="text-gray-400 text-xs block mb-1">Текст / Название</label>
+                                    <label className="text-gray-400 text-xs block mb-1">{t('constructor.propTextLabel')}</label>
                                     <input type="text" value={(selectedElement as any).label} onChange={e => updateElement(selectedElement.id, { label: e.target.value } as any)} className={inputStyle} />
                                 </div>
                             )}
@@ -662,7 +664,7 @@ const ConstructorView: React.FC = () => {
                             {/* Размер: Слайдер + Input */}
                             <div>
                                 <div className="flex justify-between mb-1">
-                                    <label className="text-gray-400 text-xs">Ширина</label>
+                                    <label className="text-gray-400 text-xs">{t('constructor.propWidth')}</label>
                                     <span className="text-gray-500 text-xs">{selectedElement.width}px</span>
                                 </div>
                                 <div className="flex gap-2 items-center">
@@ -673,7 +675,7 @@ const ConstructorView: React.FC = () => {
 
                             <div>
                                 <div className="flex justify-between mb-1">
-                                    <label className="text-gray-400 text-xs">Высота</label>
+                                    <label className="text-gray-400 text-xs">{t('constructor.propHeight')}</label>
                                     <span className="text-gray-500 text-xs">{selectedElement.height}px</span>
                                 </div>
                                 <div className="flex gap-2 items-center">
