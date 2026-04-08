@@ -444,8 +444,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                 onChange={e => setCurrentTableId(e.target.value)}
                                 className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             >
-                                {restaurant?.layout?.filter(el => el.type === 'table').map((t: any) => (
-                                    <option key={t.id} value={t.id}>{t('bookingModal.tableCapacity', { label: String(t.label), seats: String(t.seats) })}</option>
+                                {restaurant?.layout?.filter(el => el.type === 'table').map((tbl: any) => (
+                                    <option key={tbl.id} value={tbl.id}>{t('bookingModal.tableCapacity', { label: String(tbl.label), seats: String(tbl.seats) })}</option>
                                 ))}
                                 <option value="">{t('bookingModal.noTable')}</option>
                             </select>
