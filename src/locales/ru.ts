@@ -43,7 +43,7 @@ export const ru = {
         legendOccupied: 'Занят'
     },
     bookingModal: {
-        successTitle: 'Бронь успешно создана/обновлена!',
+        successTitle: 'Бронь успешно создана!',
         successOkButton: 'Понятно, спасибо',
         editTitle: 'Редактирование брони',
         seatGuestsTable: 'Посадить гостей:',

@@ -53,6 +53,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               bookingRestriction: restaurant.booking_restriction,
               age_restriction: restaurant.age_restriction,
               deposit: restaurant.deposit,
+              age_restriction_kz: restaurant.age_restriction_kz,
+              deposit_kz: restaurant.deposit_kz,
               layout: restaurant.layout || [],
               floors: restaurant.floors || [],
               bookings: bookings.map((b: any) => ({
@@ -91,6 +93,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               bookingRestriction: restaurant.booking_restriction,
               age_restriction: restaurant.age_restriction,
               deposit: restaurant.deposit,
+              age_restriction_kz: restaurant.age_restriction_kz,
+              deposit_kz: restaurant.deposit_kz,
               floors: restaurant.floors || [],
               bookings: []
             };
@@ -233,7 +237,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         layout: updatedRestaurant.layout,
         floors: updatedRestaurant.floors || [],
         bookingRestriction: (updatedRestaurant as any).booking_restriction,
-        age_restriction: (updatedRestaurant as any).age_restriction
+        age_restriction: (updatedRestaurant as any).age_restriction,
+        deposit: (updatedRestaurant as any).deposit,
+        age_restriction_kz: (updatedRestaurant as any).age_restriction_kz,
+        deposit_kz: (updatedRestaurant as any).deposit_kz
       } : r));
     } catch (error) {
       console.error('Failed to update restaurant settings:', error);

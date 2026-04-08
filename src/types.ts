@@ -122,4 +122,6 @@ export interface Restaurant {
   bookingRestriction?: number;
   age_restriction?: string;
   deposit?: string;
+  age_restriction_kz?: string;
+  deposit_kz?: string;
 }

@@ -13,7 +13,7 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
                     <p key={i}>
                         {parts.map((part, j) => {
                             if (part.startsWith('<b>') && part.endsWith('</b>')) {
-                                return <strong key={j} className="text-white font-bold">{part.slice(3, -4)}</strong>;
+                                return <strong key={j} className="text-brand-primary font-bold">{part.slice(3, -4)}</strong>;
                             }
                             return <span key={j}>{part}</span>;
                         })}
@@ -62,7 +62,7 @@ const formatPhoneNumber = (value: string): string => {
 
 const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false, withMap = true, bookingToEdit }) => {
     const { addBooking, getRestaurant, updateBookingDetails } = useData();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const restaurant = getRestaurant(restaurantId);
 
     const [guestName, setGuestName] = useState(bookingToEdit?.guestName || '');
@@ -399,11 +399,19 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     <h2 className="text-2xl font-bold text-brand-primary mb-2">{t('bookingModal.successTitle')}</h2>
                     <p className="text-gray-400 mb-6">{t('bookingModal.successMessage')}</p>
 
-                    {restaurant?.age_restriction && restaurant.age_restriction.trim() !== '' && (
-                        <div className="bg-[#1a1c23] border-l-4 border-brand-blue rounded-r-lg p-4 text-left text-sm text-gray-300 mb-8 shadow-inner">
-                            <FormattedMessage text={restaurant.age_restriction} />
-                        </div>
-                    )}
+                    {(() => {
+                        const ageText = language === 'kz' && restaurant?.age_restriction_kz && restaurant.age_restriction_kz.trim() !== '' ? restaurant.age_restriction_kz : restaurant?.age_restriction;
+                        return ageText && ageText.trim() !== '' ? (
+                            <div className="mt-4 flex bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="text-yellow-800 text-sm italic font-medium w-full">
+                                    <FormattedMessage text={ageText} />
+                                </div>
+                            </div>
+                        ) : null;
+                    })()}
 
                     <button onClick={onClose} className="w-full bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold py-3 rounded-lg shadow-lg transition-all">
                         {t('bookingModal.successOkButton')}
@@ -437,7 +445,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                 className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             >
                                 {restaurant?.layout?.filter(el => el.type === 'table').map((t: any) => (
-                                    <option key={t.id} value={t.id}>{t('bookingModal.tableCapacity', {label: String(t.label), seats: String(t.seats)})}</option>
+                                    <option key={t.id} value={t.id}>{t('bookingModal.tableCapacity', { label: String(t.label), seats: String(t.seats) })}</option>
                                 ))}
                                 <option value="">{t('bookingModal.noTable')}</option>
                             </select>
@@ -445,7 +453,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     ) : (
                         table && (
                             <p className="text-gray-500 text-sm">
-                                {t('bookingModal.capacityGuests', {seats: String(table.seats)})}
+                                {t('bookingModal.capacityGuests', { seats: String(table.seats) })}
                             </p>
                         )
                     )}

@@ -43,7 +43,7 @@ export const kz = {
         legendOccupied: 'Бос емес'
     },
     bookingModal: {
-        successTitle: 'Бронь сәтті жасалды/жаңартылды!',
+        successTitle: 'Бронь сәтті жасалды!',
         successOkButton: 'Түсінікті, рақмет',
         editTitle: 'Броньды өңдеу',
         seatGuestsTable: 'Қонақтарды отырғызу:',
