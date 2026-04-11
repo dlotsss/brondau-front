@@ -173,7 +173,7 @@ const RestaurantListView: React.FC = () => {
         if (savedCity) {
             setSelectedCity(savedCity);
         } else {
-            fetch('https://ipapi.co/json/')
+            fetch('https://get.geojs.io/v1/ip/geo.json')
                 .then(res => res.json())
                 .then(data => {
                     if (data.city) {
