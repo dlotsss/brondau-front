@@ -229,11 +229,11 @@ const RestaurantListView: React.FC = () => {
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <label className="text-gray-400 text-sm font-semibold whitespace-nowrap">Ваш город:</label>
+                            <label className="text-brand-primary text-sm font-semibold whitespace-nowrap">Ваш город:</label>
                             <select
                                 value={selectedCity}
                                 onChange={handleCitySelect}
-                                className="bg-brand-primary border border-gray-600 outline-none text-white text-sm rounded-md px-3 py-2 focus:border-brand-blue"
+                                className="bg-brand-primary border border-gray-600 outline-none text-brand-primary text-sm rounded-md px-3 py-2 focus:border-brand-blue"
                             >
                                 {availableCities.map(city => (
                                     <option key={city} value={city}>{city}</option>
