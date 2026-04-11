@@ -254,7 +254,7 @@ const RestaurantListView: React.FC = () => {
             {showCityConfirm && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
                     <div className="bg-brand-secondary border border-brand-accent rounded-xl p-6 shadow-2xl max-w-sm w-full animate-fade-in">
-                        <h2 className="text-xl font-bold text-white mb-2 text-center">Ваш город {detectedCity}?</h2>
+                        <h2 className="text-xl font-bold text-brand-primary mb-2 text-center">Ваш город {detectedCity}?</h2>
                         <div className="flex gap-3 mt-6">
                             <button onClick={handleConfirmCity} className="flex-1 bg-brand-blue hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition-colors">
                                 Да
