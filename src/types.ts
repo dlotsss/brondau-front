@@ -124,4 +124,5 @@ export interface Restaurant {
   deposit?: string;
   age_restriction_kz?: string;
   deposit_kz?: string;
+  city?: string;
 }
