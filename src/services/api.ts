@@ -77,11 +77,11 @@ export const api = {
         }),
     },
     guests: {
-        search: (phone: string) => request<Guest[]>(`/guests/search?phone=${encodeURIComponent(phone)}`),
-        getHistory: (phone: string) => request<{ stats: any, history: any[] }>(`/guests/${phone}/history`),
-        update: (phone: string, data: { internalComment?: string, name?: string, email?: string }) => request<Guest>(`/guests/${phone}`, {
+        search: (phone: string, restaurantId: string) => request<Guest[]>(`/guests/search?phone=${encodeURIComponent(phone)}&restaurantId=${restaurantId}`),
+        getHistory: (phone: string, restaurantId: string) => request<{ stats: any, history: any[] }>(`/guests/${phone}/history?restaurantId=${restaurantId}`),
+        update: (phone: string, restaurantId: string, data: { internalComment?: string, name?: string, email?: string }) => request<Guest>(`/guests/${phone}`, {
             method: 'PUT',
-            body: JSON.stringify(data),
+            body: JSON.stringify({ ...data, restaurantId }),
         }),
     },
     public: {

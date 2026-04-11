@@ -3,7 +3,7 @@ import { Guest, BookingStatus } from '../types';
 import { api } from '../services/api';
 import { useTranslation } from '../context/I18nContext';
 
-const GuestManager: React.FC = () => {
+const GuestManager: React.FC<{ restaurantId: string }> = ({ restaurantId }) => {
     const { t } = useTranslation();
     const [searchPhone, setSearchPhone] = useState('');
     const [guests, setGuests] = useState<Guest[]>([]);
@@ -17,7 +17,7 @@ const GuestManager: React.FC = () => {
     const handleSearch = useCallback(async (phone: string) => {
         setLoading(true);
         try {
-            const data = await api.guests.search(phone);
+            const data = await api.guests.search(phone, restaurantId);
             setGuests(data);
         } catch (error) {
             console.error('Search guests error:', error);
@@ -39,7 +39,7 @@ const GuestManager: React.FC = () => {
         setInternalComment(guest.internalComment || '');
         setLoading(true);
         try {
-            const { history, stats } = await api.guests.getHistory(guest.phone);
+            const { history, stats } = await api.guests.getHistory(guest.phone, restaurantId);
             setHistory(history);
             setStats(stats);
         } catch (error) {
@@ -53,7 +53,7 @@ const GuestManager: React.FC = () => {
         if (!selectedGuest) return;
         setSaving(true);
         try {
-            const updated = await api.guests.update(selectedGuest.phone, {
+            const updated = await api.guests.update(selectedGuest.phone, restaurantId, {
                 internalComment,
                 name: selectedGuest.name,
                 email: selectedGuest.email

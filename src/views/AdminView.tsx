@@ -889,7 +889,7 @@ const AdminView: React.FC = () => {
                 </div>
             ) : activeView === 'GUESTS' ? (
                 <div className="animate-fadeIn h-[70vh]">
-                    <GuestManager />
+                    <GuestManager restaurantId={restaurant.id} />
                 </div>
             ) : (
                 <FutureBookingsManager 
