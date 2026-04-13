@@ -228,7 +228,7 @@ const RestaurantListView: React.FC = () => {
                                 {currentUser?.role === 'GUEST' ? t('restaurantList.selectRestaurantGuestDesc') : t('restaurantList.selectRestaurantAdminDesc')}
                             </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        {/* <div className="flex items-center gap-3">
                             <label className="text-gray-400 text-sm font-semibold whitespace-nowrap">Ваш город:</label>
                             <select
                                 value={selectedCity}
@@ -239,7 +239,7 @@ const RestaurantListView: React.FC = () => {
                                     <option key={city} value={city}>{city}</option>
                                 ))}
                             </select>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -251,7 +251,7 @@ const RestaurantListView: React.FC = () => {
                 </div>
             </div>
 
-            {showCityConfirm && (
+            {/* showCityConfirm && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
                     <div className="bg-brand-secondary border border-brand-accent rounded-xl p-6 shadow-2xl max-w-sm w-full animate-fade-in">
                         <h2 className="text-xl font-bold text-brand-primary mb-2 text-center">Ваш город {detectedCity}?</h2>
@@ -265,7 +265,7 @@ const RestaurantListView: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            )}
+            ) */}
             <style>{`
                 @keyframes fade-in {
                     0% { opacity: 0; transform: translateY(10px); }
