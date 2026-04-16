@@ -77,6 +77,7 @@ export const ru = {
         min: 'мин',
         ok: 'OK',
         pleaseSelectTables: 'Пожалуйста, выберите столик(и) для гостя.',
+        pleaseSelectResponsible: 'Пожалуйста, укажите ответственного (Имя менеджера / хостес).',
         capacityWarning: 'Вместимости выбранных столов ({{totalSeats}}) меньше, чем гостей ({{guestCount}}). Продолжить?',
         statusUpdateError: 'Ошибка обновления статуса',
         provideDeclineReason: 'Пожалуйста, укажите причину отклонения.',

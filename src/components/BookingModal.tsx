@@ -330,6 +330,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             return;
         }
 
+        if (isAdmin && !assignedTo?.trim()) {
+            setError(t('admin.pleaseSelectResponsible'));
+            setLoading(false);
+            return;
+        }
+
         const phoneDigits = guestPhone.replace(/\D/g, '');
         if (!isAdmin && phoneDigits.length !== 11) {
             setError('Пожалуйста, введите корректный номер телефона: +7 (XXX) XXX-XX-XX');
@@ -548,7 +554,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
                         {isAdmin && (
                             <div>
-                                <label className="text-xs text-brand-blue block mb-2 font-bold">{t('bookingModal.assignedTo')}</label>
+                                <label className="text-xs text-brand-blue block mb-2 font-bold">
+                                    {t('bookingModal.assignedTo')} <span className="text-red-500">*</span>
+                                </label>
                                 <div className="space-y-2">
                                     <input
                                         type="text"

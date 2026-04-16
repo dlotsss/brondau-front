@@ -122,6 +122,11 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
     };
 
     const handleConfirm = async () => {
+        if (!assignedTo?.trim()) {
+            alert(t('admin.pleaseSelectResponsible'));
+            return;
+        }
+
         if (needsTableAssignment && assignedTableIds.length === 0) {
             alert(t('admin.pleaseSelectTables'));
             return;
@@ -216,7 +221,9 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             {/* Responsible staff assignment */}
             {!isDeclining && (
                 <div className="mt-3 relative">
-                    <label className="text-xs text-gray-200 font-medium block mb-1">{t('admin.responsibleLabel')}</label>
+                    <label className="text-xs text-gray-200 font-medium block mb-1">
+                        {t('admin.responsibleLabel')} <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative">
                         <input
                             type="text"

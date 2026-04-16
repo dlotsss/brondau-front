@@ -77,6 +77,7 @@ export const kz = {
         min: 'мин',
         ok: 'OK',
         pleaseSelectTables: 'Қонаққа үстел(дер) таңдаңыз.',
+        pleaseSelectResponsible: 'Жауапты тұлғаны көрсетіңіз (Менеджер / хостес аты).',
         capacityWarning: 'Таңдалған үстелдердің сыйымдылығы ({{totalSeats}}) қонақтар санынан ({{guestCount}}) аз. Жалғастырасыз ба?',
         statusUpdateError: 'Күйді жаңарту қатесі',
         provideDeclineReason: 'Бас тарту себебін көрсетіңіз.',
