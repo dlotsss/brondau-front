@@ -8,6 +8,22 @@ interface FutureBookingsManagerProps {
     onEditBooking?: (booking: Booking) => void;
 }
 
+const STATUS_ORDER: Record<string, number> = {
+    [BookingStatus.CONFIRMED]: 0,
+    [BookingStatus.OCCUPIED]: 1,
+    [BookingStatus.COMPLETED]: 2,
+    [BookingStatus.DECLINED]: 3,
+    [BookingStatus.CANCELLED]: 4,
+};
+
+const STATUS_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
+    [BookingStatus.CONFIRMED]: { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/30', label: 'confirmed' },
+    [BookingStatus.OCCUPIED]: { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-400/40', label: 'occupied' },
+    [BookingStatus.COMPLETED]: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', label: 'completed' },
+    [BookingStatus.DECLINED]: { bg: 'bg-gray-500/15', text: 'text-gray-400', border: 'border-gray-500/30', label: 'declined' },
+    [BookingStatus.CANCELLED]: { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30', label: 'cancelled' },
+};
+
 const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restaurantId, onEditBooking }) => {
     const { getRestaurant, updateBookingStatus } = useData();
     const { t } = useTranslation();
@@ -20,14 +36,28 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
 
         return restaurant.bookings
             .filter(b => {
-                if (b.status !== BookingStatus.CONFIRMED) return false;
+                // Exclude PENDING
+                if (b.status === BookingStatus.PENDING) return false;
                 if (!selectedDate) return true;
 
                 const bookingDate = new Date(b.dateTime).toISOString().split('T')[0];
                 return bookingDate === selectedDate;
             })
-            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+            .sort((a, b) => {
+                // CONFIRMED first, then by status order, then by time
+                const orderA = STATUS_ORDER[a.status] ?? 99;
+                const orderB = STATUS_ORDER[b.status] ?? 99;
+                if (orderA !== orderB) return orderA - orderB;
+                return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+            });
     }, [restaurant, selectedDate]);
+
+    const formatTime = (date: Date) => {
+        return new Date(date).toLocaleString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
 
     const formatDate = (date: Date) => {
         return new Date(date).toLocaleString('ru-RU', {
@@ -40,6 +70,9 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
     };
 
     if (!restaurant) return null;
+
+    const isActionable = (status: string) =>
+        status === BookingStatus.CONFIRMED || status === BookingStatus.OCCUPIED;
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -62,9 +95,10 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredBookings.length > 0 ? (
                     filteredBookings.map(booking => {
-                        const isPast = new Date(booking.dateTime) < new Date();
+                        const style = STATUS_STYLES[booking.status] || STATUS_STYLES[BookingStatus.DECLINED];
+                        const isPast = booking.status === BookingStatus.CONFIRMED && new Date(booking.dateTime) < new Date();
                         return (
-                            <div key={booking.id} className={`flex flex-col justify-between gap-4 p-4 rounded-xl border transition-all hover:shadow-xl ${isPast ? 'bg-brand-red/5 border-brand-red/20' : 'bg-brand-primary border-brand-accent/50'} group`}>
+                            <div key={booking.id} className={`flex flex-col justify-between gap-4 p-4 rounded-xl border transition-all hover:shadow-xl ${style.bg} ${style.border} group`}>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-start">
                                         <div>
@@ -72,7 +106,7 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                                 <h4 className="font-bold text-lg text-brand-blue group-hover:text-brand-blue transition-colors">
                                                     {booking.guestName}
                                                 </h4>
-                                                {onEditBooking && (
+                                                {onEditBooking && isActionable(booking.status) && (
                                                     <button
                                                         onClick={() => onEditBooking(booking)}
                                                         className="text-gray-400 hover:text-brand-blue transition-colors p-1"
@@ -87,8 +121,13 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                             </div>
                                             <p className="text-brand-blue font-mono font-medium">{booking.guestPhone}</p>
                                         </div>
-                                        <div className="bg-brand-blue/10 text-brand-blue px-3 py-1 rounded-full text-xs font-bold border border-brand-blue/20">
-                                            {booking.guestCount} {t('futureBookings.guests')}
+                                        <div className="flex flex-col items-end gap-1">
+                                            <div className="bg-brand-blue/10 text-brand-blue px-3 py-1 rounded-full text-xs font-bold border border-brand-blue/20">
+                                                {booking.guestCount} {t('futureBookings.guests')}
+                                            </div>
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${style.text} ${style.bg} border ${style.border}`}>
+                                                {t(`futureBookings.status.${style.label}`)}
+                                            </span>
                                         </div>
                                     </div>
 
@@ -106,7 +145,7 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                     </div>
 
                                     {booking.guestComment && (
-                                        <div className="bg-brand-accent/30 p-2 rounded border border-white/5 italic text-xs text-gray-300">
+                                        <div className="bg-brand-accent/30 p-2 rounded border border-white/5 italic text-xs text-gray-700">
                                             "{booking.guestComment}"
                                         </div>
                                     )}
@@ -116,26 +155,50 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                             {t('admin.late')}
                                         </div>
                                     )}
+
+                                    {booking.status === BookingStatus.DECLINED && booking.declineReason && (
+                                        <div className="text-xs text-gray-700 italic">
+                                            {t('futureBookings.reason')}: {booking.declineReason}
+                                        </div>
+                                    )}
+                                    {booking.status === BookingStatus.CANCELLED && booking.cancelReason && (
+                                        <div className="text-xs text-gray-700 italic">
+                                            {t('futureBookings.reason')}: {booking.cancelReason}
+                                            {booking.cancelComment && ` — ${booking.cancelComment}`}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="flex gap-2 pt-2 border-t border-white/5">
-                                    <button
-                                        onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
-                                        className="flex-1 bg-brand-green text-white py-2.5 rounded-lg text-sm font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg"
-                                    >
-                                        {t('admin.arrived')}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            if (window.confirm(t('admin.cancelBookingConfirm'))) {
-                                                updateBookingStatus(booking.id, BookingStatus.DECLINED, t('admin.cancelledByAdmin'));
-                                            }
-                                        }}
-                                        className="px-4 py-2.5 bg-brand-red/10 text-brand-red border border-brand-red/30 rounded-lg text-sm font-bold hover:bg-brand-red hover:text-white transition-all"
-                                    >
-                                        {t('common.cancel')}
-                                    </button>
-                                </div>
+                                {isActionable(booking.status) && (
+                                    <div className="flex gap-2 pt-2 border-t border-white/5">
+                                        {booking.status === BookingStatus.CONFIRMED && (
+                                            <button
+                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
+                                                className="flex-1 bg-brand-green text-white py-2.5 rounded-lg text-sm font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg"
+                                            >
+                                                {t('admin.arrived')}
+                                            </button>
+                                        )}
+                                        {booking.status === BookingStatus.OCCUPIED && (
+                                            <button
+                                                onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
+                                                className="flex-1 bg-brand-blue text-white py-2.5 rounded-lg text-sm font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg"
+                                            >
+                                                {t('admin.freeTable')}
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm(t('admin.cancelBookingConfirm'))) {
+                                                    updateBookingStatus(booking.id, BookingStatus.DECLINED, t('admin.cancelledByAdmin'));
+                                                }
+                                            }}
+                                            className="px-4 py-2.5 bg-brand-red/10 text-brand-red border border-brand-red/30 rounded-lg text-sm font-bold hover:bg-brand-red hover:text-white transition-all"
+                                        >
+                                            {t('common.cancel')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })

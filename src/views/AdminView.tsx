@@ -162,7 +162,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
         <div className="bg-brand-accent p-4 rounded-lg shadow-md border border-brand-accent/50">
             <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
                 <h4 className="font-bold text-lg text-white">
-                    {booking.tableLabels?.length ? t('admin.assignedTables', {labels: booking.tableLabels.join(', ')}) : booking.tableLabel ? t('admin.assignedTable', {label: booking.tableLabel}) : <span className="text-yellow-400">{t('admin.noTableAssigned')}</span>}
+                    {booking.tableLabels?.length ? t('admin.assignedTables', { labels: booking.tableLabels.join(', ') }) : booking.tableLabel ? t('admin.assignedTable', { label: booking.tableLabel }) : <span className="text-yellow-400">{t('admin.noTableAssigned')}</span>}
                 </h4>
                 <div className="text-sm font-semibold text-gray-200">
                     {t('admin.timeLeft')} <CountdownTimer createdAt={booking.createdAt} />
@@ -192,7 +192,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                                     onClick={() => toggleTable(tbl.id)}
                                     className={`px-2 py-1 text-xs rounded-md font-semibold border transition-colors ${isSelected ? 'bg-brand-blue border-brand-blue text-white' : 'bg-brand-primary border-gray-600 text-gray-300 hover:border-gray-400'}`}
                                 >
-                                    {t('admin.tableLabelAdmin', {label: String(tbl.label), seats: String(tbl.seats)})}
+                                    {t('admin.tableLabelAdmin', { label: String(tbl.label), seats: String(tbl.seats) })}
                                 </button>
                             );
                         })}
@@ -322,8 +322,8 @@ const AdminView: React.FC = () => {
 
         return (restaurant.layout.filter(el => el.type === 'table') as TableElement[])
             .map(table => {
-                const booking = restaurant.bookings.find(b => 
-                    (b.tableId === table.id || b.tableIds?.includes(table.id)) && 
+                const booking = restaurant.bookings.find(b =>
+                    (b.tableId === table.id || b.tableIds?.includes(table.id)) &&
                     b.status === BookingStatus.OCCUPIED
                 );
                 return booking ? { table, booking } : null;
@@ -529,7 +529,7 @@ const AdminView: React.FC = () => {
                     onClick={() => setActiveView('FUTURE')}
                     className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'FUTURE' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    {t('admin.futureBookingsTab')}
+                    {t('admin.bookingsTab')}
                     {activeView === 'FUTURE' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
                 <button
@@ -587,7 +587,7 @@ const AdminView: React.FC = () => {
                                                             <span className="text-brand-blue font-bold font-mono text-lg">{timeStr}</span>
                                                             <span className="font-bold text-gray-200 group-hover:text-white transition-colors">{booking.guestName}</span>
                                                             <span className="text-xs text-gray-400 font-mono hidden sm:inline">{booking.guestPhone}</span>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => setEditingBooking(booking)}
                                                                 className="text-gray-500 hover:text-brand-blue transition-colors p-1 opacity-50 hover:opacity-100"
                                                                 title={t('admin.editBookingTitle')}
@@ -604,7 +604,7 @@ const AdminView: React.FC = () => {
                                                                 {booking.guestCount}
                                                             </span>
                                                             <span className="flex items-center gap-1 text-white bg-white/5 px-2 py-0.5 rounded">
-                                                                {t('admin.tableShort', {labels: booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || t('admin.tableNotAssigned'))})}
+                                                                {t('admin.tableShort', { labels: booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || t('admin.tableNotAssigned')) })}
                                                             </span>
                                                             {isPast && (
                                                                 <span className="text-brand-red font-bold uppercase tracking-wider animate-pulse">{t('admin.late')}</span>
@@ -613,13 +613,13 @@ const AdminView: React.FC = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center justify-end gap-2 shrink-0">
-                                                        <button 
+                                                        <button
                                                             onClick={() => updateBookingStatus(booking.id, BookingStatus.OCCUPIED)}
                                                             className="bg-brand-green/20 text-brand-green hover:bg-brand-green hover:text-white px-3 py-1.5 rounded text-xs font-bold transition-all border border-brand-green/30"
                                                         >
                                                             {t('admin.arrived')}
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
                                                                 if (window.confirm(t('admin.cancelBookingConfirm'))) updateBookingStatus(booking.id, BookingStatus.DECLINED, t('admin.cancelledByAdmin'));
                                                             }}
@@ -639,10 +639,8 @@ const AdminView: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Row for Occupied and Cancelled */}
-                            <div className="flex flex-col md:flex-row gap-4">
-                                {/* 2. Occupied Tables - Left Side */}
-                                <div className="flex-[3] bg-brand-primary rounded-lg border border-brand-accent p-4">
+                            {/* Occupied Tables */}
+                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
                                 <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">{t('admin.occupiedTablesTitle')}</h3>
                                 {occupiedTableBookings.length > 0 ? (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -651,11 +649,11 @@ const AdminView: React.FC = () => {
                                             const duration = booking.duration || 60;
                                             const endTime = startTime + duration * 60000;
                                             const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 60000));
-                                            
+
                                             return (
                                                 <div key={table.id} className="flex items-center justify-between gap-2 bg-brand-green/10 border border-brand-green/30 rounded-md p-2">
                                                     <div className="min-w-0">
-                                                        <p className="font-bold text-brand-green text-xs truncate">{t('admin.tableShort', {labels: table.label})} — {booking.guestName}</p>
+                                                        <p className="font-bold text-brand-green text-xs truncate">{t('admin.tableShort', { labels: table.label })} — {booking.guestName}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <div className="text-[10px] font-bold text-brand-red border border-brand-red/30 px-1.5 py-0.5 rounded bg-brand-red/5">
                                                                 {timeLeft} {t('admin.min')}
@@ -677,37 +675,7 @@ const AdminView: React.FC = () => {
                                     <p className="text-gray-500 text-[10px] italic py-2">{t('admin.noOccupiedTables')}</p>
                                 )}
                             </div>
-
-                            {/* 3. Cancelled - Right Side (Small) */}
-                            <div className="bg-brand-primary rounded-lg border border-brand-accent p-4">
-                                <h3 className="text-sm font-bold text-gray-400 mb-3 border-b border-brand-accent/30 pb-1 uppercase tracking-wider">{t('admin.historyCancellations')}</h3>
-                                {restaurant.bookings.filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED).length > 0 ? (
-                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                                        {restaurant.bookings
-                                            .filter(b => b.status === BookingStatus.CANCELLED || b.status === BookingStatus.DECLINED)
-                                            .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-                                            .map(booking => (
-                                                <div key={booking.id} className="bg-brand-accent/20 border border-brand-accent/10 rounded-md p-2 flex justify-between items-center opacity-70">
-                                                    <div className="min-w-0">
-                                                        <p className="font-semibold text-[10px] text-gray-400 truncate">
-                                                            {booking.guestName}
-                                                        </p>
-                                                        <p className="text-[9px] text-gray-500">
-                                                            {new Date(booking.dateTime).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                                                            <span className={`ml-2 px-1 rounded text-[8px] uppercase font-bold ${booking.status === BookingStatus.CANCELLED ? 'text-brand-red' : 'text-gray-400'}`}>
-                                                                {booking.status === BookingStatus.CANCELLED ? t('admin.statusCancelled') : t('admin.statusDeclined')}
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-[10px] italic py-2">{t('admin.historyEmpty')}</p>
-                                )}
-                            </div>
                         </div>
-                    </div>
 
                         {/* Map Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
@@ -810,7 +778,7 @@ const AdminView: React.FC = () => {
                                         }
 
                                         const now = new Date();
-                                        const relevantBookings = restaurant.bookings.filter(b => 
+                                        const relevantBookings = restaurant.bookings.filter(b =>
                                             (b.tableId === el.id || b.tableIds?.includes(el.id)) &&
                                             [BookingStatus.CONFIRMED, BookingStatus.OCCUPIED].includes(b.status)
                                         ).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
@@ -825,7 +793,7 @@ const AdminView: React.FC = () => {
                                         } else if (confirmed) {
                                             const startTime = new Date(confirmed.dateTime).getTime();
                                             const timeDiff = startTime - now.getTime();
-                                            
+
                                             if (timeDiff < 0) {
                                                 statusColor = 'bg-brand-red/80 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-brand-red'; // RED: Confirmed & Past
                                             } else if (timeDiff <= 60 * 60000) {
@@ -892,9 +860,9 @@ const AdminView: React.FC = () => {
                     <GuestManager restaurantId={restaurant.id} />
                 </div>
             ) : (
-                <FutureBookingsManager 
-                    restaurantId={restaurant.id} 
-                    onEditBooking={(b) => setEditingBooking(b)} 
+                <FutureBookingsManager
+                    restaurantId={restaurant.id}
+                    onEditBooking={(b) => setEditingBooking(b)}
                 />
             )}
 

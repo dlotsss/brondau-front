@@ -97,6 +97,7 @@ export const ru = {
         loadingRestaurant: 'Загрузка данных ресторана...',
         mapAndBookingsTab: 'Зал и Брони',
         futureBookingsTab: 'Будущие брони',
+        bookingsTab: 'Брони',
         guestsTab: 'База клиентов',
         newRequests: 'Новые запросы',
         noPendingRequests: 'Нет ожидающих запросов.',
@@ -119,13 +120,21 @@ export const ru = {
         tableShort: 'Ст. {{labels}}'
     },
     futureBookings: {
-        title: 'Будущие бронирования',
-        subtitle: 'Список всех подтвержденных броней на выбранную дату',
+        title: 'Бронирования',
+        subtitle: 'Все брони на выбранную дату',
         selectDate: 'Выбрать дату:',
         guests: 'гостей',
         tableLabel: 'Столик:',
         timeLabel: 'Время:',
-        noBookingsFound: 'На этот день бронирований не найдено'
+        reason: 'Причина',
+        noBookingsFound: 'На этот день бронирований не найдено',
+        status: {
+            confirmed: 'Подтверждено',
+            occupied: 'Занят',
+            completed: 'Завершено',
+            declined: 'Отклонено',
+            cancelled: 'Отменено'
+        }
     },
     guestManager: {
         searchPlaceholder: 'Поиск по номеру телефона...',

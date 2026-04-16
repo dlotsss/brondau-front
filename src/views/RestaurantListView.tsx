@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
@@ -134,14 +134,6 @@ const AddRestaurantCard: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd 
 };
 
 
-const IP_CITY_MAP: Record<string, string> = {
-    'Almaty': 'Алмата',
-    'Astana': 'Астана',
-    'Nur-Sultan': 'Астана',
-    'Karaganda': 'Караганда',
-    'Shymkent': 'Шымкент'
-};
-
 const RestaurantListView: React.FC = () => {
     const { t } = useTranslation();
     const { currentUser, addRestaurantToCurrentUser } = useApp();
@@ -155,117 +147,28 @@ const RestaurantListView: React.FC = () => {
         }
     }
 
-    const [selectedCity, setSelectedCity] = useState<string>('');
-    const [showCityConfirm, setShowCityConfirm] = useState(false);
-    const [detectedCity, setDetectedCity] = useState('');
-
     const managedRestaurants = currentUser?.role === 'GUEST'
         ? restaurants
         : restaurants.filter(r => currentUser?.restaurantIds.includes(r.id));
-
-    const availableCities = useMemo(() => {
-        const cities = new Set(managedRestaurants.map(r => r.city || 'Алмата'));
-        return Array.from(cities).sort();
-    }, [managedRestaurants]);
-
-    useEffect(() => {
-        const savedCity = localStorage.getItem('brondau_user_city');
-        if (savedCity) {
-            setSelectedCity(savedCity);
-        } else {
-            fetch('https://get.geojs.io/v1/ip/geo.json')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.city) {
-                        const mappedCity = IP_CITY_MAP[data.city] || data.city;
-                        setDetectedCity(mappedCity);
-                        setShowCityConfirm(true);
-                    } else {
-                        setSelectedCity('Алмата');
-                    }
-                })
-                .catch(() => {
-                    setSelectedCity('Алмата');
-                });
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!showCityConfirm && !selectedCity && availableCities.length > 0) {
-            setSelectedCity(availableCities.includes('Алмата') ? 'Алмата' : availableCities[0]);
-        }
-    }, [showCityConfirm, selectedCity, availableCities]);
-
-    const handleConfirmCity = () => {
-        localStorage.setItem('brondau_user_city', detectedCity);
-        setSelectedCity(detectedCity);
-        setShowCityConfirm(false);
-    };
-
-    const handleRejectCity = () => {
-        setShowCityConfirm(false);
-    };
-
-    const handleCitySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const city = e.target.value;
-        setSelectedCity(city);
-        localStorage.setItem('brondau_user_city', city);
-    };
-
-    const filteredRestaurants = selectedCity
-        ? managedRestaurants.filter(r => (r.city || 'Алмата') === selectedCity)
-        : managedRestaurants;
 
     return (
         <div className="min-h-screen bg-brand-secondary">
             <Header />
             <div className="p-4 md:p-8 animate-fade-in">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div>
-                            <h1 className="text-4xl font-bold mb-2 text-brand-blue">{t('restaurantList.selectRestaurantTitle')}</h1>
-                            <p className="text-gray-400">
-                                {currentUser?.role === 'GUEST' ? t('restaurantList.selectRestaurantGuestDesc') : t('restaurantList.selectRestaurantAdminDesc')}
-                            </p>
-                        </div>
-                        {/* <div className="flex items-center gap-3">
-                            <label className="text-gray-400 text-sm font-semibold whitespace-nowrap">Ваш город:</label>
-                            <select
-                                value={selectedCity}
-                                onChange={handleCitySelect}
-                                className="bg-brand-primary border border-gray-600 outline-none text-white text-sm rounded-md px-3 py-2 focus:border-brand-blue"
-                            >
-                                {availableCities.map(city => (
-                                    <option key={city} value={city}>{city}</option>
-                                ))}
-                            </select>
-                        </div> */}
-                    </div>
+                    <h1 className="text-4xl font-bold mb-2 text-brand-blue">{t('restaurantList.selectRestaurantTitle')}</h1>
+                    <p className="text-gray-400 mb-8">
+                        {currentUser?.role === 'GUEST' ? t('restaurantList.selectRestaurantGuestDesc') : t('restaurantList.selectRestaurantAdminDesc')}
+                    </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {filteredRestaurants.map(r => (
+                        {managedRestaurants.map(r => (
                             <RestaurantCard key={r.id} restaurant={r} onSelect={() => navigate(`/restaurant/${r.id}`)} />
                         ))}
                         {currentUser?.role === 'OWNER' && <AddRestaurantCard onAdd={handleAddRestaurant} />}
                     </div>
                 </div>
             </div>
-
-            {/* showCityConfirm && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-brand-secondary border border-brand-accent rounded-xl p-6 shadow-2xl max-w-sm w-full animate-fade-in">
-                        <h2 className="text-xl font-bold text-brand-primary mb-2 text-center">Ваш город {detectedCity}?</h2>
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={handleConfirmCity} className="flex-1 bg-brand-blue hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition-colors">
-                                Да
-                            </button>
-                            <button onClick={handleRejectCity} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg transition-colors">
-                                Выбрать другой
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            ) */}
             <style>{`
                 @keyframes fade-in {
                     0% { opacity: 0; transform: translateY(10px); }

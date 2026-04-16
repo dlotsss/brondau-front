@@ -97,6 +97,7 @@ export const kz = {
         loadingRestaurant: 'Мейрамхана деректерін жүктеу...',
         mapAndBookingsTab: 'Зал және Броньдар',
         futureBookingsTab: 'Болашақ броньдар',
+        bookingsTab: 'Броньдар',
         guestsTab: 'Клиенттер базасы',
         newRequests: 'Жаңа сұраныстар',
         noPendingRequests: 'Күтудегі сұраныстар жоқ.',
@@ -119,13 +120,21 @@ export const kz = {
         tableShort: 'Үст. {{labels}}'
     },
     futureBookings: {
-        title: 'Болашақ броньдар',
-        subtitle: 'Таңдалған күнге барлық расталған броньдар тізімі',
+        title: 'Броньдар',
+        subtitle: 'Таңдалған күнге барлық броньдар',
         selectDate: 'Күнді таңдау:',
         guests: 'қонақ',
         tableLabel: 'Үстел:',
         timeLabel: 'Уақыт:',
-        noBookingsFound: 'Бұл күнге бронь табылған жоқ'
+        reason: 'Себебі',
+        noBookingsFound: 'Бұл күнге бронь табылған жоқ',
+        status: {
+            confirmed: 'Расталған',
+            occupied: 'Бос емес',
+            completed: 'Аяқталған',
+            declined: 'Қабылданбаған',
+            cancelled: 'Бас тартылған'
+        }
     },
     guestManager: {
         searchPlaceholder: 'Телефон нөмірі бойынша іздеу...',
