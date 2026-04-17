@@ -58,6 +58,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               city: restaurant.city,
               layout: restaurant.layout || [],
               floors: restaurant.floors || [],
+              adminWorks: restaurant.admin_works,
               bookings: bookings.map((b: any) => ({
                 id: b.id,
                 restaurantId: b.restaurant_id,
@@ -78,6 +79,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 guestComment: b.guest_comment,
                 duration: b.duration,
                 dateTime: new Date(b.date_time),
+                deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
                 createdAt: new Date(b.created_at)
               }))
             };
@@ -139,6 +141,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               duration: b.duration,
               assignedTo: b.assigned_to,
               dateTime: new Date(b.date_time),
+              deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
               createdAt: new Date(b.created_at)
             }))
           }
@@ -295,6 +298,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             guestComment: b.guest_comment,
             assignedTo: b.assigned_to,
             dateTime: new Date(b.date_time),
+            deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
             createdAt: new Date(b.created_at)
           }]
         }

@@ -40,25 +40,31 @@ const calculateBounds = (elements: LayoutElement[]) => {
     };
 };
 
-const CountdownTimer: React.FC<{ createdAt: Date }> = ({ createdAt }) => {
-    const [timeLeft, setTimeLeft] = useState(3600);
+const CountdownTimer: React.FC<{ createdAt: Date, deadlineAt?: Date }> = ({ createdAt, deadlineAt }) => {
+    const { t } = useTranslation();
+    const target = useMemo(() => deadlineAt || new Date(createdAt.getTime() + 60 * 60 * 1000), [createdAt, deadlineAt]);
+    const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
         const updateTimer = () => {
-            const elapsed = (new Date().getTime() - createdAt.getTime()) / 1000;
-            const remaining = 3600 - elapsed;
+            const remaining = (target.getTime() - new Date().getTime()) / 1000;
             setTimeLeft(Math.max(0, remaining));
         };
         updateTimer();
         const intervalId = setInterval(updateTimer, 1000);
         return () => clearInterval(intervalId);
-    }, [createdAt]);
+    }, [target]);
 
-    const minutes = Math.floor(timeLeft / 60);
+    const minutesTotal = Math.floor(timeLeft / 60);
+    const minutes = Math.floor(timeLeft / 60) % 60;
     const seconds = Math.floor(timeLeft % 60);
     const timeColor = timeLeft < 60 ? 'text-brand-red' : 'text-brand-yellow';
 
-    return <span className={`font-mono font-bold ${timeColor}`}>{minutes}:{seconds.toString().padStart(2, '0')}</span>;
+    if (timeLeft > 3600) {
+        return <span className={`font-mono font-bold text-brand-blue`}>{t('admin.frozen')}</span>;
+    }
+
+    return <span className={`font-mono font-bold ${timeColor}`}>{minutesTotal}:{seconds.toString().padStart(2, '0')}</span>;
 };
 
 const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
@@ -170,7 +176,7 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                     {booking.tableLabels?.length ? t('admin.assignedTables', { labels: booking.tableLabels.join(', ') }) : booking.tableLabel ? t('admin.assignedTable', { label: booking.tableLabel }) : <span className="text-yellow-400">{t('admin.noTableAssigned')}</span>}
                 </h4>
                 <div className="text-sm font-semibold text-gray-200">
-                    {t('admin.timeLeft')} <CountdownTimer createdAt={booking.createdAt} />
+                    {t('admin.timeLeft')} <CountdownTimer createdAt={booking.createdAt} deadlineAt={booking.deadlineAt} />
                 </div>
             </div>
             <p className="text-sm font-medium text-gray-200">{booking.guestName} ({booking.guestCount} {t('admin.guestsText')})</p>

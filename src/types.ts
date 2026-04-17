@@ -93,6 +93,7 @@ export interface Booking {
   cancelledAt?: Date;
   duration?: number;
   assignedTo?: string;
+  deadlineAt?: Date;
   createdAt: Date;
 }
 
@@ -125,4 +126,5 @@ export interface Restaurant {
   age_restriction_kz?: string;
   deposit_kz?: string;
   city?: string;
+  adminWorks?: Record<number, { start: string; end: string }>;
 }
