@@ -56,11 +56,17 @@ const CountdownTimer: React.FC<{ createdAt: Date, deadlineAt?: Date }> = ({ crea
     }, [target]);
 
     const minutesTotal = Math.floor(timeLeft / 60);
-    const minutes = Math.floor(timeLeft / 60) % 60;
     const seconds = Math.floor(timeLeft % 60);
     const timeColor = timeLeft < 60 ? 'text-brand-red' : 'text-brand-yellow';
 
-    if (timeLeft > 3600) {
+    // "Заморожено" показываем только если:
+    // 1. У нас есть deadlineAt и createdAt
+    // 2. Окно подтверждения БОЛЬШЕ 60 минут (с запасом 5 сек на лаг)
+    // 3. Текущее время до дедлайна всё еще БОЛЬШЕ 60 минут
+    const diffMs = deadlineAt && createdAt ? deadlineAt.getTime() - createdAt.getTime() : 0;
+    const isFrozen = deadlineAt && (diffMs > 3605000) && (timeLeft > 3600);
+
+    if (isFrozen) {
         return <span className={`font-mono font-bold text-brand-blue`}>{t('admin.frozen')}</span>;
     }
 
