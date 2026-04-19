@@ -611,6 +611,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         </div>
                     </div>
 
+                    {!isAdmin && (() => {
+                        const ageText = language === 'kz' && restaurant?.age_restriction_kz && restaurant.age_restriction_kz.trim() !== '' ? restaurant.age_restriction_kz : restaurant?.age_restriction;
+                        return ageText && ageText.trim() !== '' ? (
+                            <div className="mt-2 flex bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="text-yellow-800 text-sm italic font-medium w-full">
+                                    <FormattedMessage text={ageText} />
+                                </div>
+                            </div>
+                        ) : null;
+                    })()}
+
                     <div className="pt-4 flex gap-3">
                         <button type="button" onClick={onClose} className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">{t('common.cancel')}</button>
                         <button
