@@ -42,7 +42,7 @@ const calculateBounds = (elements: LayoutElement[]) => {
 
 const CountdownTimer: React.FC<{ createdAt: Date, deadlineAt?: Date }> = ({ createdAt, deadlineAt }) => {
     const { t } = useTranslation();
-    const target = useMemo(() => deadlineAt || new Date(createdAt.getTime() + 60 * 60 * 1000), [createdAt, deadlineAt]);
+    const target = useMemo(() => deadlineAt || new Date(createdAt.getTime() + 120 * 60 * 1000), [createdAt, deadlineAt]);
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
@@ -61,10 +61,10 @@ const CountdownTimer: React.FC<{ createdAt: Date, deadlineAt?: Date }> = ({ crea
 
     // "Заморожено" показываем только если:
     // 1. У нас есть deadlineAt и createdAt
-    // 2. Окно подтверждения БОЛЬШЕ 60 минут (с запасом 5 сек на лаг)
-    // 3. Текущее время до дедлайна всё еще БОЛЬШЕ 60 минут
+    // 2. Окно подтверждения значительно больше 120 минут (например, более 120 минут 5 сек)
+    // 3. Текущий остаток времени всё еще превышает 120 минут
     const diffMs = deadlineAt && createdAt ? deadlineAt.getTime() - createdAt.getTime() : 0;
-    const isFrozen = deadlineAt && (diffMs > 3605000) && (timeLeft > 3600);
+    const isFrozen = deadlineAt && (diffMs > 7205000) && (timeLeft > 7200);
 
     if (isFrozen) {
         return <span className={`font-mono font-bold text-brand-blue`}>{t('admin.frozen')}</span>;
