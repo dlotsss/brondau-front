@@ -46,6 +46,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               name: restaurant.name,
               with_map: restaurant.with_map,
               photoUrl: restaurant.photo_url,
+              logoUrl: restaurant.logo_url,
               address: restaurant.address,
               workStarts: restaurant.work_starts,
               workEnds: restaurant.work_ends,
@@ -221,6 +222,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         layout: newRestaurant.layout || [],
         workStarts: (newRestaurant as any).work_starts,
         workEnds: (newRestaurant as any).work_ends,
+        logoUrl: (newRestaurant as any).logo_url,
         schedule: newRestaurant.schedule,
         age_restriction: (newRestaurant as any).age_restriction,
         city: (newRestaurant as any).city || 'Алмата',
@@ -235,15 +237,33 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const updateRestaurantSettings = useCallback(async (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number, ageRestriction?: string }) => {
+  const updateRestaurantSettings = useCallback(async (restaurantId: string, updates: { 
+    layout?: LayoutElement[], 
+    floors?: any[], 
+    bookingRestriction?: number, 
+    ageRestriction?: string,
+    photoUrl?: string,
+    logoUrl?: string,
+    address?: string,
+    city?: string,
+    adminWorks?: any,
+    deposit?: string,
+    ageRestrictionKz?: string,
+    depositKz?: string
+  }) => {
     try {
       const updatedRestaurant = await api.restaurants.updateSettings(restaurantId, updates);
       setRestaurants(prev => prev.map(r => r.id === restaurantId ? {
         ...r,
+        name: updatedRestaurant.name,
         layout: updatedRestaurant.layout,
         floors: updatedRestaurant.floors || [],
         bookingRestriction: (updatedRestaurant as any).booking_restriction,
         age_restriction: (updatedRestaurant as any).age_restriction,
+        photoUrl: (updatedRestaurant as any).photo_url,
+        logoUrl: (updatedRestaurant as any).logo_url,
+        address: (updatedRestaurant as any).address,
+        adminWorks: (updatedRestaurant as any).admin_works,
         deposit: (updatedRestaurant as any).deposit,
         age_restriction_kz: (updatedRestaurant as any).age_restriction_kz,
         deposit_kz: (updatedRestaurant as any).deposit_kz,

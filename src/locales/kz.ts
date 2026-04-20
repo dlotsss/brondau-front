@@ -119,7 +119,8 @@ export const kz = {
         statusDeclined: 'ҚАБЫЛДАНБАДЫ',
         historyEmpty: 'Тарих бос',
         hallPlan: 'Зал жоспары',
-        tableShort: 'Үст. {{labels}}'
+        tableShort: 'Үст. {{labels}}',
+        settingsTab: 'Параметрлер'
     },
     futureBookings: {
         title: 'Броньдар',
@@ -205,6 +206,23 @@ export const kz = {
         selectElementHint: 'Өңдеу үшін элементті таңдаңыз',
         deleteFloorTitle: 'Залды жою',
         rotateTitle: 'Бұру',
-        settingsTitle: 'Параметрлер'
+        rotateTitle: 'Бұру',
+        settingsTitle: 'Параметрлер',
+        restaurantSettings: {
+            title: 'Мейрамхана параметрлері',
+            nameLabel: 'Мейрамхана атауы',
+            logoLabel: 'Логотип URL-і',
+            photoLabel: 'Негізгі фото URL-і',
+            addressLabel: 'Мекен-жайы',
+            cityLabel: 'Қала',
+            restrictionsTitle: 'Шектеулер мен Депозит',
+            ageLabelRu: 'Жас шектеуі (RU)',
+            ageLabelKz: 'Жас шектеуі (KZ)',
+            depositLabelRu: 'Депозит туралы ақпарат (RU)',
+            depositLabelKz: 'Депозит туралы ақпарат (KZ)',
+            previewLogo: 'Логотипті алдын ала қарау',
+            previewPhoto: 'Фотоны алдын ала қарау',
+            saveSuccess: 'Параметрлер сәтті сақталды'
+        }
     }
 };

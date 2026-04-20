@@ -119,7 +119,8 @@ export const ru = {
         statusDeclined: 'ОТКЛОНЕНО',
         historyEmpty: 'История пуста',
         hallPlan: 'План зала',
-        tableShort: 'Ст. {{labels}}'
+        tableShort: 'Ст. {{labels}}',
+        settingsTab: 'Настройки'
     },
     futureBookings: {
         title: 'Бронирования',
@@ -205,6 +206,22 @@ export const ru = {
         selectElementHint: 'Выберите элемент для редактирования',
         deleteFloorTitle: 'Удалить зал',
         rotateTitle: 'Повернуть',
-        settingsTitle: 'Настройки'
+        settingsTitle: 'Настройки',
+        restaurantSettings: {
+            title: 'Настройки ресторана',
+            nameLabel: 'Название ресторана',
+            logoLabel: 'URL Логотипа',
+            photoLabel: 'URL Главного фото',
+            addressLabel: 'Адрес',
+            cityLabel: 'Город',
+            restrictionsTitle: 'Ограничения и Депозит',
+            ageLabelRu: 'Возрастное ограничение (RU)',
+            ageLabelKz: 'Возрастное ограничение (KZ)',
+            depositLabelRu: 'Информация о депозите (RU)',
+            depositLabelKz: 'Информация о депозите (KZ)',
+            previewLogo: 'Предпросмотр логотипа',
+            previewPhoto: 'Предпросмотр фото',
+            saveSuccess: 'Настройки успешно сохранены'
+        }
     }
 };

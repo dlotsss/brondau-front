@@ -9,6 +9,7 @@ import { api } from '../services/api';
 import { registerServiceWorker, subscribeToPush } from '../services/pushService';
 import { LayoutElement } from '../types';
 import FutureBookingsManager from '../components/FutureBookingsManager';
+import RestaurantSettings from '../components/RestaurantSettings';
 
 const LOGICAL_WIDTH = 1500;
 const LOGICAL_HEIGHT = 1000;
@@ -293,7 +294,7 @@ const AdminView: React.FC = () => {
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
     const [activeFloorId, setActiveFloorId] = useState<string>('');
-    const [activeView, setActiveView] = useState<'MAP' | 'GUESTS' | 'FUTURE'>('MAP');
+    const [activeView, setActiveView] = useState<'MAP' | 'GUESTS' | 'FUTURE' | 'SETTINGS'>('MAP');
     const [isInitialized, setIsInitialized] = useState(false);
 
     const restaurant = selectedRestaurantId ? getRestaurant(selectedRestaurantId) : null;
@@ -557,6 +558,13 @@ const AdminView: React.FC = () => {
                 >
                     {t('admin.guestsTab')}
                     {activeView === 'GUESTS' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
+                </button>
+                <button
+                    onClick={() => setActiveView('SETTINGS')}
+                    className={`pb-3 text-lg font-bold transition-all relative whitespace-nowrap ${activeView === 'SETTINGS' ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    {t('admin.settingsTab')}
+                    {activeView === 'SETTINGS' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-blue rounded-t-full" />}
                 </button>
             </div>
 
@@ -877,6 +885,10 @@ const AdminView: React.FC = () => {
             ) : activeView === 'GUESTS' ? (
                 <div className="animate-fadeIn h-[70vh]">
                     <GuestManager restaurantId={restaurant.id} />
+                </div>
+            ) : activeView === 'SETTINGS' ? (
+                <div className="animate-fadeIn h-[70vh]">
+                    <RestaurantSettings restaurant={restaurant} />
                 </div>
             ) : (
                 <FutureBookingsManager

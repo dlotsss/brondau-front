@@ -175,7 +175,7 @@ const UserView: React.FC = () => {
     const { getRestaurant } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [showNoMapModal, setShowNoMapModal] = useState(false);
-    
+
     const { t, language } = useTranslation();
     const [activeFloorId, setActiveFloorId] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
@@ -415,50 +415,55 @@ const UserView: React.FC = () => {
             <div className="h-full flex flex-col gap-4 pb-4">
                 <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-col flex-grow md:flex-grow-0 md:h-auto">
                     <div className="flex flex-col gap-2 mb-6">
-                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
-                    <p className="text-gray-400 text-sm">{t('userView.fillForm')}</p>
-                </div>
-
-                <div className="flex-grow flex flex-col items-center justify-center gap-8">
-                    <div className="text-center space-y-4 max-w-sm mx-auto">
-                        <div className="w-20 h-20 bg-brand-accent/30 rounded-full flex items-center justify-center mx-auto">
-                            <span className="text-4xl">🍽️</span>
+                        <div className="flex items-center gap-4">
+                            {restaurant.logoUrl && (
+                                <img src={restaurant.logoUrl} alt="Logo" className="w-24 h-24 rounded-full object-contain border-4 border-white/10 shadow-xl bg-white p-1" />
+                            )}
+                            <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight">{restaurant.name}</h2>
                         </div>
-                        <h3 className="text-xl font-semibold text-white">{t('userView.onlineBooking')}</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            {t('userView.leaveRequest')}
-                        </p>
+                        <p className="text-gray-400 text-sm">{t('userView.fillForm')}</p>
                     </div>
 
-                    <button
-                        onClick={() => setShowNoMapModal(true)}
-                        className="bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-xl transition-all duration-200"
-                    >
-                        {t('userView.bookTableButton')}
-                    </button>
+                    <div className="flex-grow flex flex-col items-center justify-center gap-8">
+                        <div className="text-center space-y-4 max-w-sm mx-auto">
+                            <div className="w-20 h-20 bg-brand-accent/30 rounded-full flex items-center justify-center mx-auto">
+                                <span className="text-4xl">🍽️</span>
+                            </div>
+                            <h3 className="text-xl font-semibold text-white">{t('userView.onlineBooking')}</h3>
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                {t('userView.leaveRequest')}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowNoMapModal(true)}
+                            className="bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-xl transition-all duration-200"
+                        >
+                            {t('userView.bookTableButton')}
+                        </button>
+                    </div>
+
+                    {showNoMapModal && selectedRestaurantId && (
+                        <BookingModal
+                            table={null}
+                            restaurantId={selectedRestaurantId}
+                            onClose={() => setShowNoMapModal(false)}
+                            withMap={false}
+                        />
+                    )}
                 </div>
 
-                {showNoMapModal && selectedRestaurantId && (
-                    <BookingModal
-                        table={null}
-                        restaurantId={selectedRestaurantId}
-                        onClose={() => setShowNoMapModal(false)}
-                        withMap={false}
-                    />
-                )}
-                </div>
-                
                 {(() => {
-                const depositText = language === 'kz' && restaurant.deposit_kz && restaurant.deposit_kz.trim() !== '' ? restaurant.deposit_kz : restaurant.deposit;
-                return depositText && depositText.trim() !== '' ? (
-                    <div className="mt-6 flex bg-red-50 border border-red-200 rounded-lg p-4 w-full shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={depositText} /></div>
-                    </div>
-                ) : null;
-            })()}
+                    const depositText = language === 'kz' && restaurant.deposit_kz && restaurant.deposit_kz.trim() !== '' ? restaurant.deposit_kz : restaurant.deposit;
+                    return depositText && depositText.trim() !== '' ? (
+                        <div className="mt-6 flex bg-red-50 border border-red-200 rounded-lg p-4 w-full shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={depositText} /></div>
+                        </div>
+                    ) : null;
+                })()}
             </div>
         );
     }
@@ -469,123 +474,128 @@ const UserView: React.FC = () => {
             <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-grow overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 flex-none">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
-                    <p className="text-gray-400 text-sm">{t('userView.clickGreenTable')}</p>
+                    <div>
+                        <div className="flex items-center gap-4">
+                            {restaurant.logoUrl && (
+                                <img src={restaurant.logoUrl} alt="Logo" className="w-20 h-20 rounded-full object-contain border-4 border-white/10 shadow-xl bg-white/5 p-1" />
+                            )}
+                            <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
+                        </div>
+                        <p className="text-gray-400 text-sm">{t('userView.clickGreenTable')}</p>
+                    </div>
+
+                    {restaurant.floors && restaurant.floors.length > 1 && (
+                        <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto w-full md:w-auto">
+                            {restaurant.floors.map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => setActiveFloorId(f.id)}
+                                    className={`px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap transition-colors ${activeFloorId === f.id
+                                        ? 'bg-brand-blue text-white shadow-lg'
+                                        : 'text-gray-400 hover:text-white'
+                                        }`}
+                                >
+                                    {f.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {restaurant.floors && restaurant.floors.length > 1 && (
-                    <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto w-full md:w-auto">
-                        {restaurant.floors.map(f => (
-                            <button
-                                key={f.id}
-                                onClick={() => setActiveFloorId(f.id)}
-                                className={`px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap transition-colors ${activeFloorId === f.id
-                                    ? 'bg-brand-blue text-white shadow-lg'
-                                    : 'text-gray-400 hover:text-white'
-                                    }`}
-                            >
-                                {f.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Map Container */}
-            <div
-                ref={containerRef}
-                className="w-full bg-[#3d2e23] bg-opacity-50 rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow min-h-[400px] h-[60vh] md:h-[650px] overflow-hidden"
-                style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerUp}
-                onPointerLeave={onPointerUp}
-            >
-                {/* Transform Layer */}
+                {/* Map Container */}
                 <div
-                    className="absolute top-0 left-0 origin-top-left will-change-transform"
-                    style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                    ref={containerRef}
+                    className="w-full bg-[#3d2e23] bg-opacity-50 rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow min-h-[400px] h-[60vh] md:h-[650px] overflow-hidden"
+                    style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerUp}
+                    onPointerLeave={onPointerUp}
                 >
-                    <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
-                        {activeFloorElements.map((element) =>
-                            element.type === 'table' ? (
-                                <Table
-                                    key={element.id}
-                                    table={element as TableElement}
-                                    status={tableStatuses[element.id] || 'available'}
-                                    onClick={() => {
-                                        if (draggedRef.current) return;
-                                        setSelectedTable(element as TableElement);
-                                    }}
-                                    offsetX={bounds.minX}
-                                    offsetY={bounds.minY}
-                                />
-                            ) : (
-                                <Deco
-                                    key={element.id}
-                                    element={element as DecoElement}
-                                    offsetX={bounds.minX}
-                                    offsetY={bounds.minY}
-                                />
-                            )
-                        )}
+                    {/* Transform Layer */}
+                    <div
+                        className="absolute top-0 left-0 origin-top-left will-change-transform"
+                        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                    >
+                        <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
+                            {activeFloorElements.map((element) =>
+                                element.type === 'table' ? (
+                                    <Table
+                                        key={element.id}
+                                        table={element as TableElement}
+                                        status={tableStatuses[element.id] || 'available'}
+                                        onClick={() => {
+                                            if (draggedRef.current) return;
+                                            setSelectedTable(element as TableElement);
+                                        }}
+                                        offsetX={bounds.minX}
+                                        offsetY={bounds.minY}
+                                    />
+                                ) : (
+                                    <Deco
+                                        key={element.id}
+                                        element={element as DecoElement}
+                                        offsetX={bounds.minX}
+                                        offsetY={bounds.minY}
+                                    />
+                                )
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Zoom Controls Overlay */}
+                    <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10" onPointerDown={e => e.stopPropagation()}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
+                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
+                        >
+                            +
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
+                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
+                        >
+                            -
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); fitToContainer() }}
+                            className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
+                            title={t('userView.centerMap')}
+                        >
+                            ⛶
+                        </button>
                     </div>
                 </div>
 
-                {/* Zoom Controls Overlay */}
-                <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10" onPointerDown={e => e.stopPropagation()}>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
-                        className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
-                    >
-                        +
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
-                        className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
-                    >
-                        -
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); fitToContainer() }}
-                        className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
-                        title={t('userView.centerMap')}
-                    >
-                        ⛶
-                    </button>
+                {/* Legend */}
+                <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm flex-none font-medium">
+                    <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-brand-green mr-2 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
+                        <span className="text-gray-200">{t('userView.legendAvailable')}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-brand-yellow mr-2 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></div>
+                        <span className="text-gray-200">{t('userView.legendPending')}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-brand-red mr-2 shadow-[0_0_8px_rgba(248,113,113,0.8)]"></div>
+                        <span className="text-gray-200">{t('userView.legendOccupied')}</span>
+                    </div>
                 </div>
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm flex-none font-medium">
-                <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-brand-green mr-2 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-                    <span className="text-gray-200">{t('userView.legendAvailable')}</span>
-                </div>
-                <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-brand-yellow mr-2 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></div>
-                    <span className="text-gray-200">{t('userView.legendPending')}</span>
-                </div>
-                <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-brand-red mr-2 shadow-[0_0_8px_rgba(248,113,113,0.8)]"></div>
-                    <span className="text-gray-200">{t('userView.legendOccupied')}</span>
-                </div>
-            </div>
             </div>
 
             {(() => {
-                    const depositText = language === 'kz' && restaurant.deposit_kz && restaurant.deposit_kz.trim() !== '' ? restaurant.deposit_kz : restaurant.deposit;
-                    return depositText && depositText.trim() !== '' ? (
-                        <div className="mt-6 flex bg-red-50 border border-red-200 rounded-lg p-4 max-w-2xl mx-auto shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={depositText} /></div>
-                        </div>
-                    ) : null;
-                })()}
+                const depositText = language === 'kz' && restaurant.deposit_kz && restaurant.deposit_kz.trim() !== '' ? restaurant.deposit_kz : restaurant.deposit;
+                return depositText && depositText.trim() !== '' ? (
+                    <div className="mt-6 flex bg-red-50 border border-red-200 rounded-lg p-4 max-w-2xl mx-auto shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={depositText} /></div>
+                    </div>
+                ) : null;
+            })()}
 
             {selectedTable && selectedRestaurantId && (
                 <BookingModal

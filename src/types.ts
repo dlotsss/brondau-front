@@ -113,6 +113,7 @@ export interface Restaurant {
   name: string;
   with_map?: boolean; // If false, guests book without selecting a table
   photoUrl?: string; // Mapped from photo_url
+  logoUrl?: string; // Mapped from logo_url
   address?: string;
   workStarts?: string; // HH:MM
   workEnds?: string; // HH:MM
