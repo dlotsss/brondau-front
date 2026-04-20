@@ -206,7 +206,6 @@ export const kz = {
         selectElementHint: 'Өңдеу үшін элементті таңдаңыз',
         deleteFloorTitle: 'Залды жою',
         rotateTitle: 'Бұру',
-        rotateTitle: 'Бұру',
         settingsTitle: 'Параметрлер',
         restaurantSettings: {
             title: 'Мейрамхана параметрлері',
