@@ -337,6 +337,15 @@ const AdminView: React.FC = () => {
             .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
     }, [restaurant]);
 
+    const allFutureBookingsCount = useMemo(() => {
+        if (!restaurant) return 0;
+        const todayStr = new Date().toISOString().split('T')[0];
+        return restaurant.bookings.filter(b => {
+            if (b.status !== BookingStatus.CONFIRMED) return false;
+            return new Date(b.dateTime).toISOString().split('T')[0] >= todayStr;
+        }).length;
+    }, [restaurant]);
+
     const occupiedTableBookings = useMemo(() => {
         if (!restaurant) return [];
 
@@ -601,6 +610,9 @@ const AdminView: React.FC = () => {
                                         {t('admin.expectedGuests')}
                                         <span className="bg-brand-blue/20 text-brand-blue px-2 py-0.5 rounded-full text-xs">{todayFutureBookings.length}</span>
                                     </h3>
+                                    <div className="text-xs font-bold text-gray-400">
+                                        Все: {allFutureBookingsCount}
+                                    </div>
                                 </div>
                                 {todayFutureBookings.length > 0 ? (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
