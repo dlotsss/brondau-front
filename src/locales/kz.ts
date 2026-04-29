@@ -70,7 +70,9 @@ export const kz = {
         takeTable: 'Үстелді алу',
         tableReserved: 'Үстел сәтті алынды!',
         createError: 'Бронь жасау мүмкін болмады.',
-        successMessage: 'Брондау сұрауыңыз сәтті жіберілді.'
+        successMessage: 'Брондау сұрауыңыз сәтті жіберілді.',
+        addExtraTables: 'Үстелдер қосу (банкет):',
+        totalSeats: 'Барлық орындар: {{count}}'
     },
     admin: {
         changeDuration: 'Ұзақтықты өзгерту',

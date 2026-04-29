@@ -70,7 +70,9 @@ export const ru = {
         takeTable: 'Занять стол',
         tableReserved: 'Стол успешно занят!',
         createError: 'Не удалось создать бронирование.',
-        successMessage: 'Ваш запрос на бронирование успешно отправлен.'
+        successMessage: 'Ваш запрос на бронирование успешно отправлен.',
+        addExtraTables: 'Добавить столы (банкет):',
+        totalSeats: 'Итого мест: {{count}}'
     },
     admin: {
         changeDuration: 'Изменить длительность',

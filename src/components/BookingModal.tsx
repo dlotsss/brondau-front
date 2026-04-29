@@ -76,6 +76,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [staffNames, setStaffNames] = useState<string[]>([]);
     const [isSuccess, setIsSuccess] = useState(false);
 
+    // Multi-table selection for admin
+    const [selectedTableIds, setSelectedTableIds] = useState<string[]>(table ? [table.id] : []);
+
     const [bookingDate, setBookingDate] = useState(bookingToEdit ? formatLocalDate(new Date(bookingToEdit.dateTime)) : formatLocalDate(new Date()));
     const [bookingTime, setBookingTime] = useState(bookingToEdit ? new Date(bookingToEdit.dateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '');
     const [error, setError] = useState('');
@@ -85,6 +88,21 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         const t = restaurant?.layout?.find(el => el.id === currentTableId);
         return t ? (t as TableElement).label : '';
     }, [restaurant, currentTableId]);
+
+    const allTables = useMemo(() => {
+        return (restaurant?.layout?.filter(el => el.type === 'table') || []) as TableElement[];
+    }, [restaurant]);
+
+    const toggleExtraTable = (id: string) => {
+        setSelectedTableIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
+    };
+
+    const totalSelectedSeats = useMemo(() => {
+        return selectedTableIds.reduce((sum, id) => {
+            const tbl = allTables.find(t => t.id === id);
+            return sum + (tbl?.seats || 2);
+        }, 0);
+    }, [selectedTableIds, allTables]);
 
     useEffect(() => {
         if (isAdmin && restaurantId) {
@@ -342,7 +360,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             setLoading(false);
             return;
         }
-        if (table && guestCount > table.seats) {
+        if (!isAdmin && table && guestCount > table.seats) {
             setError(`Этот столик вмещает не более ${table.seats} гостей.`);
             setLoading(false);
             return;
@@ -358,6 +376,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         dateTime.setHours(h, m, 0, 0);
 
         try {
+            // For admin multi-table: use the first selected table as the primary
+            const primaryTableId = isAdmin && selectedTableIds.length > 0 ? selectedTableIds[0] : (currentTableId || undefined);
+            const primaryTableLabel = isAdmin && selectedTableIds.length > 0
+                ? (allTables.find(t => t.id === selectedTableIds[0])?.label || '')
+                : (currentTableLabel || undefined);
+
             const payload: any = {
                 guestName: guestName || (isAdmin ? 'Гость (Walk-in)' : ''),
                 guestPhone,
@@ -365,13 +389,19 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                 guestCount,
                 dateTime,
                 timezoneOffset: new Date().getTimezoneOffset(),
-                tableId: currentTableId || undefined,
-                tableLabel: currentTableLabel || undefined,
+                tableId: primaryTableId,
+                tableLabel: primaryTableLabel,
                 guestComment,
                 isAdmin,
                 duration,
                 assignedTo: isAdmin ? assignedTo : undefined
             };
+
+            // Add multi-table data for admin bookings
+            if (isAdmin && selectedTableIds.length > 0) {
+                payload.tableIds = selectedTableIds;
+                payload.tableLabels = selectedTableIds.map(id => allTables.find(t => t.id === id)?.label || '');
+            }
 
             if (bookingToEdit) {
                 await updateBookingDetails(bookingToEdit.id, payload);
@@ -434,7 +464,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     <h2 className="text-xl md:text-2xl font-bold text-brand-primary">
                         {bookingToEdit ? t('bookingModal.editTitle') : (
                             isAdmin
-                                ? table ? <>{t('bookingModal.seatGuestsTable')} <span className="text-brand-blue">{table.label}</span></> : t('bookingModal.seatGuests')
+                                ? selectedTableIds.length > 1
+                                    ? <>{t('bookingModal.seatGuestsTable')} <span className="text-brand-blue">{selectedTableIds.map(id => allTables.find(t => t.id === id)?.label || '').join(', ')}</span></>
+                                    : table ? <>{t('bookingModal.seatGuestsTable')} <span className="text-brand-blue">{table.label}</span></> : t('bookingModal.seatGuests')
                                 : table ? <>{t('bookingModal.bookTableWith')} <span className="text-brand-blue">{table.label}</span></> : t('bookingModal.bookTable')
                         )}
                     </h2>
@@ -459,9 +491,41 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                     ) : (
                         table && (
                             <p className="text-gray-500 text-sm">
-                                {t('bookingModal.capacityGuests', { seats: String(table.seats) })}
+                                {isAdmin && selectedTableIds.length > 1
+                                    ? t('bookingModal.capacityGuests', { seats: String(totalSelectedSeats) })
+                                    : t('bookingModal.capacityGuests', { seats: String(table.seats) })}
                             </p>
                         )
+                    )}
+
+                    {/* Multi-table selection for admin */}
+                    {isAdmin && !bookingToEdit && allTables.length > 1 && (
+                        <div className="bg-brand-accent/40 border border-brand-accent px-3 py-2 rounded-md">
+                            <label className="text-xs text-brand-primary block mb-2 font-bold">{t('bookingModal.addExtraTables')}</label>
+                            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
+                                {allTables.map(tbl => {
+                                    const isSelected = selectedTableIds.includes(tbl.id);
+                                    return (
+                                        <button
+                                            key={tbl.id}
+                                            type="button"
+                                            onClick={() => toggleExtraTable(tbl.id)}
+                                            className={`px-2 py-1 text-xs rounded-md font-semibold border transition-colors ${isSelected
+                                                    ? 'bg-brand-blue border-brand-blue text-white'
+                                                    : 'bg-brand-primary border-gray-600 text-gray-300 hover:border-gray-400'
+                                                }`}
+                                        >
+                                            {t('bookingModal.tableCapacity', { label: String(tbl.label), seats: String(tbl.seats) })}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {selectedTableIds.length > 1 && (
+                                <p className="text-xs text-brand-blue mt-2 font-medium">
+                                    {t('bookingModal.totalSeats', { count: String(totalSelectedSeats) })}
+                                </p>
+                            )}
+                        </div>
                     )}
 
                     {!withMap && !isAdmin && (
@@ -527,7 +591,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                     value={guestCount}
                                     onChange={e => setGuestCount(parseInt(e.target.value))}
                                     min="1"
-                                    max={table?.seats || 20}
+                                    max={isAdmin ? 999 : (table?.seats || 20)}
                                     className="w-full bg-brand-accent p-2 rounded-md border border-gray-600 text-gray-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                                 />
                             </div>

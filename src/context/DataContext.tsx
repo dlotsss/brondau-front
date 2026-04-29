@@ -284,6 +284,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isAdmin?: boolean;
       timezoneOffset?: number;
       assignedTo?: string;
+      tableIds?: string[];
+      tableLabels?: string[];
     }
   ) => {
     const b = await api.restaurants.createBooking(restaurantId, {
@@ -294,6 +296,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       tableLabel: bookingData.tableLabel || null,
       isAdmin: bookingData.isAdmin || false,
       assignedTo: bookingData.assignedTo || null,
+      tableIds: bookingData.tableIds || undefined,
+      tableLabels: bookingData.tableLabels || undefined,
     });
 
     setRestaurants(prev => prev.map(r =>
@@ -305,6 +309,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             restaurantId: b.restaurant_id,
             tableId: b.table_id,
             tableLabel: b.table_label,
+            tableIds: bookingData.tableIds || (b.table_id ? [b.table_id] : []),
+            tableLabels: bookingData.tableLabels || (b.table_label ? [b.table_label] : []),
             guestName: b.guest_name,
             guestPhone: b.guest_phone,
             guestEmail: b.guest_email,
