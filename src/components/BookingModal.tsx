@@ -67,7 +67,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
     const [guestName, setGuestName] = useState(bookingToEdit?.guestName || '');
     const [guestPhone, setGuestPhone] = useState(bookingToEdit?.guestPhone || '');
-    const [guestEmail, setGuestEmail] = useState(bookingToEdit?.guestEmail || '');
+
     const [duration, setDuration] = useState<number>(bookingToEdit?.duration || (restaurant?.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 60));
     const [loading, setLoading] = useState(false);
     const [guestCount, setGuestCount] = useState<number>(bookingToEdit?.guestCount || 2);
@@ -342,8 +342,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
         setError('');
         setLoading(true);
 
-        if (!isAdmin && (!guestName || !guestPhone || !guestEmail)) {
-            setError('Пожалуйста, заполните имя, телефон и email.');
+        if (!isAdmin && (!guestName || !guestPhone)) {
+            setError('Пожалуйста, заполните имя и телефон.');
             setLoading(false);
             return;
         }
@@ -385,7 +385,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
             const payload: any = {
                 guestName: guestName || (isAdmin ? 'Гость (Walk-in)' : ''),
                 guestPhone,
-                guestEmail,
+
                 guestCount,
                 dateTime,
                 timezoneOffset: new Date().getTimezoneOffset(),
@@ -574,14 +574,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             required={!isAdmin}
                         />
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={guestEmail}
-                            onChange={e => setGuestEmail(e.target.value)}
-                            className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
-                            required={!isAdmin}
-                        />
+
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>

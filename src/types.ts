@@ -112,6 +112,7 @@ export interface Restaurant {
   id: string;
   name: string;
   with_map?: boolean; // If false, guests book without selecting a table
+  is_active?: boolean;
   photoUrl?: string; // Mapped from photo_url
   logoUrl?: string; // Mapped from logo_url
   address?: string;
