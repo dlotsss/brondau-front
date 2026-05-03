@@ -339,6 +339,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
         setError('');
         setLoading(true);
 
@@ -686,7 +687,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                         <button type="button" onClick={onClose} className="flex-1 py-3 rounded-md bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">{t('common.cancel')}</button>
                         <button
                             type="submit"
-                            disabled={!isAdmin && activeSlots.length === 0}
+                            disabled={(!isAdmin && activeSlots.length === 0) || loading}
                             className="flex-1 py-3 rounded-md bg-brand-blue text-white font-bold text-sm shadow-md hover:brightness-90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-all"
                         >
                             {bookingToEdit ? t('bookingModal.saveChanges') : (isAdmin ? t('bookingModal.takeTable') : t('bookingModal.bookTable'))}
