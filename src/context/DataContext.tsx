@@ -4,6 +4,7 @@ import { api } from '../services/api';
 
 interface DataContextType {
   restaurants: Restaurant[];
+  isLoading: boolean;
   getRestaurant: (id: string) => Restaurant | undefined;
   authenticateUser: (email: string, password: string, role: UserRole, restaurantId?: string) => Promise<User | undefined>;
   getAdminRestaurants: (email: string) => Promise<{ id: string, name: string }[]>;
@@ -31,8 +32,10 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadRestaurants = useCallback(async () => {
+    setIsLoading(true);
     try {
       const data = await api.restaurants.list();
 
@@ -110,6 +113,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setRestaurants(restaurantsWithBookings);
     } catch (error) {
       console.error('Failed to load restaurants:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -399,6 +404,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{
       restaurants,
+      isLoading,
       getRestaurant,
       authenticateUser,
       getAdminRestaurants,

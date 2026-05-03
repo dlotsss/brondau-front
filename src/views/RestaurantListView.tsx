@@ -137,7 +137,7 @@ const AddRestaurantCard: React.FC<{ onAdd: (name: string) => void }> = ({ onAdd 
 const RestaurantListView: React.FC = () => {
     const { t } = useTranslation();
     const { currentUser, addRestaurantToCurrentUser } = useApp();
-    const { restaurants, addRestaurant } = useData();
+    const { restaurants, addRestaurant, isLoading } = useData();
     const navigate = useNavigate();
 
     const handleAddRestaurant = async (name: string) => {
@@ -150,6 +150,17 @@ const RestaurantListView: React.FC = () => {
     const managedRestaurants = currentUser?.role === 'GUEST'
         ? restaurants
         : restaurants.filter(r => currentUser?.restaurantIds.includes(r.id));
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-brand-secondary">
+                <Header />
+                <div className="flex justify-center items-center h-[calc(100vh-80px)]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-blue"></div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-brand-secondary">

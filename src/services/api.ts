@@ -20,6 +20,13 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     });
 
     if (!response.ok) {
+        if (response.status === 403 || response.status === 503) {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                window.location.reload();
+                await new Promise(() => {}); // pause execution
+            }
+        }
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Ошибка запроса: ${response.statusText}`);
     }
