@@ -115,6 +115,8 @@ export const ru = {
         noExpectedGuestsToday: 'На сегодня ожидаемых гостей нет',
         occupiedTablesTitle: 'Занятые столы',
         freeTable: 'Освободить',
+        extend: 'Продлить',
+        extendBooking: 'Продлить бронь',
         noOccupiedTables: 'Нет занятых столов',
         historyCancellations: 'История (Отмены)',
         statusCancelled: 'ОТМЕНЕНО',
