@@ -115,8 +115,6 @@ export const kz = {
         noExpectedGuestsToday: 'Бүгінге күтілетін қонақтар жоқ',
         occupiedTablesTitle: 'Бос емес үстелдер',
         freeTable: 'Босату',
-        extend: 'Ұзарту',
-        extendBooking: 'Брондау ұзарту',
         noOccupiedTables: 'Бос емес үстелдер жоқ',
         historyCancellations: 'Тарих (Бас тартулар)',
         statusCancelled: 'БАС ТАРТЫЛДЫ',

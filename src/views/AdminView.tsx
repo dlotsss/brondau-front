@@ -700,25 +700,12 @@ const AdminView: React.FC = () => {
                                                             <DurationEditor booking={booking} />
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1 shrink-0">
-                                                        <button
-                                                            onClick={() => {
-                                                                const extension = restaurant.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 120;
-                                                                const newDuration = (booking.duration || extension) + extension;
-                                                                updateBookingStatus(booking.id, BookingStatus.OCCUPIED, undefined, undefined, undefined, newDuration);
-                                                            }}
-                                                            className="bg-brand-blue/20 text-brand-blue border border-brand-blue/30 px-2 py-1 text-[10px] font-bold rounded hover:bg-brand-blue hover:text-white transition-colors"
-                                                            title={t('admin.extendBooking', `+${restaurant.bookingRestriction && restaurant.bookingRestriction !== -1 ? restaurant.bookingRestriction : 120} мин`)}
-                                                        >
-                                                            {t('admin.extend', 'Продлить')}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
-                                                            className="bg-brand-green text-white px-2 py-1 text-[10px] font-bold rounded hover:bg-green-700 transition-colors"
-                                                        >
-                                                            {t('admin.freeTable')}
-                                                        </button>
-                                                    </div>
+                                                    <button
+                                                        onClick={() => updateBookingStatus(booking.id, BookingStatus.COMPLETED)}
+                                                        className="bg-brand-green text-white px-2 py-1 text-[10px] font-bold rounded hover:bg-green-700 transition-colors shrink-0"
+                                                    >
+                                                        {t('admin.freeTable')}
+                                                    </button>
                                                 </div>
                                             );
                                         })}
