@@ -480,7 +480,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                             <label className="text-xs text-brand-blue block mb-1 font-bold">{t('bookingModal.reassignTable')}</label>
                             <select
                                 value={currentTableId}
-                                onChange={e => setCurrentTableId(e.target.value)}
+                                onChange={e => {
+                                    const newId = e.target.value;
+                                    setCurrentTableId(newId);
+                                    if (newId) {
+                                        setSelectedTableIds([newId]);
+                                    } else {
+                                        setSelectedTableIds([]);
+                                    }
+                                }}
                                 className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
                             >
                                 {restaurant?.layout?.filter(el => el.type === 'table').map((tbl: any) => (
@@ -512,8 +520,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                             type="button"
                                             onClick={() => toggleExtraTable(tbl.id)}
                                             className={`px-2 py-1 text-xs rounded-md font-semibold border transition-colors ${isSelected
-                                                    ? 'bg-brand-blue border-brand-blue text-white'
-                                                    : 'bg-brand-primary border-gray-600 text-gray-300 hover:border-gray-400'
+                                                ? 'bg-brand-blue border-brand-blue text-white'
+                                                : 'bg-brand-primary border-gray-600 text-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             {t('bookingModal.tableCapacity', { label: String(tbl.label), seats: String(tbl.seats) })}
