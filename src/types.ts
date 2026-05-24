@@ -7,6 +7,7 @@ export interface User {
   password?: string; // Not needed for guest
   role: UserRole;
   restaurantIds: string[]; // Which restaurants this user can manage
+  managerName?: string;
 }
 
 export interface Guest {

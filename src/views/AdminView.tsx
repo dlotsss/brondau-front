@@ -117,28 +117,20 @@ const DurationEditor: React.FC<{ booking: Booking }> = ({ booking }) => {
 
 const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tables: TableElement[] }> = ({ booking, restaurantId, tables }) => {
     const { updateBookingStatus } = useData();
+    const { currentUser } = useApp();
     const { t } = useTranslation();
     const [reason, setReason] = useState('');
     const [isDeclining, setIsDeclining] = useState(false);
     const [assignedTableIds, setAssignedTableIds] = useState<string[]>([]);
     const [customDuration, setCustomDuration] = useState<number>(booking.duration || 60);
-    const [assignedTo, setAssignedTo] = useState<string>(booking.assignedTo || '');
-    const [staffNames, setStaffNames] = useState<string[]>([]);
     const needsTableAssignment = !booking.tableId && (!booking.tableIds || booking.tableIds.length === 0);
-
-    useEffect(() => {
-        api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => { });
-    }, [restaurantId]);
 
     const toggleTable = (id: string) => {
         setAssignedTableIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
     };
 
     const handleConfirm = async () => {
-        if (!assignedTo?.trim()) {
-            alert(t('admin.pleaseSelectResponsible'));
-            return;
-        }
+        const assignedTo = currentUser?.managerName || 'Admin';
 
         if (needsTableAssignment && assignedTableIds.length === 0) {
             alert(t('admin.pleaseSelectTables'));
@@ -231,34 +223,18 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
                 </div>
             )}
 
-            {/* Responsible staff assignment */}
+            {/* Responsible staff assignment - Auto-filled and disabled */}
             {!isDeclining && (
-                <div className="mt-3 relative">
+                <div className="mt-3">
                     <label className="text-xs text-gray-200 font-medium block mb-1">
-                        {t('admin.responsibleLabel')} <span className="text-red-500">*</span>
+                        {t('admin.responsibleLabel')}
                     </label>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={assignedTo}
-                            onChange={e => setAssignedTo(e.target.value)}
-                            placeholder={t('admin.managerNamePlaceholder')}
-                            className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-white focus:outline-none focus:border-brand-blue placeholder-gray-500"
-                        />
-                        {staffNames.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {staffNames.filter(n => !assignedTo || n.toLowerCase().includes(assignedTo.toLowerCase())).map(name => (
-                                    <button
-                                        key={name}
-                                        onClick={() => setAssignedTo(name)}
-                                        className="text-[12px] bg-brand-primary px-2 py-0.5 rounded border border-gray-700 hover:border-brand-blue text-gray-300 transition-colors"
-                                    >
-                                        {name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <input
+                        type="text"
+                        value={currentUser?.managerName || 'Admin'}
+                        disabled
+                        className="w-full bg-brand-primary p-2 rounded-md border border-gray-600 text-sm text-gray-400 cursor-not-allowed opacity-70"
+                    />
                 </div>
             )}
 
