@@ -194,7 +194,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: userData.id,
         email: userData.email,
         role: userData.role as UserRole,
-        restaurantIds: userData.restaurantId ? (userData.restaurantId === 'all' ? [] : [userData.restaurantId]) : []
+        restaurantIds: userData.restaurantId ? (userData.restaurantId === 'all' ? [] : [userData.restaurantId]) : [],
+        managerName: userData.managerName
       };
 
       if (userData.restaurantId === 'all') {
