@@ -58,7 +58,7 @@ export const api = {
             method: 'PUT',
             body: JSON.stringify(data),
         }),
-        getBookings: (id: string) => request<any[]>((`/restaurants/${id}/bookings`)),
+        getBookings: (id: string, date?: string) => request<any[]>((date ? `/restaurants/${id}/bookings?date=${date}` : `/restaurants/${id}/bookings`)),
         createBooking: (id: string, data: any) => request<any>(`/restaurants/${id}/bookings`, {
             method: 'POST',
             body: JSON.stringify(data),

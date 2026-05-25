@@ -621,6 +621,11 @@ const AdminView: React.FC = () => {
                                                             <span className="flex items-center gap-1 text-white bg-white/5 px-2 py-0.5 rounded">
                                                                 {t('admin.tableShort', { labels: booking.tableLabels?.length ? booking.tableLabels.join(', ') : (booking.tableLabel || t('admin.tableNotAssigned')) })}
                                                             </span>
+                                                            {booking.assignedTo && (
+                                                                <span className="flex items-center gap-1 text-brand-blue bg-brand-blue/10 px-2 py-0.5 rounded border border-brand-blue/20 text-[10px] font-bold">
+                                                                    👤 {booking.assignedTo}
+                                                                </span>
+                                                            )}
                                                             {isPast && (
                                                                 <span className="text-brand-red font-bold uppercase tracking-wider animate-pulse">{t('admin.late')}</span>
                                                             )}

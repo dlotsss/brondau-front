@@ -133,6 +133,7 @@ export const kz = {
         guests: 'қонақ',
         tableLabel: 'Үстел:',
         timeLabel: 'Уақыт:',
+        assignedTo: 'Жауапты:',
         reason: 'Себебі',
         noBookingsFound: 'Бұл күнге бронь табылған жоқ',
         status: {

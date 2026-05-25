@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useTranslation } from '../context/I18nContext';
 import { Booking, BookingStatus } from '../types';
@@ -25,11 +25,17 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; border: string; 
 };
 
 const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restaurantId, onEditBooking }) => {
-    const { getRestaurant, updateBookingStatus } = useData();
+    const { getRestaurant, updateBookingStatus, loadBookings } = useData();
     const { t } = useTranslation();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
     const restaurant = getRestaurant(restaurantId);
+
+    useEffect(() => {
+        if (restaurantId && selectedDate) {
+            loadBookings(restaurantId, selectedDate);
+        }
+    }, [restaurantId, selectedDate, loadBookings]);
 
     const filteredBookings = useMemo(() => {
         if (!restaurant) return [];
@@ -142,6 +148,12 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                             <span className="text-white">{t('futureBookings.timeLabel')}</span>
                                             <span className="text-brand-blue font-bold">{formatDate(booking.dateTime)}</span>
                                         </div>
+                                        {booking.assignedTo && (
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <span className="text-white">{t('futureBookings.assignedTo')}</span>
+                                                <span className="text-brand-blue font-bold">{booking.assignedTo}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {booking.guestComment && (

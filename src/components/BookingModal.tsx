@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { BookingStatus, TableElement, Booking } from '../types';
 import { useData } from '../context/DataContext';
 import { useTranslation } from '../context/I18nContext';
+import { useApp } from '../context/AppContext';
 
 const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
     const actualLines = text.split(/\r?\n|\\n/);
@@ -61,8 +62,9 @@ const formatPhoneNumber = (value: string): string => {
 };
 
 const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClose, isAdmin = false, withMap = true, bookingToEdit }) => {
-    const { addBooking, getRestaurant, updateBookingDetails } = useData();
+    const { addBooking, getRestaurant, updateBookingDetails, loadBookings } = useData();
     const { t, language } = useTranslation();
+    const { currentUser } = useApp();
     const restaurant = getRestaurant(restaurantId);
 
     const [guestName, setGuestName] = useState(bookingToEdit?.guestName || '');
@@ -72,8 +74,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     const [loading, setLoading] = useState(false);
     const [guestCount, setGuestCount] = useState<number>(bookingToEdit?.guestCount || 2);
     const [guestComment, setGuestComment] = useState(bookingToEdit?.guestComment || '');
-    const [assignedTo, setAssignedTo] = useState(bookingToEdit?.assignedTo || '');
-    const [staffNames, setStaffNames] = useState<string[]>([]);
+    const [assignedTo, setAssignedTo] = useState(bookingToEdit?.assignedTo || currentUser?.managerName || 'Admin');
     const [isSuccess, setIsSuccess] = useState(false);
 
     // Multi-table selection for admin
@@ -105,12 +106,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
     }, [selectedTableIds, allTables]);
 
     useEffect(() => {
-        if (isAdmin && restaurantId) {
-            import('../services/api').then(({ api }) => {
-                api.restaurants.getStaffNames(restaurantId).then(setStaffNames).catch(() => { });
-            });
+        if (restaurantId && bookingDate) {
+            loadBookings(restaurantId, bookingDate);
         }
-    }, [isAdmin, restaurantId]);
+    }, [restaurantId, bookingDate, loadBookings]);
 
     const selectedDateObj = useMemo(() => {
         const [year, month, day] = bookingDate.split('-').map(Number);
@@ -627,24 +626,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ table, restaurantId, onClos
                                     <input
                                         type="text"
                                         value={assignedTo}
-                                        onChange={e => setAssignedTo(e.target.value)}
+                                        disabled={true}
                                         placeholder={t('bookingModal.enterName')}
-                                        className="w-full bg-brand-accent p-3 rounded-md border border-gray-600 placeholder-white text-gray-200 text-sm focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all"
+                                        className="w-full bg-brand-accent/50 p-3 rounded-md border border-gray-700 placeholder-gray-500 text-gray-400 text-sm cursor-not-allowed outline-none transition-all"
                                     />
-                                    {staffNames.length > 0 && (
-                                        <div className="flex flex-wrap gap-1">
-                                            {staffNames.filter(n => !assignedTo || n.toLowerCase().includes(assignedTo.toLowerCase())).map(name => (
-                                                <button
-                                                    key={name}
-                                                    type="button"
-                                                    onClick={() => setAssignedTo(name)}
-                                                    className="text-[10px] bg-brand-primary px-2 py-1 rounded border border-gray-600 hover:border-brand-blue text-gray-300 transition-colors"
-                                                >
-                                                    {name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}

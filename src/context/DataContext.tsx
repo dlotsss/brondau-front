@@ -23,7 +23,7 @@ interface DataContextType {
   updateLayout: (restaurantId: string, newLayout: LayoutElement[], floors?: any[]) => Promise<void>;
   updateRestaurantSettings: (restaurantId: string, updates: { layout?: LayoutElement[], floors?: any[], bookingRestriction?: number, ageRestriction?: string }) => Promise<void>;
   loadRestaurants: () => Promise<void>;
-  loadBookings: (restaurantId: string) => Promise<void>;
+  loadBookings: (restaurantId: string, date?: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -38,11 +38,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       const data = await api.restaurants.list();
+      const todayStr = new Date().toISOString().split('T')[0];
 
       const restaurantsWithBookings = await Promise.all(
         data.map(async (restaurant: any) => {
           try {
-            const bookings = await api.restaurants.getBookings(restaurant.id);
+            const bookings = await api.restaurants.getBookings(restaurant.id, todayStr);
 
             return {
               id: restaurant.id,
@@ -82,6 +83,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 cancelledAt: b.cancelled_at ? new Date(b.cancelled_at) : undefined,
                 guestComment: b.guest_comment,
                 duration: b.duration,
+                assignedTo: b.assigned_to,
                 dateTime: new Date(b.date_time),
                 deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
                 createdAt: new Date(b.created_at)
@@ -118,41 +120,65 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const loadBookings = useCallback(async (restaurantId: string) => {
-    try {
-      const bookings = await api.restaurants.getBookings(restaurantId);
+  const mapBooking = (b: any) => ({
+    id: b.id,
+    restaurantId: b.restaurant_id,
+    tableId: b.table_id,
+    tableLabel: b.table_label,
+    tableIds: b.tableIds,
+    tableLabels: b.tableLabels,
+    guestName: b.guest_name,
+    guestPhone: b.guest_phone,
+    guestEmail: b.guest_email,
+    guestCount: b.guest_count,
+    status: b.status,
+    declineReason: b.decline_reason,
+    cancelReason: b.cancel_reason,
+    cancelComment: b.cancel_comment,
+    cancelledBy: b.cancelled_by,
+    cancelledAt: b.cancelled_at ? new Date(b.cancelled_at) : undefined,
+    guestComment: b.guest_comment,
+    duration: b.duration,
+    assignedTo: b.assigned_to,
+    dateTime: new Date(b.date_time),
+    deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
+    createdAt: new Date(b.created_at)
+  });
 
-      setRestaurants(prev => prev.map(r =>
-        r.id === restaurantId
-          ? {
-            ...r,
-            bookings: bookings.map((b: any) => ({
-              id: b.id,
-              restaurantId: b.restaurant_id,
-              tableId: b.table_id,
-              tableLabel: b.table_label,
-              tableIds: b.tableIds,
-              tableLabels: b.tableLabels,
-              guestName: b.guest_name,
-              guestPhone: b.guest_phone,
-              guestEmail: b.guest_email,
-              guestCount: b.guest_count,
-              status: b.status,
-              declineReason: b.decline_reason,
-              cancelReason: b.cancel_reason,
-              cancelComment: b.cancel_comment,
-              cancelledBy: b.cancelled_by,
-              cancelledAt: b.cancelled_at ? new Date(b.cancelled_at) : undefined,
-              guestComment: b.guest_comment,
-              duration: b.duration,
-              assignedTo: b.assigned_to,
-              dateTime: new Date(b.date_time),
-              deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
-              createdAt: new Date(b.created_at)
-            }))
-          }
-          : r
-      ));
+  const loadBookings = useCallback(async (restaurantId: string, date?: string) => {
+    try {
+      const bookings = await api.restaurants.getBookings(restaurantId, date);
+      const mapped = bookings.map(mapBooking);
+
+      setRestaurants(prev => prev.map(r => {
+        if (r.id !== restaurantId) return r;
+
+        if (!date) {
+          // No date filter — replace everything
+          return { ...r, bookings: mapped };
+        }
+
+        // Date filter was used: keep bookings for OTHER dates (excluding pending,
+        // since the server already returned fresh pending ones in this response)
+        const kept = r.bookings.filter(b => {
+          const bDate = new Date(b.dateTime).toISOString().split('T')[0];
+          // Drop bookings that match the requested date or are PENDING (server returned fresh ones)
+          return bDate !== date && b.status !== 'PENDING';
+        });
+
+        // Merge: kept (other dates, non-pending) + fresh data for this date + fresh pending
+        const merged = [...kept, ...mapped];
+        // Deduplicate by id (safety net)
+        const seen = new Set<string>();
+        return {
+          ...r,
+          bookings: merged.filter(b => {
+            if (seen.has(b.id)) return false;
+            seen.add(b.id);
+            return true;
+          })
+        };
+      }));
     } catch (error) {
       console.error('Failed to load bookings:', error);
     }
@@ -394,8 +420,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const interval = setInterval(async () => {
       await api.bookings.cleanupExpired();
 
+      const todayStr = new Date().toISOString().split('T')[0];
       for (const r of restaurants) {
-        await loadBookings(r.id);
+        await loadBookings(r.id, todayStr);
       }
     }, 30000);
 

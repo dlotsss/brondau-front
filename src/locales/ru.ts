@@ -133,6 +133,7 @@ export const ru = {
         guests: 'гостей',
         tableLabel: 'Стол:',
         timeLabel: 'Время:',
+        assignedTo: 'Ответственный:',
         reason: 'Причина',
         noBookingsFound: 'На этот день бронирований не найдено',
         status: {
