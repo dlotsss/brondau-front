@@ -148,6 +148,10 @@ const FutureBookingsManager: React.FC<FutureBookingsManagerProps> = ({ restauran
                                             <span className="text-white">{t('futureBookings.timeLabel')}</span>
                                             <span className="text-brand-blue font-bold">{formatDate(booking.dateTime)}</span>
                                         </div>
+                                        <div className="flex items-center gap-2 text-xs text-white">
+                                            <span>{t('admin.createdAt')}</span>
+                                            <span className="text-brand-blue">{formatDate(booking.createdAt)}</span>
+                                        </div>
                                         {booking.assignedTo && (
                                             <div className="flex items-center gap-2 text-sm">
                                                 <span className="text-white">{t('futureBookings.assignedTo')}</span>

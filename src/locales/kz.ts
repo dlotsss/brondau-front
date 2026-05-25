@@ -87,6 +87,7 @@ export const kz = {
         assignedTable: 'Үстел {{label}}',
         noTableAssigned: 'Үстел тағайындалмаған',
         timeLeft: 'Қалды:',
+        createdAt: 'Жасалды:',
         frozen: 'Тоқтатылды',
         guestsText: 'қонақ',
         guestCommentLabel: 'Қонақ түсініктемесі:',

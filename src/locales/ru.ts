@@ -87,6 +87,7 @@ export const ru = {
         assignedTable: 'Стол {{label}}',
         noTableAssigned: 'Стол не назначен',
         timeLeft: 'Осталось:',
+        createdAt: 'Создано:',
         frozen: 'Заморожено',
         guestsText: 'гостей',
         guestCommentLabel: 'Комментарий гостя:',

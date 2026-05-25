@@ -181,6 +181,9 @@ const BookingRequestCard: React.FC<{ booking: Booking; restaurantId: string; tab
             <p className="text-sm font-medium text-gray-200">{booking.guestName} ({booking.guestCount} {t('admin.guestsText')})</p>
             <p className="text-sm font-bold text-brand-blue drop-shadow-sm">{booking.guestPhone}</p>
             <p className="text-xs font-medium text-brand-yellow mb-2">{new Date(booking.dateTime).toLocaleString('ru-RU')}</p>
+            <p className="text-[11px] text-gray-400 mb-2">
+                {t('admin.createdAt')} {new Date(booking.createdAt).toLocaleString('ru-RU')}
+            </p>
 
             {booking.guestComment && (
                 <div className="mt-2 mb-2 p-2 bg-black/20 rounded border border-gray-600/50">
