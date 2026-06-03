@@ -61,10 +61,13 @@ const RestaurantWrapper: React.FC = () => {
 };
 
 
+import LandingView from './views/LandingView';
+
 const AppContent: React.FC = () => {
     const { currentUser } = useApp();
     return (
         <Routes>
+            <Route path="/landing" element={<LandingView />} />
             <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <LoginView />} />
             <Route path="/cancel-booking/:token" element={<BookingCancellationView />} />
             <Route path="/" element={<ProtectedRoute><RestaurantListView /></ProtectedRoute>} />

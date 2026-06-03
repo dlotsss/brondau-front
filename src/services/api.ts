@@ -110,5 +110,11 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(payload),
         }),
+    },
+    leads: {
+        create: (payload: { name: string; phone: string; venue: string }) => request<any>('/leads', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
     }
 };
