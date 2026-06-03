@@ -112,7 +112,13 @@ export const api = {
         }),
     },
     leads: {
-        create: (payload: { name: string; phone: string; venue: string }) => request<any>('/leads', {
+        create: (payload: { name: string; phone: string; venue: string; promo?: string }) => request<any>('/leads', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+    },
+    referalLeads: {
+        create: (payload: { name: string; specialty: string; email: string; phone: string }) => request<{ success: boolean; promoCode: string }>('/referal-leads', {
             method: 'POST',
             body: JSON.stringify(payload),
         }),

@@ -22,6 +22,7 @@ const LandingView: React.FC = () => {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [venue, setVenue] = useState('');
+    const [promo, setPromo] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Mobile Menu State
@@ -34,11 +35,12 @@ const LandingView: React.FC = () => {
         setIsSubmitting(true);
         
         try {
-            await api.leads.create({ name, phone, venue });
+            await api.leads.create({ name, phone, venue, promo: promo.trim() });
             alert('Заявка отправлена! Мы свяжемся с вами в ближайшее время.');
             setName('');
             setPhone('');
             setVenue('');
+            setPromo('');
         } catch (error: any) {
             alert(error.message || 'Произошла ошибка при отправке заявки. Попробуйте еще раз.');
         } finally {
@@ -369,6 +371,17 @@ const LandingView: React.FC = () => {
                                             onChange={(e) => setVenue(e.target.value)}
                                             className="w-full px-4 py-3 rounded-xl border border-brand-primary/20 bg-white text-brand-primary focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
                                             placeholder="Ресторан 'Счастье', Алматы"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="promo" className="block text-sm font-medium text-brand-primary mb-1">Промокод (если есть)</label>
+                                        <input 
+                                            type="text" 
+                                            id="promo" 
+                                            value={promo}
+                                            onChange={(e) => setPromo(e.target.value)}
+                                            className="w-full px-4 py-3 rounded-xl border border-brand-primary/20 bg-white text-brand-primary focus:ring-2 focus:ring-brand-blue focus:border-brand-blue outline-none transition-all"
+                                            placeholder="GUEST2026"
                                         />
                                     </div>
                                     <button 
