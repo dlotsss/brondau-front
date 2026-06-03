@@ -8,7 +8,9 @@ import {
     ChevronRight, 
     Utensils, 
     AlertCircle, 
-    UserX 
+    UserX,
+    Menu,
+    X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -21,6 +23,9 @@ const LandingView: React.FC = () => {
     const [phone, setPhone] = useState('');
     const [venue, setVenue] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Mobile Menu State
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,6 +48,7 @@ const LandingView: React.FC = () => {
 
     const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
         e.preventDefault();
+        setIsMenuOpen(false); // Close menu on click
         const element = document.getElementById(sectionId);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth' });
@@ -60,69 +66,91 @@ const LandingView: React.FC = () => {
                             <Utensils className="h-8 w-8 text-brand-primary" />
                             <span className="text-2xl font-bold text-brand-primary tracking-tight">Brondau</span>
                         </div>
+                        
+                        {/* Desktop Menu */}
                         <div className="hidden md:flex space-x-8">
                             <a href="#reviews" onClick={(e) => scrollToSection(e, 'reviews')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Отзывы</a>
                             <a href="#turnkey" onClick={(e) => scrollToSection(e, 'turnkey')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Внедрение под ключ</a>
                             <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Как это работает</a>
                         </div>
-                        <div>
+                        
+                        <div className="hidden md:block">
                             <a href="#cta-form" onClick={(e) => scrollToSection(e, 'cta-form')} className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-full shadow-sm text-sm font-medium text-brand-secondary bg-brand-primary hover:opacity-90 transition-opacity cursor-pointer">
                                 Попробовать бесплатно
                             </a>
                         </div>
+                        
+                        {/* Mobile Menu Button */}
+                        <div className="md:hidden flex items-center">
+                            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-brand-primary hover:text-brand-blue focus:outline-none">
+                                {isMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
+                
+                {/* Mobile Menu Dropdown */}
+                {isMenuOpen && (
+                    <div className="md:hidden bg-brand-secondary border-b border-brand-accent/20 px-4 py-4 space-y-4 shadow-lg absolute w-full left-0 top-20">
+                        <a href="#reviews" onClick={(e) => scrollToSection(e, 'reviews')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Отзывы</a>
+                        <a href="#turnkey" onClick={(e) => scrollToSection(e, 'turnkey')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Внедрение под ключ</a>
+                        <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Как это работает</a>
+                        <a href="#cta-form" onClick={(e) => scrollToSection(e, 'cta-form')} className="block text-center mt-4 w-full px-6 py-3 border border-transparent rounded-full shadow-sm text-lg font-medium text-brand-secondary bg-brand-primary hover:opacity-90 transition-opacity cursor-pointer">
+                            Попробовать бесплатно
+                        </a>
+                    </div>
+                )}
             </nav>
 
             {/* 2. HERO SECTION */}
-            <section className="relative pt-16 pb-24 overflow-hidden">
+            <section className="relative pt-10 md:pt-16 pb-16 md:pb-24 overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="text-center max-w-4xl mx-auto">
                         <h1 className="text-4xl md:text-6xl font-extrabold text-brand-primary tracking-tight mb-6 leading-tight">
-                            Превратите схему вашего зала в <span className="text-brand-blue relative inline-block">генератор броней<div className="absolute -bottom-2 left-0 w-full h-1 bg-brand-accent/50 rounded-full"></div></span>
+                            Превратите схему вашего зала в <br className="hidden md:block"/> <span className="text-brand-blue relative inline-block mt-2 md:mt-0">генератор броней<div className="absolute -bottom-2 left-0 w-full h-1 bg-brand-accent/50 rounded-full"></div></span>
                         </h1>
-                        <p className="mt-4 text-xl md:text-2xl text-brand-primary/80 mb-10 leading-relaxed">
+                        <p className="mt-4 text-lg md:text-2xl text-brand-primary/80 mb-10 leading-relaxed px-2">
                             Автономная интерактивная карта для управления посадкой. Заменяет бумажные блокноты, избавляет хостес от ошибок и приносит брони 24/7. Полная настройка «под ключ» всего за 1 день — без отрыва от работы заведения.
                         </p>
                         
-                        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
-                            <a href="#cta-form" onClick={(e) => scrollToSection(e, 'cta-form')} className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg text-white bg-brand-blue hover:bg-brand-blue/90 hover:scale-105 transform transition-all duration-200">
+                        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8 w-full px-4 sm:px-0">
+                            <a href="#cta-form" onClick={(e) => scrollToSection(e, 'cta-form')} className="w-full sm:w-auto inline-flex items-center justify-center px-6 md:px-8 py-4 border border-transparent text-base md:text-lg font-bold rounded-full shadow-lg text-white bg-brand-blue hover:bg-brand-blue/90 hover:scale-105 transform transition-all duration-200">
                                 Получить настройку под ключ
                                 <ChevronRight className="ml-2 -mr-1 h-5 w-5" />
                             </a>
-                            <a href="#demo" onClick={(e) => scrollToSection(e, 'demo')} className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border-2 border-brand-primary text-lg font-bold rounded-full text-brand-primary hover:bg-brand-primary hover:text-brand-secondary transition-all duration-200">
+                            <a href="#demo" onClick={(e) => scrollToSection(e, 'demo')} className="w-full sm:w-auto inline-flex items-center justify-center px-6 md:px-8 py-4 border-2 border-brand-primary text-base md:text-lg font-bold rounded-full text-brand-primary hover:bg-brand-primary hover:text-brand-secondary transition-all duration-200">
                                 <PlayCircle className="mr-2 h-5 w-5" />
                                 Смотреть демо карты
                             </a>
                         </div>
                         
-                        <div className="inline-flex items-center px-4 py-2 rounded-full bg-brand-accent/20 text-brand-primary text-sm font-medium">
-                            <span className="flex h-2 w-2 relative mr-2">
+                        <div className="inline-flex items-center px-4 py-2 rounded-full bg-brand-accent/20 text-brand-primary text-xs md:text-sm font-medium mx-4 sm:mx-0 text-left md:text-center leading-snug">
+                            <span className="flex h-2 w-2 relative mr-2 flex-shrink-0">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-blue opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-blue"></span>
                             </span>
-                            Дарим 2 недели бесплатного пилотного периода. Оцифровка и отрисовка вашей карты — 0 тенге.
+                            <span>Дарим 2 недели бесплатного пилотного периода. Оцифровка и отрисовка вашей карты — 0 тенге.</span>
                         </div>
                     </div>
 
                     {/* Visual Component Mockup */}
-                    <div id="demo" className="mt-16 max-w-5xl mx-auto">
-                        <div className="bg-brand-primary rounded-[2rem] p-4 shadow-2xl border-4 border-brand-primary/10">
-                            <div className="bg-brand-secondary rounded-xl overflow-hidden aspect-[16/9] relative border border-brand-primary/20 flex items-center justify-center p-8">
-                                <div className="absolute top-4 left-4 right-4 flex justify-between items-center border-b border-brand-primary/10 pb-4">
-                                    <div className="font-bold text-xl">План зала VIP</div>
-                                    <div className="flex gap-4">
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-brand-green"></div><span className="text-sm">Свободен</span></div>
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-brand-red"></div><span className="text-sm">Занят</span></div>
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-brand-blue animate-pulse"></div><span className="text-sm">Выбран гостем</span></div>
+                    <div id="demo" className="mt-12 md:mt-16 max-w-5xl mx-auto px-2 md:px-0">
+                        <div className="bg-brand-primary rounded-2xl md:rounded-[2rem] p-2 md:p-4 shadow-2xl border-2 md:border-4 border-brand-primary/10">
+                            <div className="bg-brand-secondary rounded-lg md:rounded-xl overflow-hidden relative border border-brand-primary/20 flex flex-col items-center justify-center p-4 md:p-8 min-h-[300px] md:aspect-[16/9]">
+                                <div className="absolute top-4 left-4 right-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-brand-primary/10 pb-4 gap-2 sm:gap-0">
+                                    <div className="font-bold text-lg md:text-xl">План зала VIP</div>
+                                    <div className="flex flex-wrap gap-2 md:gap-4">
+                                        <div className="flex items-center gap-1 md:gap-2"><div className="w-2 md:w-3 h-2 md:h-3 rounded-full bg-brand-green"></div><span className="text-xs md:text-sm">Свободен</span></div>
+                                        <div className="flex items-center gap-1 md:gap-2"><div className="w-2 md:w-3 h-2 md:h-3 rounded-full bg-brand-red"></div><span className="text-xs md:text-sm">Занят</span></div>
+                                        <div className="flex items-center gap-1 md:gap-2"><div className="w-2 md:w-3 h-2 md:h-3 rounded-full bg-brand-blue animate-pulse"></div><span className="text-xs md:text-sm">Выбран</span></div>
                                     </div>
                                 </div>
                                 {/* Map Grid Mockup */}
-                                <div className="grid grid-cols-4 gap-8 mt-12 w-full max-w-3xl">
-                                    <div className="bg-brand-green/20 border-2 border-brand-green rounded-full h-24 flex items-center justify-center text-brand-green font-bold text-xl shadow-[0_0_15px_rgba(72,187,120,0.3)]">T1</div>
-                                    <div className="bg-brand-red/20 border-2 border-brand-red rounded-full h-24 flex items-center justify-center text-brand-red font-bold text-xl">T2</div>
-                                    <div className="bg-brand-blue/20 border-2 border-brand-blue rounded-lg h-24 flex items-center justify-center text-brand-blue font-bold text-xl animate-pulse shadow-[0_0_20px_rgba(194,125,62,0.5)]">VIP-1</div>
-                                    <div className="bg-brand-green/20 border-2 border-brand-green rounded-full h-24 flex items-center justify-center text-brand-green font-bold text-xl shadow-[0_0_15px_rgba(72,187,120,0.3)]">T4</div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-8 mt-16 md:mt-12 w-full max-w-3xl">
+                                    <div className="bg-brand-green/20 border-2 border-brand-green rounded-full h-16 md:h-24 flex items-center justify-center text-brand-green font-bold text-lg md:text-xl shadow-[0_0_15px_rgba(72,187,120,0.3)]">T1</div>
+                                    <div className="bg-brand-red/20 border-2 border-brand-red rounded-full h-16 md:h-24 flex items-center justify-center text-brand-red font-bold text-lg md:text-xl">T2</div>
+                                    <div className="bg-brand-blue/20 border-2 border-brand-blue rounded-lg h-16 md:h-24 flex items-center justify-center text-brand-blue font-bold text-lg md:text-xl animate-pulse shadow-[0_0_20px_rgba(194,125,62,0.5)]">VIP-1</div>
+                                    <div className="bg-brand-green/20 border-2 border-brand-green rounded-full h-16 md:h-24 flex items-center justify-center text-brand-green font-bold text-lg md:text-xl shadow-[0_0_15px_rgba(72,187,120,0.3)]">T4</div>
                                 </div>
                             </div>
                         </div>
