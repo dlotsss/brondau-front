@@ -147,7 +147,9 @@ const RestaurantListView: React.FC = () => {
         }
     }
 
-    const managedRestaurants = currentUser?.role === 'GUEST'
+    const isGuestMode = !currentUser || currentUser.role === 'GUEST';
+
+    const managedRestaurants = isGuestMode
         ? restaurants
         : restaurants.filter(r => currentUser?.restaurantIds.includes(r.id));
 
@@ -169,7 +171,7 @@ const RestaurantListView: React.FC = () => {
                 <div className="max-w-4xl mx-auto">
                     <h1 className="text-4xl font-bold mb-2 text-brand-blue">{t('restaurantList.selectRestaurantTitle')}</h1>
                     <p className="text-gray-400 mb-8">
-                        {currentUser?.role === 'GUEST' ? t('restaurantList.selectRestaurantGuestDesc') : t('restaurantList.selectRestaurantAdminDesc')}
+                        {isGuestMode ? t('restaurantList.selectRestaurantGuestDesc') : t('restaurantList.selectRestaurantAdminDesc')}
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -11,7 +11,7 @@ const LoginView: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();
   const navigate = useNavigate();
 
-  const [loginType, setLoginType] = useState<UserRole>('GUEST');
+  const [loginType, setLoginType] = useState<UserRole>('ADMIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -61,29 +61,13 @@ const LoginView: React.FC = () => {
 
     const user = await login(loginType, email, password, selectedRestaurant);
     if (user) {
-      if (user.role === 'ADMIN' || user.role === 'OWNER') {
-        if (user.restaurantIds.length === 1) {
-          navigate(`/restaurant/${user.restaurantIds[0]}`);
-        } else {
-          navigate('/');
-        }
-      } else {
-        navigate('/');
-      }
+      navigate('/');
     } else {
       setError(t('login.invalidCredentials'));
     }
   };
 
-  const handleGuestLogin = async () => {
-    const success = await login('GUEST');
-    if (success) {
-      navigate('/');
-    }
-  };
-
-  const roleLabels: Record<UserRole, string> = {
-    GUEST: t('login.roleGuest'),
+  const roleLabels: Record<Exclude<UserRole, 'GUEST'>, string> = {
     ADMIN: t('login.roleAdmin'),
     OWNER: t('login.roleOwner')
   };
@@ -108,7 +92,7 @@ const LoginView: React.FC = () => {
         <p className="text-center mb-6" style={{ color: '#f5efe6' }}>{t('login.chooseRole')}</p>
 
         <div className="flex gap-2 mb-6 rounded-md bg-brand-primary p-1">
-          {(['GUEST', 'ADMIN', 'OWNER'] as UserRole[]).map(role => (
+          {(['ADMIN', 'OWNER'] as Exclude<UserRole, 'GUEST'>[]).map(role => (
             <button
               key={role}
               onClick={() => setLoginType(role)}
@@ -123,15 +107,7 @@ const LoginView: React.FC = () => {
           ))}
         </div>
 
-        {loginType === 'GUEST' ? (
-          <button
-            onClick={handleGuestLogin}
-            className="w-full bg-brand-blue text-white font-semibold py-3 rounded-md transition" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d5b483'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
-          >
-            {t('login.loginAsGuest')}
-          </button>
-        ) : (
-          <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4">
             {error && <div className="bg-brand-red/20 text-brand-red p-3 rounded-md text-sm">{error}</div>}
 
             <div>
@@ -181,8 +157,7 @@ const LoginView: React.FC = () => {
             >
               {loginType === 'ADMIN' ? t('login.loginAsAdmin') : loginType === 'OWNER' ? t('login.loginAsOwner') : t('login.loginAsGuest')}
             </button>
-          </form>
-        )}
+        </form>
       </div>
     </div>
   );

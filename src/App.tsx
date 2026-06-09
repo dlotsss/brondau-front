@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { DataProvider } from './context/DataContext';
 import { AppProvider, useApp } from './context/AppContext';
 
@@ -14,14 +14,6 @@ import AdminView from './views/AdminView';
 import ConstructorView from './views/ConstructorView';
 import BookingCancellationView from './views/BookingCancellationView';
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { currentUser } = useApp();
-    if (!currentUser) {
-        return <Navigate to="/login" replace />;
-    }
-    return <>{children}</>;
-};
-
 const RestaurantWrapper: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { currentUser, selectRestaurant } = useApp();
@@ -32,12 +24,8 @@ const RestaurantWrapper: React.FC = () => {
         }
     }, [id, selectRestaurant]);
 
-    if (!currentUser) {
-        return <Navigate to="/login" replace />;
-    }
-
     let ViewComponent;
-    switch (currentUser.role) {
+    switch (currentUser?.role) {
         case 'ADMIN':
             ViewComponent = AdminView;
             break;
@@ -64,18 +52,36 @@ const RestaurantWrapper: React.FC = () => {
 import LandingView from './views/LandingView';
 import ReferalLandingView from './views/ReferalLandingView';
 
+const LegacyHashRedirect: React.FC = () => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const hashPath = window.location.hash;
+        if (!hashPath.startsWith('#/')) return;
+
+        const nextPath = hashPath === '#/login' ? '/' : hashPath.slice(1);
+        navigate(nextPath, { replace: true });
+    }, [navigate]);
+
+    return null;
+};
+
 const AppContent: React.FC = () => {
     const { currentUser } = useApp();
     return (
+        <>
+        <LegacyHashRedirect />
         <Routes>
             <Route path="/landing" element={<LandingView />} />
             <Route path="/referal-landing" element={<ReferalLandingView />} />
-            <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <LoginView />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/login-rest" element={currentUser && currentUser.role !== 'GUEST' ? <Navigate to="/" replace /> : <LoginView />} />
             <Route path="/cancel-booking/:token" element={<BookingCancellationView />} />
-            <Route path="/" element={<ProtectedRoute><RestaurantListView /></ProtectedRoute>} />
-            <Route path="/restaurant/:id" element={<ProtectedRoute><RestaurantWrapper /></ProtectedRoute>} />
+            <Route path="/" element={<RestaurantListView />} />
+            <Route path="/restaurant/:id" element={<RestaurantWrapper />} />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </>
     );
 };
 
@@ -84,9 +90,9 @@ const App: React.FC = () => {
         <I18nProvider>
             <DataProvider>
                 <AppProvider>
-                    <HashRouter>
+                    <BrowserRouter>
                         <AppContent />
-                    </HashRouter>
+                    </BrowserRouter>
                 </AppProvider>
             </DataProvider>
         </I18nProvider>
