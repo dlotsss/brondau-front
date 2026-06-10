@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import { LayoutElement, TableElement, DecoElement, TextElement, Floor } from '../types';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../context/I18nContext';
+import { MenuView } from '../components/MenuView';
 
 // Константы логического размера холста (виртуальные единицы)
 const LOGICAL_WIDTH = 1500;
@@ -34,6 +35,7 @@ const ConstructorView: React.FC = () => {
     const [bookingRestriction, setBookingRestriction] = useState<number>(-1);
     const [ageRestriction, setAgeRestriction] = useState<string>('');
     const [isInitialized, setIsInitialized] = useState(false);
+    const [activeTab, setActiveTab] = useState<'layout' | 'menu'>('layout');
 
     const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
     const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
@@ -381,10 +383,38 @@ const ConstructorView: React.FC = () => {
     const inputStyle = "w-full bg-white text-gray-900 p-1.5 rounded border border-gray-300 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue";
 
     return (
-        <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-80px)]">
+        <div className="flex flex-col gap-4 h-[calc(100vh-85px)]">
+            {restaurant?.menu && (
+                <div className="flex border-b border-brand-accent/20 pb-2">
+                    <button
+                        onClick={() => setActiveTab('layout')}
+                        className={`px-4 py-2 font-bold text-sm rounded-lg transition-all ${
+                            activeTab === 'layout'
+                                ? 'bg-brand-blue text-white shadow-md'
+                                : 'bg-transparent text-gray-400 hover:text-white'
+                        }`}
+                    >
+                        Схема зала
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('menu')}
+                        className={`px-4 py-2 font-bold text-sm rounded-lg transition-all ml-2 ${
+                            activeTab === 'menu'
+                                ? 'bg-brand-blue text-white shadow-md'
+                                : 'bg-transparent text-gray-400 hover:text-white'
+                        }`}
+                    >
+                        Меню ресторана
+                    </button>
+                </div>
+            )}
 
-            {/* --- ЛЕВАЯ ПАНЕЛЬ (Инструменты) --- */}
-            <div className="lg:w-64 flex flex-col gap-4 shrink-0">
+            {activeTab === 'menu' && selectedRestaurantId ? (
+                <MenuView restaurantId={selectedRestaurantId} />
+            ) : (
+                <div className="flex flex-col lg:flex-row gap-4 flex-grow overflow-hidden">
+                    {/* --- ЛЕВАЯ ПАНЕЛЬ (Инструменты) --- */}
+                    <div className="lg:w-64 flex flex-col gap-4 shrink-0">
                 <div className="bg-brand-primary p-3 rounded-lg shadow border border-brand-accent">
                     <h3 className="font-bold text-white mb-2">{t('constructor.toolsTitle')}</h3>
                     <div className="flex lg:grid lg:grid-cols-2 gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
@@ -686,6 +716,8 @@ const ConstructorView: React.FC = () => {
                         </div>
                     ) : null}
                 </div>
+            )}
+            </div>
             )}
 
             <style>{`

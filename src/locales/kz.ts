@@ -13,6 +13,7 @@ export const kz = {
         currentRestaurant: 'Ағымдағы мейрамхана:',
         changeRestaurant: 'Мейрамхананы өзгерту',
         logout: 'Шығу',
+        available: 'Бос'
     },
     login: {
         noAdminRestaurants: 'Бұл email үшін қолжетімді мейрамханалар табылмады',
@@ -40,7 +41,8 @@ export const kz = {
         centerMap: 'Ортаға келтіру',
         legendAvailable: 'Бос',
         legendPending: 'Күтуде',
-        legendOccupied: 'Бос емес'
+        legendOccupied: 'Бос емес',
+        viewMenu: 'Мәзірді көру'
     },
     bookingModal: {
         successTitle: 'Бронь сәтті жасалды!',

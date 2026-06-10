@@ -1,4 +1,4 @@
-import { LayoutElement, Booking, BookingStatus, Restaurant, User, UserRole, Guest } from '../types';
+import { LayoutElement, Booking, BookingStatus, Restaurant, User, UserRole, Guest, Dish } from '../types';
 
 const getBaseUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
@@ -53,7 +53,8 @@ export const api = {
             adminWorks?: any,
             deposit?: string,
             ageRestrictionKz?: string,
-            depositKz?: string
+            depositKz?: string,
+            menu?: boolean
         }) => request<Restaurant>(`/restaurants/${restaurantId}/layout`, {
             method: 'PUT',
             body: JSON.stringify(data),
@@ -64,6 +65,20 @@ export const api = {
             body: JSON.stringify(data),
         }),
         getStaffNames: (id: string) => request<string[]>(`/restaurants/${id}/staff-names`),
+    },
+    menu: {
+        list: (restaurantId: string) => request<Dish[]>(`/restaurants/${restaurantId}/menu`),
+        create: (restaurantId: string, data: Omit<Dish, 'id' | 'restaurantId'>) => request<Dish>(`/restaurants/${restaurantId}/menu`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        update: (dishId: string, data: Partial<Omit<Dish, 'id' | 'restaurantId'>>) => request<Dish>(`/menu/${dishId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+        delete: (dishId: string) => request<{ message: string, dish: Dish }>(`/menu/${dishId}`, {
+            method: 'DELETE',
+        }),
     },
     auth: {
         owner: (data: any) => request<any>('/auth/owner', {

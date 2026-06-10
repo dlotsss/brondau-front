@@ -130,4 +130,20 @@ export interface Restaurant {
   deposit_kz?: string;
   city?: string;
   adminWorks?: Record<number, { start: string; end: string }>;
+  menu?: boolean;
+  description?: string;
+}
+
+export interface Dish {
+  id: string;
+  restaurantId: string;
+  dishTitle: string;
+  photoUrl?: string | null;
+  price: number;
+  description?: string | null;
+  category?: string;
+  weight?: string | null;
+  isAvailable: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useData } from '../context/DataContext';
 import { LayoutElement, TableElement, BookingStatus, DecoElement, TextElement } from '../types';
 import BookingModal from '../components/BookingModal';
+import GuestMenuModal from '../components/GuestMenuModal';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../context/I18nContext';
 
@@ -129,11 +130,11 @@ const Deco: React.FC<{
             </svg>
         );
     } else if (element.type === 'stairs') {
-        classes += ' bg-gray-300 shadow-sm opacity-80';
+        classes += ' bg-[#4A4A4A] shadow-sm opacity-80 rounded-md';
         content = (
-            <div className="w-full h-full flex flex-col justify-evenly">
+            <div className="w-full h-full flex flex-col justify-evenly p-1">
                 {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-full h-px bg-gray-400"></div>
+                    <div key={i} className="w-full h-[2px] bg-[#6A6A6A]"></div>
                 ))}
             </div>
         );
@@ -152,16 +153,16 @@ const Deco: React.FC<{
         );
     } else {
         const decoStyles: { [key: string]: string } = {
-            wall: 'bg-gray-500 shadow-sm',
-            bar: 'bg-yellow-800 border-2 border-yellow-900 shadow-lg',
-            window: 'bg-sky-200/40 border-2 border-sky-300',
+            wall: 'bg-[#4A4A4A] shadow-sm rounded-sm',
+            bar: 'bg-[#5c4033] border border-[#3b271d] shadow-lg rounded-sm',
+            window: 'bg-sky-200/20 border border-sky-300/40 rounded-sm',
         };
         classes += ' ' + (decoStyles[(element as DecoElement).type] || 'bg-gray-400');
 
         if (element.type === 'window') {
             content = (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-0.5 h-full bg-sky-300/50"></div>
+                    <div className="w-[1px] h-full bg-sky-300/30"></div>
                 </div>
             );
         }
@@ -175,6 +176,7 @@ const UserView: React.FC = () => {
     const { getRestaurant } = useData();
     const [selectedTable, setSelectedTable] = useState<TableElement | null>(null);
     const [showNoMapModal, setShowNoMapModal] = useState(false);
+    const [showMenuModal, setShowMenuModal] = useState(false);
 
     const { t, language } = useTranslation();
     const [activeFloorId, setActiveFloorId] = useState<string>('');
@@ -405,203 +407,237 @@ const UserView: React.FC = () => {
 
     // === КОНЕЦ ЛОГИКИ PAN & ZOOM ===
 
+    const handleMainBookClick = () => {
+        if (withMap) {
+            // Scroll to map
+            document.getElementById('restaurant-map')?.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            // Open standard booking modal
+            setShowNoMapModal(true);
+        }
+    };
+
     if (!restaurant) {
-        return <div className="text-center text-gray-400">{t('common.loading')}</div>;
+        return <div className="text-center text-[#A3A3A3] flex items-center justify-center h-screen bg-[#1A1513]"><span className="animate-pulse">{t('common.loading')}</span></div>;
     }
 
-    // ===== NO-MAP MODE =====
-    if (!withMap) {
-        return (
-            <div className="h-full flex flex-col gap-4 pb-4">
-                <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-col flex-grow md:flex-grow-0 md:h-auto">
-                    <div className="flex flex-col gap-2 mb-6">
-                        <div className="flex items-center gap-4">
-                            {restaurant.logoUrl && (
-                                <img src={restaurant.logoUrl} alt="Logo" className="w-24 h-24 rounded-full object-contain border-4 border-white/10 shadow-xl bg-white p-1" />
-                            )}
-                            <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight">{restaurant.name}</h2>
-                        </div>
-                        <p className="text-gray-400 text-sm">{t('userView.fillForm')}</p>
+    return (
+        <div className="rounded-xl bg-[#1A1513] flex flex-col gap-6 pl-6 pr-6 pt-6 md:gap-8 pb-6 w-full max-w-7xl mx-auto">
+            {/* HERO SECTION */}
+            <div className="relative w-full h-[300px] md:h-[450px] rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl group border border-[#2A2A2A]">
+                {restaurant.photoUrl ? (
+                    <img src={restaurant.photoUrl} alt="Hero" className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-105" />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#2A2A2A] to-[#121212] flex items-center justify-center">
+                        <span className="text-8xl opacity-10">🍽️</span>
                     </div>
+                )}
+                {/* Smooth Dark Gradient Masking */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/50 to-transparent"></div>
 
-                    <div className="flex-grow flex flex-col items-center justify-center gap-8">
-                        <div className="text-center space-y-4 max-w-sm mx-auto">
-                            <div className="w-20 h-20 bg-brand-accent/30 rounded-full flex items-center justify-center mx-auto">
-                                <span className="text-4xl">🍽️</span>
-                            </div>
-                            <h3 className="text-xl font-semibold text-white">{t('userView.onlineBooking')}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed">
-                                {t('userView.leaveRequest')}
+                <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+                    <div className="flex items-center md:items-end gap-5 md:gap-8">
+                        {restaurant.logoUrl && (
+                            <img
+                                src={restaurant.logoUrl}
+                                alt="Logo"
+                                className="w-20 h-20 md:w-32 md:h-32 p-2 rounded-2xl object-contain border-2 border-[#2A2A2A] shadow-2xl bg-white flex-shrink-0"
+                            />
+                        )}
+                        <div className="mb-1 md:mb-2">
+                            <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-[#FAF9F6] tracking-tight">{restaurant.name}</h2>
+                            <p className="text-[#A3A3A3] mt-2 md:mt-3 text-sm md:text-lg font-medium max-w-2xl leading-relaxed">
+                                {restaurant.description || t('userView.fillForm')}
                             </p>
                         </div>
-
-                        <button
-                            onClick={() => setShowNoMapModal(true)}
-                            className="bg-brand-blue hover:bg-blue-600 active:scale-95 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-xl transition-all duration-200"
-                        >
-                            {t('userView.bookTableButton')}
-                        </button>
                     </div>
-
-                    {showNoMapModal && selectedRestaurantId && (
-                        <BookingModal
-                            table={null}
-                            restaurantId={selectedRestaurantId}
-                            onClose={() => setShowNoMapModal(false)}
-                            withMap={false}
-                        />
-                    )}
                 </div>
-
-                {(() => {
-                    const depositText = language === 'kz' && restaurant.deposit_kz && restaurant.deposit_kz.trim() !== '' ? restaurant.deposit_kz : restaurant.deposit;
-                    return depositText && depositText.trim() !== '' ? (
-                        <div className="mt-6 flex bg-red-50 border border-red-200 rounded-lg p-4 w-full shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={depositText} /></div>
-                        </div>
-                    ) : null;
-                })()}
             </div>
-        );
-    }
 
-    // ===== WITH MAP MODE =====
-    return (
-        <div className="h-full flex flex-col gap-4 pb-4">
-            <div className="bg-brand-primary p-4 md:p-6 rounded-lg shadow-xl flex-grow overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 flex-none">
-                    <div>
-                        <div className="flex items-center gap-4">
-                            {restaurant.logoUrl && (
-                                <img src={restaurant.logoUrl} alt="Logo" className="w-20 h-20 rounded-full object-contain border-4 border-white/10 shadow-xl bg-white/5 p-1" />
-                            )}
-                            <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{restaurant.name}</h2>
+            {/* BOOKING CTA CARD */}
+            <div className="bg-[#1A1513] rounded-2xl md:rounded-[32px] p-6 md:p-10 shadow-2xl border border-[#2A2A2A] flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative overflow-hidden">
+                <div className="flex-1 z-10">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-center gap-2 bg-[#2A2A2A]/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-green-500/30 w-fit">
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]"></span>
+                            <span className="text-green-400 text-xs font-bold uppercase tracking-wider">{t('app.available') || 'Available Tonight!'}</span>
                         </div>
-                        <p className="text-gray-400 text-sm">{t('userView.clickGreenTable')}</p>
+                        {restaurant.menu && (
+                            <button
+                                onClick={() => setShowMenuModal(true)}
+                                className="bg-[#2A2A2A]/80 hover:bg-[#3A3A3A] text-[#FAF9F6] border border-[#4A4A4A] backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#D4A373]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                                {t('userView.viewMenu') || 'Меню'}
+                            </button>
+                        )}
                     </div>
-
-                    {restaurant.floors && restaurant.floors.length > 1 && (
-                        <div className="flex bg-brand-secondary p-1 rounded-lg border border-brand-accent overflow-x-auto w-full md:w-auto">
-                            {restaurant.floors.map(f => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => setActiveFloorId(f.id)}
-                                    className={`px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap transition-colors ${activeFloorId === f.id
-                                        ? 'bg-brand-blue text-white shadow-lg'
-                                        : 'text-gray-400 hover:text-white'
-                                        }`}
-                                >
-                                    {f.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#FAF9F6]">{t('userView.onlineBooking')}</h3>
+                    <p className="text-[#8A8A8A] text-sm md:text-base mt-2 max-w-lg">{t('userView.leaveRequest')}</p>
                 </div>
 
-                {/* Map Container */}
-                <div
-                    ref={containerRef}
-                    className="w-full bg-[#3d2e23] bg-opacity-50 rounded-xl border-2 border-brand-accent shadow-inner relative flex-grow min-h-[400px] h-[60vh] md:h-[650px] overflow-hidden"
-                    style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
-                    onPointerDown={onPointerDown}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={onPointerUp}
-                    onPointerCancel={onPointerUp}
-                    onPointerLeave={onPointerUp}
-                >
-                    {/* Transform Layer */}
-                    <div
-                        className="absolute top-0 left-0 origin-top-left will-change-transform"
-                        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                <div className="w-full md:w-auto z-10">
+                    <button
+                        onClick={handleMainBookClick}
+                        className="w-full md:w-auto bg-[#E07A5F] hover:bg-[#c96c53] active:scale-[0.98] text-[#FAF9F6] font-bold text-base md:text-lg px-10 py-4 rounded-xl shadow-[0_4px_20px_rgba(224,122,95,0.4)] transition-all duration-300 whitespace-nowrap"
                     >
-                        <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
-                            {activeFloorElements.map((element) =>
-                                element.type === 'table' ? (
-                                    <Table
-                                        key={element.id}
-                                        table={element as TableElement}
-                                        status={tableStatuses[element.id] || 'available'}
-                                        onClick={() => {
-                                            if (draggedRef.current) return;
-                                            setSelectedTable(element as TableElement);
-                                        }}
-                                        offsetX={bounds.minX}
-                                        offsetY={bounds.minY}
-                                    />
-                                ) : (
-                                    <Deco
-                                        key={element.id}
-                                        element={element as DecoElement}
-                                        offsetX={bounds.minX}
-                                        offsetY={bounds.minY}
-                                    />
-                                )
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Zoom Controls Overlay */}
-                    <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10" onPointerDown={e => e.stopPropagation()}>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
-                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
-                        >
-                            +
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
-                            className="w-10 h-10 bg-brand-primary/80 backdrop-blur-sm text-white font-bold rounded-full shadow-lg border border-brand-accent flex items-center justify-center hover:bg-brand-accent active:scale-95 transition-all"
-                        >
-                            -
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); fitToContainer() }}
-                            className="w-10 h-10 bg-brand-blue/90 backdrop-blur-sm text-white text-lg rounded-full shadow-lg border border-blue-400 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all mt-2"
-                            title={t('userView.centerMap')}
-                        >
-                            ⛶
-                        </button>
-                    </div>
-                </div>
-
-                {/* Legend */}
-                <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm flex-none font-medium">
-                    <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-brand-green mr-2 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-                        <span className="text-gray-200">{t('userView.legendAvailable')}</span>
-                    </div>
-                    <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-brand-yellow mr-2 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></div>
-                        <span className="text-gray-200">{t('userView.legendPending')}</span>
-                    </div>
-                    <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-brand-red mr-2 shadow-[0_0_8px_rgba(248,113,113,0.8)]"></div>
-                        <span className="text-gray-200">{t('userView.legendOccupied')}</span>
-                    </div>
+                        {t('userView.bookTableButton')}
+                    </button>
                 </div>
             </div>
 
+            {/* DEPOSIT / AGE RESTRICTION NOTICES */}
             {(() => {
                 const depositText = language === 'kz' && restaurant.deposit_kz && restaurant.deposit_kz.trim() !== '' ? restaurant.deposit_kz : restaurant.deposit;
                 return depositText && depositText.trim() !== '' ? (
-                    <div className="mt-6 flex bg-red-50 border border-red-200 rounded-lg p-4 max-w-2xl mx-auto shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex bg-[#E07A5F]/10 border border-[#E07A5F]/30 rounded-2xl p-5 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#E07A5F] mr-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <div className="text-red-900 font-medium text-sm w-full"><FormattedMessage text={depositText} /></div>
+                        <div className="text-[#D4A373] font-medium text-sm md:text-base w-full"><FormattedMessage text={depositText} /></div>
                     </div>
                 ) : null;
             })()}
+
+            {/* MAP SECTION (Only if withMap) */}
+            {withMap && (
+                <div id="restaurant-map" className="bg-[#1A1513] rounded-2xl md:rounded-[32px] p-6 md:p-8 shadow-2xl border border-[#2A2A2A] flex flex-col flex-grow">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h3 className="text-xl md:text-2xl font-bold text-[#FAF9F6]">{t('app.map') || 'Карта зала'}</h3>
+                            <p className="text-[#8A8A8A] text-sm mt-1">{t('userView.clickGreenTable')}</p>
+                        </div>
+
+                        {restaurant.floors && restaurant.floors.length > 1 && (
+                            <div className="flex bg-[#2A2A2A] p-1.5 rounded-xl border border-[#3A3A3A] overflow-x-auto w-full md:w-auto">
+                                {restaurant.floors.map(f => (
+                                    <button
+                                        key={f.id}
+                                        onClick={() => setActiveFloorId(f.id)}
+                                        className={`px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-300 ${activeFloorId === f.id
+                                            ? 'bg-[#E07A5F] text-[#FAF9F6] shadow-lg'
+                                            : 'text-[#8A8A8A] hover:text-[#FAF9F6] hover:bg-[#3A3A3A]'
+                                            }`}
+                                    >
+                                        {f.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div
+                        ref={containerRef}
+                        className="w-full bg-[#121212] rounded-xl border border-[#2A2A2A] relative flex-grow min-h-[400px] h-[60vh] md:h-[650px] overflow-hidden shadow-inner"
+                        style={{ touchAction: 'none', cursor: isDragging.current ? 'grabbing' : 'grab' }}
+                        onPointerDown={onPointerDown}
+                        onPointerMove={onPointerMove}
+                        onPointerUp={onPointerUp}
+                        onPointerCancel={onPointerUp}
+                        onPointerLeave={onPointerUp}
+                    >
+                        {/* Transform Layer */}
+                        <div
+                            className="absolute top-0 left-0 origin-top-left will-change-transform"
+                            style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                        >
+                            <div style={{ width: dynamicWidth, height: dynamicHeight, position: 'relative' }}>
+                                {activeFloorElements.map((element) =>
+                                    element.type === 'table' ? (
+                                        <Table
+                                            key={element.id}
+                                            table={element as TableElement}
+                                            status={tableStatuses[element.id] || 'available'}
+                                            onClick={() => {
+                                                if (draggedRef.current) return;
+                                                setSelectedTable(element as TableElement);
+                                            }}
+                                            offsetX={bounds.minX}
+                                            offsetY={bounds.minY}
+                                        />
+                                    ) : (
+                                        <Deco
+                                            key={element.id}
+                                            element={element as DecoElement}
+                                            offsetX={bounds.minX}
+                                            offsetY={bounds.minY}
+                                        />
+                                    )
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Zoom Controls Overlay */}
+                        <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-10" onPointerDown={e => e.stopPropagation()}>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale * 1.3)) }}
+                                className="w-12 h-12 bg-[#2A2A2A]/90 backdrop-blur-sm text-[#FAF9F6] font-bold rounded-full shadow-lg border border-[#4A4A4A] flex items-center justify-center hover:bg-[#3A3A3A] hover:border-[#D4A373] active:scale-95 transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setTransform(p => enforceTransformBounds(p.x, p.y, p.scale / 1.3)) }}
+                                className="w-12 h-12 bg-[#2A2A2A]/90 backdrop-blur-sm text-[#FAF9F6] font-bold rounded-full shadow-lg border border-[#4A4A4A] flex items-center justify-center hover:bg-[#3A3A3A] hover:border-[#D4A373] active:scale-95 transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); fitToContainer() }}
+                                className="w-12 h-12 bg-[#D4A373]/90 backdrop-blur-sm text-white rounded-full shadow-lg border border-[#D4A373] flex items-center justify-center hover:bg-[#E07A5F] hover:border-[#E07A5F] active:scale-95 transition-all mt-2"
+                                title={t('userView.centerMap')}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap justify-center gap-6 mt-6 text-sm font-medium">
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 rounded-full bg-brand-green mr-2 shadow-[0_0_10px_rgba(74,222,128,0.5)]"></div>
+                            <span className="text-[#A3A3A3]">{t('userView.legendAvailable')}</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 rounded-full bg-brand-yellow mr-2 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                            <span className="text-[#A3A3A3]">{t('userView.legendPending')}</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 rounded-full bg-brand-red mr-2 shadow-[0_0_10px_rgba(248,113,113,0.5)]"></div>
+                            <span className="text-[#A3A3A3]">{t('userView.legendOccupied')}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showNoMapModal && selectedRestaurantId && (
+                <BookingModal
+                    table={null}
+                    restaurantId={selectedRestaurantId}
+                    onClose={() => setShowNoMapModal(false)}
+                    withMap={false}
+                />
+            )}
 
             {selectedTable && selectedRestaurantId && (
                 <BookingModal
                     table={selectedTable}
                     restaurantId={selectedRestaurantId}
                     onClose={() => setSelectedTable(null)}
+                />
+            )}
+
+            {showMenuModal && selectedRestaurantId && (
+                <GuestMenuModal
+                    restaurantId={selectedRestaurantId}
+                    onClose={() => setShowMenuModal(false)}
                 />
             )}
         </div>

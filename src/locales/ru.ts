@@ -13,6 +13,7 @@ export const ru = {
         currentRestaurant: 'Текущий ресторан:',
         changeRestaurant: 'Сменить ресторан',
         logout: 'Выйти',
+        available: 'Свободно'
     },
     login: {
         noAdminRestaurants: 'Для этого email не найдено доступных ресторанов',
@@ -40,7 +41,8 @@ export const ru = {
         centerMap: 'Центрировать',
         legendAvailable: 'Доступен',
         legendPending: 'Ожидает',
-        legendOccupied: 'Занят'
+        legendOccupied: 'Занят',
+        viewMenu: 'Посмотреть меню'
     },
     bookingModal: {
         successTitle: 'Бронь успешно создана!',
