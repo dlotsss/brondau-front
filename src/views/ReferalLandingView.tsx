@@ -114,7 +114,7 @@ const ReferalLandingView: React.FC = () => {
                             Реферальная программа Brondau
                         </div>
                         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-                            Зарабатывайте до <span className="text-brand-blue">20 000 ₸</span> с каждого знакомого ресторана или клуба
+                            Зарабатывайте до <span className="text-brand-blue">25 000 ₸</span> с каждого знакомого ресторана или клуба
                         </h1>
                         <p className="text-lg md:text-2xl text-brand-primary/80 leading-relaxed mb-10 px-2">
                             Вы приводите заведение — мы платим вам за рекомендацию. Ресторан получает бонусы, вы — честные выплаты. Без лимитов на количество приглашений.
@@ -128,7 +128,7 @@ const ReferalLandingView: React.FC = () => {
                     {/* Quick stats */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 max-w-3xl mx-auto">
                         <div className="bg-white p-6 rounded-2xl shadow-md border border-brand-accent/20">
-                            <div className="text-3xl md:text-4xl font-extrabold text-brand-blue mb-1">До 20 000 ₸</div>
+                            <div className="text-3xl md:text-4xl font-extrabold text-brand-blue mb-1">До 25 000 ₸</div>
                             <div className="text-brand-primary/70">Выплата за 1 заведение</div>
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-md border border-brand-accent/20">
@@ -187,9 +187,9 @@ const ReferalLandingView: React.FC = () => {
                                         <div className="text-xl font-bold">Стабильный бонус</div>
                                     </div>
                                 </div>
-                                <div className="text-4xl md:text-5xl font-extrabold text-brand-accent mb-4">15 000 ₸</div>
+                                <div className="text-4xl md:text-5xl font-extrabold text-brand-accent mb-4">20 000 ₸</div>
                                 <p className="text-brand-primary/80 leading-relaxed text-lg">
-                                    Если ресторан оценивает пользу Brondau и остается с нами работать дальше на 3 месяца (переходит на платную подписку) — мы выплачиваем вам еще <strong>15 000 ₸</strong> сверху.
+                                    Если ресторан оценивает пользу Brondau и остается с нами работать дальше на 3 месяца (переходит на платную подписку) — мы выплачиваем вам еще <strong>20 000 ₸</strong> сверху.
                                 </p>
                             </div>
                         </div>
