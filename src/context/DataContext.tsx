@@ -87,7 +87,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 assignedTo: b.assigned_to,
                 dateTime: new Date(b.date_time),
                 deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
-                createdAt: new Date(b.created_at)
+                createdAt: new Date(b.created_at),
+                updatedAt: b.updated_at ? new Date(b.updated_at) : undefined
               }))
             };
           } catch (e) {
@@ -144,7 +145,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     assignedTo: b.assigned_to,
     dateTime: new Date(b.date_time),
     deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
-    createdAt: new Date(b.created_at)
+    createdAt: new Date(b.created_at),
+    updatedAt: b.updated_at ? new Date(b.updated_at) : undefined
   });
 
   const loadBookings = useCallback(async (restaurantId: string, date?: string) => {
@@ -186,9 +188,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const getAdminRestaurants = useCallback(async (email: string) => {
+  const getAdminRestaurants = useCallback(async (email: string, forAnalytics?: boolean) => {
     try {
-      return await api.auth.getAdminRestaurants(email);
+      return await api.auth.getAdminRestaurants(email, forAnalytics);
     } catch (error) {
       console.error('Failed to get admin restaurants:', error);
       return [];
@@ -208,14 +210,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email: string,
     password: string,
     role: UserRole,
-    restaurantId?: string
+    restaurantId?: string,
+    forAnalytics?: boolean
   ): Promise<User | undefined> => {
     try {
       let userData;
       if (role === 'OWNER') {
         userData = await api.auth.owner({ email, password, restaurantId });
       } else {
-        userData = await api.auth.admin({ email, password, restaurantId });
+        userData = await api.auth.admin({ email, password, restaurantId, forAnalytics });
       }
 
       const finalUser: User = {
@@ -362,7 +365,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             assignedTo: b.assigned_to,
             dateTime: new Date(b.date_time),
             deadlineAt: b.deadline_at ? new Date(b.deadline_at) : undefined,
-            createdAt: new Date(b.created_at)
+            createdAt: new Date(b.created_at),
+            updatedAt: b.updated_at ? new Date(b.updated_at) : undefined
           }]
         }
         : r
@@ -383,7 +387,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           duration: updatedBooking.duration,
           assignedTo: updatedBooking.assigned_to,
           tableIds: updatedBooking.tableIds,
-          tableLabels: updatedBooking.tableLabels
+          tableLabels: updatedBooking.tableLabels,
+          updatedAt: updatedBooking.updated_at ? new Date(updatedBooking.updated_at) : undefined
         } : b)
       })));
     } catch (error) {
@@ -408,7 +413,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           guestComment: updatedBooking.guest_comment,
           assignedTo: updatedBooking.assigned_to,
           duration: updatedBooking.duration,
-          dateTime: new Date(updatedBooking.date_time)
+          dateTime: new Date(updatedBooking.date_time),
+          updatedAt: updatedBooking.updated_at ? new Date(updatedBooking.updated_at) : undefined
         } : b)
       })));
     } catch (error) {

@@ -72,6 +72,7 @@ const LandingView: React.FC = () => {
                         {/* Desktop Menu */}
                         <div className="hidden md:flex space-x-8">
                             <a href="#reviews" onClick={(e) => scrollToSection(e, 'reviews')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Отзывы</a>
+                            <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Тарифы</a>
                             <a href="#turnkey" onClick={(e) => scrollToSection(e, 'turnkey')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Внедрение под ключ</a>
                             <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-brand-primary font-medium hover:text-brand-blue transition-colors cursor-pointer">Как это работает</a>
                         </div>
@@ -95,6 +96,7 @@ const LandingView: React.FC = () => {
                 {isMenuOpen && (
                     <div className="md:hidden bg-brand-secondary border-b border-brand-accent/20 px-4 py-4 space-y-4 shadow-lg absolute w-full left-0 top-20">
                         <a href="#reviews" onClick={(e) => scrollToSection(e, 'reviews')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Отзывы</a>
+                        <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Тарифы</a>
                         <a href="#turnkey" onClick={(e) => scrollToSection(e, 'turnkey')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Внедрение под ключ</a>
                         <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-brand-primary font-medium text-lg hover:text-brand-blue transition-colors cursor-pointer">Как это работает</a>
                         <a href="#cta-form" onClick={(e) => scrollToSection(e, 'cta-form')} className="block text-center mt-4 w-full px-6 py-3 border border-transparent rounded-full shadow-sm text-lg font-medium text-brand-secondary bg-brand-primary hover:opacity-90 transition-opacity cursor-pointer">
@@ -300,6 +302,136 @@ const LandingView: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* PRICING SECTION */}
+            <section id="pricing" className="py-24 bg-brand-primary text-brand-secondary">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-6">Простые и прозрачные тарифы</h2>
+                        <p className="text-xl text-brand-secondary/80">
+                            Выберите подходящий план для автоматизации вашего заведения. Начните с 2 недель бесплатного тест-драйва.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-8 items-stretch">
+                        
+                        {/* Plan 1: Base */}
+                        <div className="bg-[#FAF6F0] text-brand-primary p-8 rounded-3xl shadow-xl flex flex-col justify-between border border-brand-accent/10 hover:-translate-y-1 transition-transform duration-200">
+                            <div>
+                                <h3 className="text-2xl font-black mb-2 uppercase tracking-wide">Базовый</h3>
+                                <p className="text-sm text-brand-primary/60 mb-6">Автоматизация посадки и порядка на входе</p>
+                                <div className="mb-8">
+                                    <span className="text-4xl font-black">19 990 ₸</span>
+                                    <span className="text-brand-primary/60 text-sm"> / мес.</span>
+                                </div>
+                                <ul className="space-y-4 mb-8">
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Автоматизация броней</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Управление залом</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>База данных гостей</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>История броней на любой день</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <a 
+                                href="#cta-form" 
+                                onClick={(e) => {
+                                    scrollToSection(e, 'cta-form');
+                                    setPromo('БАЗОВЫЙ');
+                                }} 
+                                className="w-full text-center inline-block py-3 px-6 border-2 border-brand-primary font-bold rounded-full hover:bg-brand-primary hover:text-brand-secondary transition-all"
+                            >
+                                Выбрать Базовый
+                            </a>
+                        </div>
+
+                        {/* Plan 2: Advanced (Popular) */}
+                        <div className="bg-brand-secondary text-brand-primary p-8 rounded-3xl shadow-2xl flex flex-col justify-between border-2 border-brand-blue relative hover:-translate-y-1 transition-transform duration-200">
+                            <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-brand-blue text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md">
+                                Популярный
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black mb-2 uppercase tracking-wide">Продвинутый</h3>
+                                <p className="text-sm text-brand-primary/60 mb-6">Максимум возможностей для роста прибыли</p>
+                                <div className="mb-8">
+                                    <span className="text-4xl font-black">34 990 ₸</span>
+                                    <span className="text-brand-primary/60 text-sm"> / мес.</span>
+                                </div>
+                                <ul className="space-y-4 mb-8">
+                                    <li className="flex items-start gap-2.5 text-sm font-semibold">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Все фичи базового тарифа</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Меню заведения</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Кастомная аналитика</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <a 
+                                href="#cta-form" 
+                                onClick={(e) => {
+                                    scrollToSection(e, 'cta-form');
+                                    setPromo('ПРОДВИНУТЫЙ');
+                                }} 
+                                className="w-full text-center inline-block py-3.5 px-6 bg-brand-blue text-white font-bold rounded-full shadow-lg hover:bg-brand-blue/90 hover:scale-105 transition-all"
+                            >
+                                Выбрать Продвинутый
+                            </a>
+                        </div>
+
+                        {/* Plan 3: Custom */}
+                        <div className="bg-[#FAF6F0] text-brand-primary p-8 rounded-3xl shadow-xl flex flex-col justify-between border border-brand-accent/10 hover:-translate-y-1 transition-transform duration-200">
+                            <div>
+                                <h3 className="text-2xl font-black mb-2 uppercase tracking-wide">Кастомный</h3>
+                                <p className="text-sm text-brand-primary/60 mb-6">Индивидуальные решения под ваши задачи</p>
+                                <div className="mb-8">
+                                    <span className="text-4xl font-black">Индивидуально</span>
+                                </div>
+                                <ul className="space-y-4 mb-8">
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Функции выбираются заказчиком</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Персональные интеграции</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-sm">
+                                        <CheckCircle2 className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+                                        <span>Выделенная техподдержка 24/7</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <a 
+                                href="#cta-form" 
+                                onClick={(e) => {
+                                    scrollToSection(e, 'cta-form');
+                                    setPromo('КАСТОМНЫЙ');
+                                }} 
+                                className="w-full text-center inline-block py-3 px-6 border-2 border-brand-primary font-bold rounded-full hover:bg-brand-primary hover:text-brand-secondary transition-all"
+                            >
+                                Связаться с нами
+                            </a>
+                        </div>
+
                     </div>
                 </div>
             </section>

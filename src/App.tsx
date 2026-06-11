@@ -13,6 +13,9 @@ import UserView from './views/UserView';
 import AdminView from './views/AdminView';
 import ConstructorView from './views/ConstructorView';
 import BookingCancellationView from './views/BookingCancellationView';
+import { AnalyticsAuthProvider } from './context/AnalyticsAuthContext';
+import AnalyticsLoginView from './views/AnalyticsLoginView';
+import AnalyticsDashboardView from './views/AnalyticsDashboardView';
 
 const RestaurantWrapper: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -77,6 +80,8 @@ const AppContent: React.FC = () => {
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/login-rest" element={currentUser && currentUser.role !== 'GUEST' ? <Navigate to="/" replace /> : <LoginView />} />
             <Route path="/cancel-booking/:token" element={<BookingCancellationView />} />
+            <Route path="/analytics" element={<AnalyticsLoginView />} />
+            <Route path="/analytics/dashboard" element={<AnalyticsDashboardView />} />
             <Route path="/" element={<RestaurantListView />} />
             <Route path="/restaurant/:id" element={<RestaurantWrapper />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -90,9 +95,11 @@ const App: React.FC = () => {
         <I18nProvider>
             <DataProvider>
                 <AppProvider>
-                    <BrowserRouter>
-                        <AppContent />
-                    </BrowserRouter>
+                    <AnalyticsAuthProvider>
+                        <BrowserRouter>
+                            <AppContent />
+                        </BrowserRouter>
+                    </AnalyticsAuthProvider>
                 </AppProvider>
             </DataProvider>
         </I18nProvider>

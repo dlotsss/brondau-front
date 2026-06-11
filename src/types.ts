@@ -96,6 +96,7 @@ export interface Booking {
   assignedTo?: string;
   deadlineAt?: Date;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export type PublicCancelBookingInfo = {

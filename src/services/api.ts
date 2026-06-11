@@ -60,6 +60,7 @@ export const api = {
             body: JSON.stringify(data),
         }),
         getBookings: (id: string, date?: string) => request<any[]>((date ? `/restaurants/${id}/bookings?date=${date}` : `/restaurants/${id}/bookings`)),
+        getBookingsRange: (id: string, from: string, to: string) => request<any[]>(`/restaurants/${id}/bookings-range?from=${from}&to=${to}`),
         createBooking: (id: string, data: any) => request<any>(`/restaurants/${id}/bookings`, {
             method: 'POST',
             body: JSON.stringify(data),
@@ -89,9 +90,9 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-        getAdminRestaurants: (email: string) => request<{ id: string, name: string }[]>('/auth/admin/restaurants', {
+        getAdminRestaurants: (email: string, forAnalytics?: boolean) => request<{ id: string, name: string }[]>('/auth/admin/restaurants', {
             method: 'POST',
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email, forAnalytics }),
         }),
         getOwnerRestaurants: (email: string) => request<{ id: string, name: string }[]>('/auth/owner/restaurants', {
             method: 'POST',
