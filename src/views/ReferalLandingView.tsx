@@ -81,6 +81,7 @@ const ReferalLandingView: React.FC = () => {
                             <span className="text-2xl font-bold tracking-tight">Brondau</span>
                         </div>
                         <div className="hidden md:flex space-x-8">
+                            <a href="#about-product" onClick={(e) => scrollToSection(e, 'about-product')} className="font-medium hover:text-brand-blue transition-colors cursor-pointer">О продукте</a>
                             <a href="#how" onClick={(e) => scrollToSection(e, 'how')} className="font-medium hover:text-brand-blue transition-colors cursor-pointer">План выплат</a>
                             <a href="#value" onClick={(e) => scrollToSection(e, 'value')} className="font-medium hover:text-brand-blue transition-colors cursor-pointer">Почему это работает</a>
                         </div>
@@ -98,6 +99,7 @@ const ReferalLandingView: React.FC = () => {
                 </div>
                 {isMenuOpen && (
                     <div className="md:hidden bg-brand-secondary border-b border-brand-accent/20 px-4 py-4 space-y-4 shadow-lg absolute w-full left-0 top-20">
+                        <a href="#about-product" onClick={(e) => scrollToSection(e, 'about-product')} className="block font-medium text-lg hover:text-brand-blue">О продукте</a>
                         <a href="#how" onClick={(e) => scrollToSection(e, 'how')} className="block font-medium text-lg hover:text-brand-blue">План выплат</a>
                         <a href="#value" onClick={(e) => scrollToSection(e, 'value')} className="block font-medium text-lg hover:text-brand-blue">Почему это работает</a>
                         <a href="#form" onClick={(e) => scrollToSection(e, 'form')} className="block text-center mt-4 w-full px-6 py-3 rounded-full text-lg font-medium text-brand-secondary bg-brand-primary hover:opacity-90">Стать партнером</a>
@@ -138,6 +140,116 @@ const ReferalLandingView: React.FC = () => {
                         <div className="bg-white p-6 rounded-2xl shadow-md border border-brand-accent/20">
                             <div className="text-3xl md:text-4xl font-extrabold text-brand-accent mb-1">∞</div>
                             <div className="text-brand-primary/70">Нет лимита на приглашения</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 1.5. ABOUT PRODUCT */}
+            <section id="about-product" className="py-16 md:py-24 bg-brand-secondary border-t border-brand-accent/20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl md:text-5xl font-bold text-brand-primary mb-6">
+                            Что такое Brondau?
+                        </h2>
+                        <p className="text-xl text-brand-primary/80 leading-relaxed">
+                            <strong>Brondau</strong> — это современная интерактивная система онлайн-бронирования столов и управления залом для ресторанов, баров и клубов. Мы заменяем бумажные блокноты и сложные, дорогие CRM-системы простым и красивым решением.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {/* Feature 1 */}
+                        <div className="bg-white p-6 rounded-3xl shadow-lg border border-brand-accent/10 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-200">
+                            <div>
+                                <div className="w-12 h-12 bg-brand-blue/10 rounded-2xl flex items-center justify-center mb-6">
+                                    <Utensils className="w-6 h-6 text-brand-blue" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3">Интерактивный зал</h3>
+                                <p className="text-brand-primary/70 text-sm leading-relaxed">
+                                    Гости видят точную и красивую цифровую схему заведения и могут сами выбрать понравившийся свободный стол (у окна, на террасе, в VIP-зоне).
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Feature 2 */}
+                        <div className="bg-white p-6 rounded-3xl shadow-lg border border-brand-accent/10 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-200">
+                            <div>
+                                <div className="w-12 h-12 bg-brand-green/10 rounded-2xl flex items-center justify-center mb-6">
+                                    <CheckCircle2 className="w-6 h-6 text-brand-green" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3">Бронирование 24/7</h3>
+                                <p className="text-brand-primary/70 text-sm leading-relaxed">
+                                    Клиенты бронируют столы напрямую через виджет в Instagram, 2ГИС или на сайте. Система работает автоматически, исключая овербукинг и пропущенные звонки.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Feature 3 */}
+                        <div className="bg-white p-6 rounded-3xl shadow-lg border border-brand-accent/10 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-200">
+                            <div>
+                                <div className="w-12 h-12 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-6">
+                                    <Gift className="w-6 h-6 text-brand-accent" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3">WhatsApp рассылки</h3>
+                                <p className="text-brand-primary/70 text-sm leading-relaxed">
+                                    Гости мгновенно получают подтверждения бронирования, напоминания о визите и удобную ссылку для отмены прямо в WhatsApp.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Feature 4 */}
+                        <div className="bg-white p-6 rounded-3xl shadow-lg border border-brand-accent/10 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-200">
+                            <div>
+                                <div className="w-12 h-12 bg-brand-blue/10 rounded-2xl flex items-center justify-center mb-6">
+                                    <Users className="w-6 h-6 text-brand-blue" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3">CRM & Аналитика</h3>
+                                <p className="text-brand-primary/70 text-sm leading-relaxed">
+                                    Автоматический сбор базы гостей, история визитов, статистика заполняемости зала по часам и отчеты по эффективности работы персонала.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-16 bg-brand-primary text-brand-secondary rounded-3xl p-8 md:p-12 shadow-xl border border-brand-accent/20">
+                        <div className="grid md:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h3 className="text-2xl font-bold mb-4">Главное преимущество — внедрение «под ключ»</h3>
+                                <p className="text-brand-secondary/80 leading-relaxed mb-6">
+                                    Рестораторам не нужно ничего настраивать самостоятельно. Мы берём чертеж зала (даже нарисованный от руки на салфетке), оцифровываем его и выдаем готовую ссылку на виджет за 1 день.
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <div className="w-2 h-2 rounded-full bg-brand-green"></div>
+                                        <span>Без сложного обучения персонала</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <div className="w-2 h-2 rounded-full bg-brand-green"></div>
+                                        <span>Работает на любом планшете, телефоне или ПК</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <div className="w-2 h-2 rounded-full bg-brand-green"></div>
+                                        <span>2 недели пробного периода + отрисовка карты бесплатно</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-[#FAF6F0] text-brand-primary rounded-2xl p-6 relative overflow-hidden border border-brand-accent/10">
+                                <div className="font-bold text-lg mb-4 text-[#C27D3E]">Результат для заведения:</div>
+                                <ul className="space-y-4 text-sm text-brand-primary/95">
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-brand-green font-bold">✓</span>
+                                        <span>Хостес больше не тратит 80% времени на звонки</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-brand-green font-bold">✓</span>
+                                        <span>Рост выручки за счет автономных ночных бронирований</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-brand-green font-bold">✓</span>
+                                        <span>Снижение no-show (неприходов) благодаря автонапоминаниям</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
